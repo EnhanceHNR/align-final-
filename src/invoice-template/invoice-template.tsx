@@ -9,7 +9,7 @@ export default function InvoiceTemplate({
                                           invoice,
                                         }: Props) {
   const formattedDate = new Date(invoice.date).toLocaleDateString(
-    "bs-BA",
+    "en-GB",
     {
       day: "2-digit",
       month: "2-digit",
@@ -38,7 +38,7 @@ export default function InvoiceTemplate({
 
             <div>
               <p className="text-xs tracking-wide">
-                PRIVATNA STOMATOLOŠKA ORDINACIJA
+                PRIVATE DENTAL CLINIC
               </p>
 
               <h1 className="mt-1 text-3xl font-bold">
@@ -56,11 +56,11 @@ export default function InvoiceTemplate({
 
           <div className="text-right text-sm">
             <p>
-              <strong>Broj računa:</strong> {invoice.id}
+              <strong>Invoice No:</strong> {invoice.id}
             </p>
 
             <p className="mt-2">
-              <strong>Datum:</strong> {formattedDate}
+              <strong>Date:</strong> {formattedDate}
             </p>
           </div>
 
@@ -68,13 +68,13 @@ export default function InvoiceTemplate({
 
         {/* Title */}
         <h2 className="my-10 text-center text-3xl font-bold tracking-wide">
-          RAČUN
+          INVOICE
         </h2>
 
         {/* Patient */}
         <div className="mb-8 border p-4">
           <p className="text-sm text-gray-500">
-            Pacijent
+            Patient
           </p>
 
           <p className="mt-1 text-lg font-semibold">
@@ -87,19 +87,19 @@ export default function InvoiceTemplate({
           <thead>
           <tr className="bg-gray-100">
             <th className="border p-3 text-left">
-              Usluga
+              Service
             </th>
 
             <th className="border p-3 text-center">
-              Količina
+              Quantity
             </th>
 
             <th className="border p-3 text-right">
-              Cijena
+              Price
             </th>
 
             <th className="border p-3 text-right">
-              Ukupno
+              Total
             </th>
           </tr>
           </thead>
@@ -131,7 +131,7 @@ export default function InvoiceTemplate({
         <div className="mt-8 flex justify-end">
           <div className="w-64 border-t-2 border-black pt-4 text-right">
             <p className="text-sm uppercase tracking-wide text-gray-500">
-              Ukupno za platiti
+              Total to pay
             </p>
 
             <p className="text-3xl font-bold">
@@ -139,7 +139,7 @@ export default function InvoiceTemplate({
             </p>
 
             <p className="mt-2 text-xs text-gray-500">
-              U cijenu je uračunat PDV 17%.
+              The price includes 17% VAT.
             </p>
           </div>
         </div>
@@ -150,7 +150,7 @@ export default function InvoiceTemplate({
 
             <div className="text-sm text-gray-700">
               <p className="font-medium">
-                Hvala na povjerenju!
+                Thank you for your trust!
               </p>
 
               <p className="mt-4">
@@ -160,7 +160,7 @@ export default function InvoiceTemplate({
 
             <div className="text-right">
               <p className="mb-12 text-sm text-gray-500">
-                Potpis i pečat
+                Signature and stamp
               </p>
 
               <div className="mb-3 w-48 border-b border-black" />
@@ -170,7 +170,7 @@ export default function InvoiceTemplate({
               </p>
 
               <p className="text-sm text-gray-500">
-                Stomatolog
+                Dentist
               </p>
             </div>
 

@@ -4,14 +4,15 @@ import { useSession } from "next-auth/react";
 import { api } from "~/trpc/react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import Link from "next/link";
+import { LabAlerts } from "@/components/lab/LabAlerts";
  
  
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-    SCHEDULED:   { label: "Zakazano",  color: "#3b82f6", bg: "bg-blue-50 text-blue-700 border-blue-200" },
-    WAITING:     { label: "Čeka",      color: "#eab308", bg: "bg-yellow-50 text-yellow-700 border-yellow-200" },
-    IN_PROGRESS: { label: "U toku",    color: "#f97316", bg: "bg-orange-50 text-orange-700 border-orange-200" },
-    COMPLETED:   { label: "Završeno",  color: "#22c55e", bg: "bg-green-50 text-green-700 border-green-200" },
-    CANCELLED:   { label: "Otkazano",  color: "#94a3b8", bg: "bg-gray-50 text-gray-400 border-gray-200" },
+    SCHEDULED:   { label: "Scheduled",  color: "#3b82f6", bg: "bg-blue-50 text-blue-700 border-blue-200" },
+    WAITING:     { label: "Waiting",      color: "#eab308", bg: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+    IN_PROGRESS: { label: "In Progress",    color: "#f97316", bg: "bg-orange-50 text-orange-700 border-orange-200" },
+    COMPLETED:   { label: "Completed",  color: "#22c55e", bg: "bg-green-50 text-green-700 border-green-200" },
+    CANCELLED:   { label: "Cancelled",  color: "#94a3b8", bg: "bg-gray-50 text-gray-400 border-gray-200" },
 };
  
 function formatTime(date: Date | string) {
@@ -46,34 +47,36 @@ export default function DashboardPage() {
  
             <div>
                 <h1 className="text-2xl font-bold text-slate-900">
-                    Dobro jutro, {session?.user?.role === "MASTER" ? "Doktore" : ""}
+                    Good morning, {session?.user?.role === "MASTER" ? "Doctor" : ""}
                 </h1>
                 <p className="text-sm text-slate-500 mt-1">
-                    Pregled rada za danas
+                    Overview of work for today
                 </p>
             </div>
+
+            <LabAlerts />
  
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
-                    label="Ukupno termina"
+                    label="Total Appointments"
                     value={isLoading ? "..." : String(stats?.total ?? 0)}
                     color="text-blue-600"
                     bg="bg-blue-50"
                 />
                 <StatCard
-                    label="Danas"
+                    label="Today"
                     value={isLoading ? "..." : String(stats?.todaysAppointments.length ?? 0)}
                     color="text-orange-600"
                     bg="bg-orange-50"
                 />
                 <StatCard
-                    label="Završeno"
+                    label="Completed"
                     value={isLoading ? "..." : String(stats?.statusCounts.COMPLETED ?? 0)}
                     color="text-green-600"
                     bg="bg-green-50"
                 />
                 <StatCard
-                    label="Novi pacijenti (ovaj mj.)"
+                    label="New Patients (this mo.)"
                     value={isLoading ? "..." : String(stats?.newPatientsThisMonth ?? 0)}
                     color="text-purple-600"
                     bg="bg-purple-50"
@@ -84,18 +87,18 @@ export default function DashboardPage() {
  
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                     <h2 className="text-lg font-semibold text-slate-800 mb-4">
-                        Termini po statusu
+                        Appointments by Status
                     </h2>
  
                     {isLoading && (
                         <div className="flex items-center justify-center h-48 text-gray-400">
-                            Učitavanje...
+                            Loading...
                         </div>
                     )}
  
                     {!isLoading && pieData.length === 0 && (
                         <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
-                            Nema podataka za prikaz.
+                            No data to display.
                         </div>
                     )}
  
@@ -144,22 +147,22 @@ export default function DashboardPage() {
  
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-slate-800">Termini danas</h2>
+                        <h2 className="text-lg font-semibold text-slate-800">Appointments Today</h2>
                         <Link
                             href="/dashboard/appointments"
                             className="text-sm text-blue-600 hover:underline"
                         >
-                            Vidi sve →
+                            View all →
                         </Link>
                     </div>
  
                     {isLoading && (
-                        <p className="text-sm text-gray-400 text-center py-8">Učitavanje...</p>
+                        <p className="text-sm text-gray-400 text-center py-8">Loading...</p>
                     )}
  
                     {!isLoading && stats?.todaysAppointments.length === 0 && (
                         <p className="text-sm text-gray-400 text-center py-8">
-                            Nema zakazanih termina za danas.
+                            No scheduled appointments for today.
                         </p>
                     )}
  
@@ -192,7 +195,7 @@ export default function DashboardPage() {
                                             onClick={() => updateStatus.mutate({ id: appt.id, status: "WAITING" })}
                                             className="text-xs px-2 py-0.5 rounded-lg bg-white/70 hover:bg-white font-medium transition border"
                                         >
-                                            → Čeka
+                                            → Wait
                                         </button>
                                     )}
                                     {appt.status === "WAITING" && (
@@ -200,7 +203,7 @@ export default function DashboardPage() {
                                             onClick={() => updateStatus.mutate({ id: appt.id, status: "IN_PROGRESS" })}
                                             className="text-xs px-2 py-0.5 rounded-lg bg-white/70 hover:bg-white font-medium transition border"
                                         >
-                                            → U toku
+                                            → Start
                                         </button>
                                     )}
                                     {appt.status === "IN_PROGRESS" && (
@@ -208,7 +211,7 @@ export default function DashboardPage() {
                                             onClick={() => updateStatus.mutate({ id: appt.id, status: "COMPLETED" })}
                                             className="text-xs px-2 py-0.5 rounded-lg bg-white/70 hover:bg-white font-medium transition border"
                                         >
-                                            ✓ Završi
+                                            ✓ Complete
                                         </button>
                                     )}
                                 </div>

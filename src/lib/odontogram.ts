@@ -24,12 +24,12 @@ export type OdontogramCondition = (typeof ODONTOGRAM_CONDITIONS)[number];
 
 
 export const ODONTOGRAM_CONDITION_LABELS: Record<OdontogramCondition, string> = {
-    healthy: "Zdrav zub (Healthy)",
-    caries: "Karijes (Caries)",
-    missing: "Nedostaje zub (Missing)",
-    filled: "Plomba (Filled)",
-    bridge: "Most (Bridge)",
-    implant: "Implantat (Implant)",
+    healthy: "Healthy tooth",
+    caries: "Caries",
+    missing: "Missing tooth",
+    filled: "Filled",
+    bridge: "Bridge",
+    implant: "Implant",
 };
 
 

@@ -32,14 +32,14 @@ export default function InvoiceActions({ invoiceId }: Props) {
         onClick={handleDownloadPDF}
         disabled={!invoiceId}
       >
-        Preuzmi PDF
+        Download PDF
       </Button>
 
       <Button
         onClick={handleMarkAsPaid}
         disabled={!invoiceId || markAsPaid.isPending}
       >
-        {markAsPaid.isPending ? "Označavanje..." : "Označi kao plaćen"}
+        {markAsPaid.isPending ? "Marking..." : "Mark as paid"}
       </Button>
     </div>
   );

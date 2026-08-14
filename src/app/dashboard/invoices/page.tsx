@@ -5,9 +5,9 @@ import { Eye, Pencil, Trash2 } from "lucide-react";
 import { api } from "~/trpc/react";
 
 const statusLabels: Record<string, string> = {
-  DRAFT: "Nacrt",
-  PAID: "Plaćen",
-  UNPAID: "Neplaćen",
+  DRAFT: "Draft",
+  PAID: "Paid",
+  UNPAID: "Unpaid",
 };
 
 export default function InvoicesPage() {
@@ -30,7 +30,7 @@ export default function InvoicesPage() {
   });
 
   const handleDelete = (id: string) => {
-    if (confirm("Da li ste sigurni da želite obrisati ovaj račun?")) {
+    if (confirm("Are you sure you want to delete this invoice?")) {
       deleteInvoice.mutate({ id });
     }
   };
@@ -43,11 +43,11 @@ export default function InvoicesPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-semibold">
-              Računi i Naplata
+              Invoices and Billing
             </h1>
 
             <p className="mt-1 text-gray-500">
-              Pregled svih računa i uplata.
+              Overview of all invoices and payments.
             </p>
           </div>
 
@@ -56,14 +56,14 @@ export default function InvoicesPage() {
               href="/dashboard/invoices/create"
               className="rounded-xl bg-blue-600 px-5 py-3 text-white transition hover:bg-blue-700"
             >
-              + Novi račun
+              + New invoice
             </Link>
 
             <Link
               href="/dashboard/price-list"
               className="rounded-xl bg-teal-600 px-5 py-3 text-white transition hover:bg-teal-700"
             >
-              Cjenovnik
+              Price list
             </Link>
           </div>
         </div>
@@ -72,7 +72,7 @@ export default function InvoicesPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Pretraži račune..."
+            placeholder="Search invoices..."
             className="w-full rounded-xl border border-gray-200 p-3 outline-none transition focus:ring-2 focus:ring-blue-400"
           />
         </div>
@@ -81,22 +81,22 @@ export default function InvoicesPage() {
         <div className="overflow-hidden rounded-3xl bg-white shadow-sm">
           {isLoading ? (
             <div className="px-6 py-10 text-center text-gray-500">
-              Učitavanje...
+              Loading...
             </div>
           ) : error ? (
             <div className="px-6 py-10 text-center text-red-500">
-              Greška pri učitavanju računa.
+              Error loading invoices.
             </div>
           ) : (
             <table className="w-full">
               <thead className="border-b bg-gray-50">
                 <tr className="text-left text-sm text-gray-500">
-                  <th className="px-6 py-4">Broj računa</th>
-                  <th className="px-6 py-4">Pacijent</th>
-                  <th className="px-6 py-4">Datum</th>
-                  <th className="px-6 py-4">Iznos</th>
+                  <th className="px-6 py-4">Invoice number</th>
+                  <th className="px-6 py-4">Patient</th>
+                  <th className="px-6 py-4">Date</th>
+                  <th className="px-6 py-4">Amount</th>
                   <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Akcije</th>
+                  <th className="px-6 py-4">Actions</th>
                 </tr>
               </thead>
 
@@ -114,7 +114,7 @@ export default function InvoicesPage() {
                     </td>
 
                     <td className="px-6 py-4 text-gray-600">
-                      {new Date(invoice.createdAt).toLocaleDateString("bs-BA", {
+                      {new Date(invoice.createdAt).toLocaleDateString("en-GB", {
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
@@ -144,7 +144,7 @@ export default function InvoicesPage() {
                         <Link
                           href={`/dashboard/invoices/${invoice.id}`}
                           className="text-blue-600 transition hover:text-blue-800"
-                          title="Pregled"
+                          title="View"
                         >
                           <Eye size={18} />
                         </Link>
@@ -153,7 +153,7 @@ export default function InvoicesPage() {
                           onClick={() => handleDelete(invoice.id)}
                           disabled={deleteInvoice.isPending}
                           className="text-red-500 transition hover:text-red-700 disabled:opacity-50"
-                          title="Obriši"
+                          title="Delete"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -168,7 +168,7 @@ export default function InvoicesPage() {
                       colSpan={6}
                       className="px-6 py-10 text-center text-gray-500"
                     >
-                      Nema pronađenih računa.
+                      No invoices found.
                     </td>
                   </tr>
                 )}
@@ -185,17 +185,17 @@ export default function InvoicesPage() {
               disabled={!pagination.hasPrev}
               className="rounded-xl border border-gray-300 px-4 py-2 disabled:opacity-50"
             >
-              Prethodna
+              Previous
             </button>
             <span className="text-gray-600">
-              Stranica {pagination.page} od {pagination.totalPages}
+              Page {pagination.page} of {pagination.totalPages}
             </span>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={!pagination.hasNext}
               className="rounded-xl border border-gray-300 px-4 py-2 disabled:opacity-50"
             >
-              Sljedeća
+              Next
             </button>
           </div>
         )}

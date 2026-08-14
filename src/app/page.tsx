@@ -40,13 +40,13 @@ export default function LoginPage() {
           router.push("/dashboard");
       } else {
           if (result?.error === "ACCOUNT_INACTIVE") {
-              setServerError("Vaš nalog je deaktiviran. Kontaktirajte administratora.");
+              setServerError("Your account is deactivated. Contact the administrator.");
           } else {
-              setServerError("Neispravan email ili lozinka.");
+              setServerError("Invalid email or password.");
           }
       }
     } catch (error) {
-        setServerError("Došlo je do greške pri prijavi.");
+        setServerError("An error occurred during login.");
     } finally {
         setLoading(false);
     }
@@ -75,10 +75,10 @@ export default function LoginPage() {
             </div>
             <div className="space-y-1">
               <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase">
-                City<span className="text-blue-600">Dent</span>
+                Al<span className="text-blue-600">ign</span>
               </h1>
               <p className="text-blue-500 font-bold tracking-[0.3em] text-[10px] uppercase">
-                Sistem uprave
+                Management System
               </p>
             </div>
           </div>
@@ -86,19 +86,19 @@ export default function LoginPage() {
           {!selectedRole ? (
             /* Role Selection Screen */
             <div className="space-y-4 animate-in fade-in zoom-in duration-300">
-              <h2 className="text-center text-xs font-bold text-slate-400 mb-6 uppercase tracking-[0.2em]">Odaberite ulogu za pristup</h2>
+              <h2 className="text-center text-xs font-bold text-slate-400 mb-6 uppercase tracking-[0.2em]">Select role to access</h2>
               
               <div className="grid grid-cols-1 gap-4">
                 <RoleButton 
                   icon={<Stethoscope size={28} className="text-blue-600" />}
-                  title="Master Ulaz"
-                  description="Pristup za doktora"
+                  title="Master Login"
+                  description="Access for doctor"
                   onClick={() => setSelectedRole('MASTER')}
                 />
                 <RoleButton 
                   icon={<ClipboardList size={28} className="text-slate-500" />}
-                  title="Staff Ulaz"
-                  description="Pristup za osoblje"
+                  title="Staff Login"
+                  description="Access for staff"
                   onClick={() => setSelectedRole('STAFF')}
                 />
               </div>
@@ -111,18 +111,18 @@ export default function LoginPage() {
                   onClick={() => { setSelectedRole(null); setServerError(""); }}
                   className="flex items-center gap-1 text-[10px] font-bold text-blue-600 uppercase mb-4 hover:bg-blue-50 w-fit p-2 rounded-lg transition-all"
                 >
-                  <ChevronLeft size={14} /> Nazad
+                  <ChevronLeft size={14} /> Back
                 </button>
                 <CardTitle className="text-2xl font-bold text-slate-900 flex items-center gap-3">
                   {selectedRole === 'MASTER' ? <UserCog className="text-blue-600" /> : <ClipboardList className="text-slate-500" />}
-                  Prijava: {selectedRole === 'MASTER' ? 'Master' : 'Staff'}
+                  Login: {selectedRole === 'MASTER' ? 'Master' : 'Staff'}
                 </CardTitle>
               </CardHeader>
               
               <CardContent className="space-y-6">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase text-slate-400 ml-1 tracking-widest">Email adresa</label>
+                    <label className="text-xs font-bold uppercase text-slate-400 ml-1 tracking-widest">Email address</label>
                     <div className="relative">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                       <Input 
@@ -130,14 +130,14 @@ export default function LoginPage() {
                         required
                         value={email}
                         onChange={(e) => { setEmail(e.target.value); setServerError(""); }}
-                        placeholder="example@citydent.com" 
+                        placeholder="example@align.com" 
                         className="pl-12 h-14 bg-slate-50/50 border-slate-100 rounded-2xl focus-visible:ring-blue-600 font-medium"
                       />
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest ml-1">Lozinka</label>
+                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest ml-1">Password</label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                       <Input 
@@ -168,7 +168,7 @@ export default function LoginPage() {
                       <Loader2 className="animate-spin" size={20} />
                     ) : (
                       <>
-                        <span>Pristupi panelu</span>
+                        <span>Access Panel</span>
                         <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
@@ -182,7 +182,7 @@ export default function LoginPage() {
 
       <footer className="p-6 text-center z-10">
         <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em]">
-          CITY DENT © 2026 | Sva prava zadržana
+          CITY DENT © 2026 | All rights reserved
         </p>
       </footer>
     </div>

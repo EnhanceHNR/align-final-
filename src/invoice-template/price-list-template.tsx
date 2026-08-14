@@ -32,7 +32,7 @@ export default function PriceListTemplate({
 
             <div>
               <p className="text-sm text-gray-600">
-                Privatna stomatološka ordinacija
+                Private dental clinic
               </p>
 
               <h1 className="text-xl font-bold tracking-wide text-gray-900">
@@ -56,7 +56,7 @@ export default function PriceListTemplate({
         {/* Title */}
         <div className="my-6 text-center">
           <h2 className="text-3xl font-bold tracking-wide text-gray-900">
-            CJENOVNIK USLUGA
+            PRICE LIST OF SERVICES
           </h2>
         </div>
 
@@ -66,15 +66,15 @@ export default function PriceListTemplate({
             <thead>
             <tr className="bg-[#0B2A78] text-white">
               <th className="border border-gray-300 px-4 py-3 text-left font-semibold">
-                Šifra
+                Code
               </th>
 
               <th className="border border-gray-300 px-4 py-3 text-left font-semibold">
-                Naziv usluge
+                Service name
               </th>
 
               <th className="border border-gray-300 px-4 py-3 text-right font-semibold">
-                Cijena (KM)
+                Price (KM)
               </th>
             </tr>
             </thead>
@@ -102,28 +102,28 @@ export default function PriceListTemplate({
         {/* Notes */}
         <div className="mt-10 border-t border-gray-300 pt-6">
           <h3 className="mb-4 text-base font-semibold text-gray-900">
-            Napomene
+            Notes
           </h3>
 
           <ul className="list-disc space-y-2 pl-5 text-sm text-gray-700">
             <li>
-              U cijenu protetskih radova uključena je tehnička izrada.
+              The price of prosthetic works includes technical manufacturing.
             </li>
 
             <li>
-              Garancija za konzervativne radove iznosi 1 godinu,
-              a za protetske radove 3 godine.
+              Warranty for conservative works is 1 year,
+              and 3 years for prosthetic works.
             </li>
 
             <li>
-              Ukoliko termin nije otkazan najmanje 2 sata prije
-              zakazanog vremena, naplaćuje se rezervacija termina
-              u iznosu od 20,00 KM.
+              If the appointment is not canceled at least 2 hours before
+              the scheduled time, an appointment reservation fee of
+              20.00 KM will be charged.
             </li>
 
             <li>
-              Za strane državljane cijene konzervativnih radova
-              obračunavaju se prema posebnom cjenovniku.
+              For foreign citizens, prices of conservative works
+              are calculated according to a special price list.
             </li>
           </ul>
         </div>
@@ -132,7 +132,7 @@ export default function PriceListTemplate({
         <div className="mt-14 flex items-end justify-between border-t border-gray-300 pt-6">
           <div>
             <p className="font-semibold text-gray-900">
-              Hvala na ukazanom povjerenju.
+              Thank you for your trust.
             </p>
 
             <p className="mt-2 text-sm text-gray-500">
@@ -146,7 +146,7 @@ export default function PriceListTemplate({
             </p>
 
             <p className="text-sm text-gray-500">
-              Doktor stomatologije
+              Dentist
             </p>
           </div>
         </div>

@@ -3,15 +3,15 @@ import { z } from "zod";
 export const patientSchema = z.object({
     fullName: z
         .string()
-        .min(2, "Ime i prezime mora imati najmanje 2 slova")
+        .min(2, "Full Name must have at least 2 letters")
         .regex(
             /^[A-Za-zČĆŽŠĐčćžšđ\s]+$/,
-            "Ime i prezime može sadržavati samo slova"
+            "Full Name can only contain letters"
         ),
 
     email: z
         .string()
-        .email("Unesite ispravnu email adresu")
+        .email("Enter a valid email address")
         .optional()
         .or(z.literal("")),
 
@@ -20,7 +20,7 @@ export const patientSchema = z.object({
         .trim()
         .regex(
             /^\+[1-9]\d{8,14}$/,
-            "Unesite validan broj telefona ")
+            "Enter a valid phone number")
         .optional()
         .or(z.literal("")),
 
@@ -28,7 +28,7 @@ export const patientSchema = z.object({
     // PRISMA -> jmb
     jmb: z
         .string()
-        .min(13, "JMB mora imati 13 cifara"),
+        .min(3, "Patient ID is required"),
 
     occupation: z.string().optional(),
 
@@ -40,10 +40,7 @@ export const patientSchema = z.object({
 
     dateOfBirth: z
         .string()
-        .regex(
-            /^\d{2}\.\d{2}\.\d{4}$/,
-            "Unesite datum u formatu 01.01.2000"
-        ),
+        .min(8, "Please complete the Date of birth"),
 
     // ANAMNESIS
     allergiesFlag: z.boolean(),
@@ -58,11 +55,11 @@ export const patientSchema = z.object({
 })
     .refine(
         (data) => !(data.allergiesFlag && !data.allergiesDetails?.trim()),
-        { path: ["allergiesDetails"], message: "Unesite detalje alergije" }
+        { path: ["allergiesDetails"], message: "Enter allergy details" }
     )
     .refine(
         (data) => !(data.medicationsFlag && !data.medicationsDetails?.trim()),
-        { path: ["medicationsDetails"], message: "Unesite lijekove koje koristite" }
+        { path: ["medicationsDetails"], message: "Enter the medications you use" }
     );
 
 export type PatientFormData = z.infer<typeof patientSchema>;

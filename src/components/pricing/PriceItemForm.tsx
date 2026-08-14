@@ -22,7 +22,7 @@ export default function PriceItemForm({
     e.preventDefault();
 
     if (!serviceName.trim() || !price) {
-      alert("Unesite naziv usluge i cijenu.");
+      alert("Enter the service name and price.");
       return;
     }
 
@@ -39,26 +39,26 @@ export default function PriceItemForm({
   return (
     <div className="rounded-3xl bg-white p-6 shadow-sm">
       <h2 className="mb-6 text-2xl font-semibold">
-        Dodaj uslugu
+        Add service
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-5">
 
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
-            Naziv usluge
+            Service name
           </label>
 
           <Input
             value={serviceName}
             onChange={(e) => setServiceName(e.target.value)}
-            placeholder="Npr. Pregled"
+            placeholder="E.g. Checkup"
           />
         </div>
 
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
-            Cijena (KM)
+            Price (KM)
           </label>
 
           <Input
@@ -72,7 +72,7 @@ export default function PriceItemForm({
 
         <div className="flex justify-end">
           <Button type="submit">
-            Dodaj uslugu
+            Add service
           </Button>
         </div>
 

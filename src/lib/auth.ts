@@ -99,7 +99,7 @@ export const authOptions: NextAuthOptions = {
     // -> Cookie konfiguracija
     cookies: {
         sessionToken: {
-            name: "citydent_token",
+            name: "align_token",
             options: {
                 httpOnly: true,
                 sameSite: "lax",

@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import AutoLogoutProvider from "@/app/_components/AutoLogoutProvider";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+
 export default function DashboardLayout({
-                                            children,
-                                        }: {
+    children,
+}: {
     children: React.ReactNode;
 }) {
     const { status } = useSession();
@@ -21,7 +23,7 @@ export default function DashboardLayout({
 
 
     if (status === "loading") {
-        return <div className="p-10 text-center">Učitavanje...</div>;
+        return <div className="p-10 text-center">Loading...</div>;
     }
 
 
@@ -31,17 +33,21 @@ export default function DashboardLayout({
 
     return (
         <AutoLogoutProvider>
-
-            <div className="flex min-h-screen bg-[#F8FAFC]">
-
+            <SidebarProvider>
                 <DashboardSidebar />
-
-                <main className="flex-1 overflow-y-auto">
-                    {children}
-                </main>
-
-            </div>
-
+                <SidebarInset className="bg-[#F8FAFC]">
+                    <main className="flex-1 overflow-y-auto flex flex-col min-h-screen">
+                        <header className="md:hidden sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6 shadow-sm">
+                            <SidebarTrigger />
+                            <span className="font-bold text-lg text-slate-800 tracking-tight">Align.io</span>
+                        </header>
+                        
+                        <div className="flex-1 w-full max-w-[1600px] mx-auto p-4 md:p-8 lg:p-10">
+                            {children}
+                        </div>
+                    </main>
+                </SidebarInset>
+            </SidebarProvider>
         </AutoLogoutProvider>
     );
 }

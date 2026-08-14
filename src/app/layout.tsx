@@ -8,13 +8,22 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+import type { Viewport } from "next";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="bs" className={inter.variable}>
+    <html lang="en" className={inter.variable}>
       <body className="font-sans antialiased">
         {/* Wrapped the application with TRPCReactProvider to resolve the runtime context error */}
         <TRPCReactProvider>

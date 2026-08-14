@@ -4,12 +4,12 @@ import { prisma } from "~/lib/prisma";
 import { masterOnlyProcedure, protectedProcedure, router } from "../trpc";
 
 function parseDateOfBirth(dob: string): Date {
-    const [day, month, year] = dob.split(".").map(Number);
+    const [day, month, year] = dob.split(/[.\-\/]/).map(Number);
     const date = new Date(year!, month! - 1, day!);
     if (isNaN(date.getTime())) {
         throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Neispravan format datuma rođenja. Koristite dd.mm.gggg.",
+            message: "Invalid date of birth format.",
         });
     }
     return date;
@@ -35,8 +35,8 @@ const createPatientInput = z
     .object({
         fullName:         z.string().min(2).trim(),
         email:            z.string().email().optional().or(z.literal("")),
-        dateOfBirth:      z.string().regex(/^\d{2}\.\d{2}\.\d{4}$/),
-        jmb:              z.string().length(13),
+        dateOfBirth:      z.string().min(8),
+        jmb:              z.string().min(3),
         sex:              z.enum(["M", "F"]).optional(),
         address:          z.string().trim().optional(),
         phone:            z.string().trim().optional(),
@@ -88,7 +88,7 @@ export const patientsRouter = router({
             if (existing) {
                 throw new TRPCError({
                     code: "CONFLICT",
-                    message: "Pacijent s ovim JMB-om već postoji u sistemu.",
+                    message: "A patient with this Patient ID already exists in the system.",
                 });
             }
 
@@ -144,7 +144,7 @@ export const patientsRouter = router({
             if (!patient) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
-                    message: "Pacijent nije pronađen.",
+                    message: "Patient not found.",
                 });
             }
 
@@ -236,7 +236,7 @@ export const patientsRouter = router({
             if (!existing) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
-                    message: "Pacijent nije pronađen.",
+                    message: "Patient not found.",
                 });
             }
 
@@ -249,7 +249,7 @@ export const patientsRouter = router({
                 if (jmbTaken) {
                     throw new TRPCError({
                         code: "CONFLICT",
-                        message: "Pacijent s ovim JMB-om već postoji u sistemu.",
+                        message: "A patient with this Patient ID already exists in the system.",
                     });
                 }
             }
@@ -306,12 +306,37 @@ export const patientsRouter = router({
             if (!existing) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
-                    message: "Pacijent nije pronađen.",
+                    message: "Patient not found.",
                 });
             }
 
             await prisma.patient.delete({ where: { id: input.id } });
 
             return { success: true as const };
+        }),
+
+    /** patients.getNextPatientId
+     * Fetch the next available patient ID number for a given prefix (e.g. 2025-E).
+     */
+    getNextPatientId: protectedProcedure
+        .input(z.object({ prefix: z.string() }))
+        .query(async ({ input }) => {
+            const { prefix } = input;
+            const prefixStr = prefix + "-";
+            const patients = await prisma.patient.findMany({
+                where: { jmb: { startsWith: prefixStr } },
+                select: { jmb: true }
+            });
+            let maxNum = 0;
+            for (const p of patients) {
+                const parts = p.jmb.split('-');
+                if (parts.length === 3) {
+                    const num = parseInt(parts[2], 10);
+                    if (!isNaN(num) && num > maxNum) {
+                        maxNum = num;
+                    }
+                }
+            }
+            return { nextNum: String(maxNum + 1).padStart(4, '0') };
         }),
 });

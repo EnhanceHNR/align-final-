@@ -25,7 +25,7 @@ export default function AutoLogoutProvider({
                 <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
                     <div className="bg-white p-6 rounded-xl shadow-lg text-center max-w-sm">
                         <p className="mb-4 text-gray-700">
-                            Bit ćete automatski odjavljeni zbog neaktivnosti.
+                            You will be automatically logged out due to inactivity.
                         </p>
 
                         <button
@@ -35,7 +35,7 @@ export default function AutoLogoutProvider({
                             }}
                             className="bg-blue-600 text-white px-4 py-2 rounded-lg"
                         >
-                            Ostani prijavljen
+                            Stay logged in
                         </button>
                     </div>
                 </div>

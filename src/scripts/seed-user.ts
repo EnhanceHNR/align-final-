@@ -17,10 +17,10 @@ async function main() {
     const masterHash = await hashPassword("password123");
 
     const master = await prisma.user.upsert({
-        where: { email: "admin@citydent.com" },
+        where: { email: "admin@align.com" },
         update: {},
         create: {
-            email: "admin@citydent.com",
+            email: "admin@align.com",
             passwordHash: masterHash,
             role: "MASTER",
             isActive: true,
@@ -32,10 +32,10 @@ async function main() {
     const staffHash = await hashPassword("staff123");
 
     const staff = await prisma.user.upsert({
-        where: { email: "staff@citydent.com" },
+        where: { email: "staff@align.com" },
         update: {},
         create: {
-            email: "staff@citydent.com",
+            email: "staff@align.com",
             passwordHash: staffHash,
             role: "STAFF",
             isActive: true,

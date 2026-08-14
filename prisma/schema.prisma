@@ -8,14 +8,17 @@ datasource db {
 }
 
 model User {
-  id           String      @id @default(cuid())
-  email        String      @unique
-  passwordHash String
-  role         UserRole    @default(STAFF)
-  isActive     Boolean     @default(true)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  visitNotes   VisitNote[]
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  passwordHash       String
+  role               UserRole            @default(STAFF)
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  visitNotes         VisitNote[]
+  placedOrders       PurchaseOrder[]     @relation("PlacedOrders")
+  receivedDeliveries Delivery[]          @relation("ReceivedDeliveries")
+  consumedItems      ConsumptionRecord[] @relation("ConsumedItems")
 }
 
 model Patient {
@@ -39,6 +42,7 @@ model Patient {
   treatmentPlans     TreatmentPlan[]
   visitNotes         VisitNote[]
   odontogramSurfaces OdontogramSurface[]
+  labSubmissions     LabSubmission[]
 }
 
 model Anamnesis {
@@ -58,16 +62,18 @@ model Anamnesis {
 }
 
 model Appointment {
-  id          String            @id @default(cuid())
-  patientId   String
-  startTime   DateTime
-  endTime     DateTime
-  status      AppointmentStatus @default(SCHEDULED)
-  reason      String?           // İŞTE BURAYA EKLEDİK (Opsiyonel alan)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  patient     Patient           @relation(fields: [patientId], references: [id])
-  visitNotes  VisitNote[]
+  id         String            @id @default(cuid())
+  patientId  String
+  chairId    String?           // Made optional initially to prevent migration errors on existing data
+  startTime  DateTime
+  endTime    DateTime
+  status     AppointmentStatus @default(SCHEDULED)
+  reason     String? // İŞTE BURAYA EKLEDİK (Opsiyonel alan)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  patient    Patient           @relation(fields: [patientId], references: [id])
+  chair      Chair?            @relation(fields: [chairId], references: [id])
+  visitNotes VisitNote[]
 }
 
 model Treatment {
@@ -135,16 +141,16 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id              String    @id @default(cuid())
-  invoiceId       String
-  treatmentId     String?
-  serviceCode     String
-  serviceName     String
-  quantity        Int       @default(1)
-  unitPrice       Float
-  totalPrice      Float
-  invoice         Invoice   @relation(fields: [invoiceId], references: [id])
-  treatment       Treatment? @relation(fields: [treatmentId], references: [id])
+  id          String     @id @default(cuid())
+  invoiceId   String
+  treatmentId String?
+  serviceCode String
+  serviceName String
+  quantity    Int        @default(1)
+  unitPrice   Float
+  totalPrice  Float
+  invoice     Invoice    @relation(fields: [invoiceId], references: [id])
+  treatment   Treatment? @relation(fields: [treatmentId], references: [id])
 }
 
 model PriceListItem {
@@ -153,6 +159,19 @@ model PriceListItem {
   name      String
   price     Float
   createdAt DateTime @default(now())
+}
+
+model Chair {
+  id                 String        @id @default(cuid())
+  name               String
+  color              String        @default("#3b82f6")
+  googleCalendarId   String?       // ID of the connected Google Calendar
+  googleAccessToken  String?       @db.Text
+  googleRefreshToken String?       @db.Text
+  googleSyncEnabled  Boolean       @default(false)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  appointments       Appointment[]
 }
 
 enum UserRole {
@@ -205,4 +224,228 @@ model OdontogramSurface {
   updatedAt   DateTime @updatedAt
 
   @@unique([patientId, toothNumber, surface])
+}
+
+model Lab {
+  id           String           @id @default(cuid())
+  name         String
+  phone        String?
+  services     Json?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  submissions  LabSubmission[]
+  transactions LabTransaction[]
+}
+
+model LabSubmission {
+  id                     String  @id @default(cuid())
+  type                   String
+  senderName             String?
+  receiverName           String?
+  photoUrl               String?
+  photoUrls              Json?
+  deliveryPersonPhotoUrl String?
+  senderSelfieUrl        String?
+  item                   String
+  subType                String?
+  deliveryPerson         String?
+
+  labId String
+  lab   Lab    @relation(fields: [labId], references: [id])
+
+  patientName String
+  patientId   String?
+  patient     Patient? @relation(fields: [patientId], references: [id])
+
+  appointmentStatus String?
+  appointmentDate   DateTime?
+
+  servicePrice String?
+  remarks      String?
+  tat          String?
+
+  linkedRecordId    String?
+  linkedRecord      LabSubmission?  @relation("LinkedRecords", fields: [linkedRecordId], references: [id])
+  subsequentRecords LabSubmission[] @relation("LinkedRecords")
+
+  documents Json?
+
+  isReturned Boolean? @default(false)
+
+  approvalStatus  String?
+  senderEmail     String?
+  paymentStatus   String? @default("Pending")
+  paymentProofUrl String?
+
+  isAlertResolved Boolean? @default(false)
+  editLogs        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LabTransaction {
+  id           String   @id @default(cuid())
+  labId        String
+  lab          Lab      @relation(fields: [labId], references: [id])
+  amount       Float
+  type         String
+  description  String
+  photoUrl     String?
+  submissionId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model InstructionTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InventoryItem {
+  id                 String   @id @default(cuid())
+  name               String
+  description        String?
+  company            String?
+  brandName          String?
+  itemCount          Int      @default(0)
+  quantityValue      Float    @default(1)
+  quantityUnit       String   @default("pcs") // ml, kg, gm, pcs, ltr
+  dealerId           String?
+  dealer             Dealer?  @relation(fields: [dealerId], references: [id])
+  dealerAvailability Boolean  @default(true)
+  costPerUnit        Float    @default(0)
+  minQuantity        Int      @default(5)
+  cases              Int      @default(0)
+  category           String?
+  status             String   @default("In Stock") // In Stock, Low Stock, Out of Stock
+  imageUrl           String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  stockEntries       StockEntry[]
+  purchaseOrders     PurchaseOrder[]
+  consumptionRecords ConsumptionRecord[]
+}
+
+model StockEntry {
+  id              String        @id @default(cuid())
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  quantity        Int
+  expiryDate      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model PurchaseOrder {
+  id               String        @id @default(cuid())
+  inventoryItemId  String
+  inventoryItem    InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantity         Int
+  dealerId         String
+  dealer           Dealer        @relation(fields: [dealerId], references: [id])
+  price            Float
+  estimatedArrival DateTime?
+  orderDate        DateTime      @default(now())
+  status           String        @default("Pending Approval") // Pending Approval, Pending, Delivered, Rejected, Delayed
+  paymentStatus    String        @default("Unpaid") // Unpaid, Pending Statement, Paid
+  placedById       String?
+  placedBy         User?         @relation("PlacedOrders", fields: [placedById], references: [id])
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  deliveries Delivery[]
+}
+
+model Delivery {
+  id                     String        @id @default(cuid())
+  purchaseOrderId        String
+  purchaseOrder          PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  itemPhotoUrl           String?
+  receiverPhotoUrl       String?
+  deliveryPersonPhotoUrl String?
+  billPhotoUrl           String?
+  receiverId             String?
+  receiver               User?         @relation("ReceivedDeliveries", fields: [receiverId], references: [id])
+  actualPrice            Float
+  quantityReceived       Int
+  deliveryDate           DateTime      @default(now())
+  isApproved             Boolean       @default(false)
+  comments               String?
+  isPaid                 Boolean       @default(false)
+  statementId            String?
+  statement              Statement?    @relation(fields: [statementId], references: [id])
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+}
+
+model Dealer {
+  id            String   @id @default(cuid())
+  name          String
+  contactPerson String?
+  email         String?
+  phone         String?
+  address       String?
+  website       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  inventoryItems InventoryItem[]
+  purchaseOrders PurchaseOrder[]
+  statements     Statement[]
+}
+
+model Statement {
+  id               String   @id @default(cuid())
+  dealerId         String
+  dealer           Dealer   @relation(fields: [dealerId], references: [id])
+  startDate        DateTime
+  endDate          DateTime
+  totalAmount      Float
+  status           String   @default("Pending") // Pending, Paid
+  generatedDate    DateTime @default(now())
+  paymentMode      String? // Card, Cheque, Cash, UPI, Other
+  paymentReference String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  deliveries Delivery[]
+}
+
+model ConsumptionRecord {
+  id               String        @id @default(cuid())
+  inventoryItemId  String
+  inventoryItem    InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantityConsumed Int
+  unit             String
+  consumedById     String
+  consumedBy       User          @relation("ConsumedItems", fields: [consumedById], references: [id])
+  consumptionDate  DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model LearningCategory {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  materials LearningMaterial[]
+}
+
+model LearningMaterial {
+  id          String   @id @default(cuid())
+  categoryId  String
+  category    LearningCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  url         String   // URL of the image or video in Firebase Storage
+  type        String   @default("IMAGE") // "IMAGE" or "VIDEO"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

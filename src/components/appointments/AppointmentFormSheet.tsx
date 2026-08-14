@@ -29,6 +29,7 @@ type AppointmentFormProps = {
         endTime?: Date;
         reason?: string | null;
         patientId?: string;
+        chairId?: string | null;
     };
     onSuccess?: () => void;
 };
@@ -49,6 +50,10 @@ export default function AppointmentFormSheet({
         patientId ?? ""
     );
 
+    const [selectedChairId, setSelectedChairId] = useState(
+        initialData?.chairId ?? "unassigned"
+    );
+
     const [availabilityError, setAvailabilityError] = useState<string | null>(null);
 
     const utils = api.useUtils();
@@ -61,6 +66,8 @@ export default function AppointmentFormSheet({
         page: 1,
         perPage: 100,
     });
+
+    const { data: chairs } = api.chairs.list.useQuery();
 
     useEffect(() => {
         if (isOpen) {
@@ -75,11 +82,13 @@ export default function AppointmentFormSheet({
 
                 setReason(initialData.reason ?? "");
                 setSelectedPatientId(initialData.patientId ?? "");
+                setSelectedChairId(initialData.chairId ?? "unassigned");
             } else {
                 setDate("");
                 setTime("");
                 setEndTime("");
                 setReason("");
+                setSelectedChairId("unassigned");
                 setAvailabilityError(null);
             }
         }
@@ -112,12 +121,12 @@ export default function AppointmentFormSheet({
         setAvailabilityError(null);
 
         if (!date || !time) {
-            setAvailabilityError("Molimo odaberite datum i vrijeme.");
+            setAvailabilityError("Please select date and time.");
             return;
         }
 
         if (!selectedPatientId && !isUpdateMode) {
-            setAvailabilityError("Molimo odaberite pacijenta.");
+            setAvailabilityError("Please select a patient.");
             return;
         }
 
@@ -130,10 +139,11 @@ export default function AppointmentFormSheet({
             startTime: startDateTime,
             endTime: endDateTime,
             excludeId: initialData?.id,
+            chairId: selectedChairId === "unassigned" ? null : selectedChairId,
         });
 
         if (!availability.available) {
-            setAvailabilityError("Termin je zauzet.");
+            setAvailabilityError("The time slot is booked for this chair.");
             return;
         }
 
@@ -142,11 +152,13 @@ export default function AppointmentFormSheet({
                 id: initialData.id,
                 startTime: startDateTime,
                 endTime: endDateTime,
+                chairId: selectedChairId === "unassigned" ? null : selectedChairId,
                 reason,
             });
         } else {
             createAppointment.mutate({
                 patientId: selectedPatientId,
+                chairId: selectedChairId === "unassigned" ? null : selectedChairId,
                 startTime: startDateTime,
                 endTime: endDateTime,
                 reason,
@@ -163,14 +175,14 @@ export default function AppointmentFormSheet({
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
                 <Button className="bg-orange-600 text-white rounded-xl">
-                    📅 {isUpdateMode ? "Uredi termin" : "Dodaj termin"}
+                    📅 {isUpdateMode ? "Edit appointment" : "Add appointment"}
                 </Button>
             </SheetTrigger>
 
             <SheetContent className="w-[650px]">
                 <SheetHeader>
                     <SheetTitle>
-                        {isUpdateMode ? "Ažuriranje termina" : "Novi termin"}
+                        {isUpdateMode ? "Update appointment" : "New appointment"}
                     </SheetTitle>
                 </SheetHeader>
 
@@ -180,7 +192,7 @@ export default function AppointmentFormSheet({
                     {showPatientSelect && (
                         <div className="space-y-2">
                             <label className="text-sm font-medium">
-                                Pacijent
+                                Patient
                             </label>
 
                             <Select
@@ -188,7 +200,7 @@ export default function AppointmentFormSheet({
                                 onValueChange={setSelectedPatientId}
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Odaberite pacijenta" />
+                                    <SelectValue placeholder="Select a patient" />
                                 </SelectTrigger>
 
                                 <SelectContent>
@@ -202,16 +214,37 @@ export default function AppointmentFormSheet({
                         </div>
                     )}
 
+                    {/* CHAIR SELECT */}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Chair / Doctor</label>
+                        <Select
+                            value={selectedChairId}
+                            onValueChange={setSelectedChairId}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a chair" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="unassigned">Unassigned</SelectItem>
+                                {chairs?.map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                        {c.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     {/* DATE + TIME (FIXED ALIGNMENT) */}
                     <div className="flex gap-4">
                         <div className="flex-1 space-y-2">
-                            <label className="text-sm font-medium">Datum</label>
+                            <label className="text-sm font-medium">Date</label>
                             <Input type="date" value={date}
                                    onChange={(e) => setDate(e.target.value)} />
                         </div>
 
                         <div className="flex-1 space-y-2">
-                            <label className="text-sm font-medium">Početak</label>
+                            <label className="text-sm font-medium">Start</label>
                             <Input type="time" value={time}
                                    onChange={(e) => setTime(e.target.value)} />
                         </div>
@@ -220,7 +253,7 @@ export default function AppointmentFormSheet({
                     <div className="flex gap-4">
                         <div className="flex-1 space-y-2">
                             <label className="text-sm font-medium">
-                                Kraj (opciono)
+                                End (optional)
                             </label>
                             <Input type="time" value={endTime}
                                    onChange={(e) => setEndTime(e.target.value)} />
@@ -228,7 +261,7 @@ export default function AppointmentFormSheet({
 
                         <div className="flex-1 space-y-2">
                             <label className="text-sm font-medium">
-                                Razlog
+                                Reason
                             </label>
                             <Input value={reason}
                                    onChange={(e) => setReason(e.target.value)} />
@@ -245,7 +278,7 @@ export default function AppointmentFormSheet({
                         disabled={isPending}
                         className="bg-orange-600 text-white"
                     >
-                        {isPending ? "Obrada..." : "Sačuvaj"}
+                        {isPending ? "Processing..." : "Save"}
                     </Button>
                 </form>
             </SheetContent>

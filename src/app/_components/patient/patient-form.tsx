@@ -2,7 +2,8 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { api } from "~/trpc/react";
 import {
     patientSchema,
     type PatientFormData,
@@ -57,6 +58,56 @@ export function PatientForm({
             notes:"",
         },
     });
+    const [year, setYear] = useState(() => {
+        if (typeof window !== "undefined") return localStorage.getItem("patient_id_year") || new Date().getFullYear().toString();
+        return new Date().getFullYear().toString();
+    });
+    const [letter, setLetter] = useState(() => {
+        if (typeof window !== "undefined") return localStorage.getItem("patient_id_letter") || "A";
+        return "A";
+    });
+    const [num, setNum] = useState("");
+
+    const isEditing = !!patient?.id;
+
+    const { data: nextIdData } = api.patients.getNextPatientId.useQuery(
+        { prefix: `${year}-${letter}` },
+        { enabled: !isEditing }
+    );
+
+    useEffect(() => {
+        if (isEditing && patient.jmb) {
+            const parts = patient.jmb.split("-");
+            if (parts.length === 3) {
+                setYear(parts[0]);
+                setLetter(parts[1]);
+                setNum(parts[2]);
+            } else {
+                setNum(patient.jmb);
+            }
+        }
+    }, [isEditing, patient]);
+
+    useEffect(() => {
+        if (!isEditing) {
+            if (nextIdData?.nextNum) {
+                setNum(nextIdData.nextNum);
+            }
+        }
+    }, [nextIdData, isEditing]);
+
+    useEffect(() => {
+        if (!isEditing) {
+            localStorage.setItem("patient_id_year", year);
+            localStorage.setItem("patient_id_letter", letter);
+        }
+        if (year && letter && num) {
+            setValue("jmb", `${year}-${letter}-${num}`, { shouldValidate: true });
+        } else if (num) {
+            setValue("jmb", num, { shouldValidate: true });
+        }
+    }, [year, letter, num, isEditing, setValue]);
+
     useEffect(() => {
         reset(
             patient ?? {
@@ -98,7 +149,7 @@ export function PatientForm({
             {/* FULL NAME */}
             <div>
                 <label className="text-sm text-gray-600">
-                    Ime i prezime
+                    Full Name
                 </label>
 
                 <input
@@ -145,7 +196,7 @@ export function PatientForm({
             {/* PHONE */}
             <div>
                 <label className="text-sm text-gray-600">
-                    Telefon
+                    Phone
                 </label>
 
                 <input
@@ -166,21 +217,41 @@ export function PatientForm({
                 )}
             </div>
 
-            {/* JMB */}
+            {/* PATIENT ID */}
             <div>
                 <label className="text-sm text-gray-600">
-                    JMB
+                    Patient ID
                 </label>
 
-                <input
-                    {...register("jmb")}
-                    className={`mt-1 w-full rounded-xl border bg-white p-3 outline-none transition focus:ring-2 focus:ring-blue-400
-          ${
-                        errors.jmb
-                            ? "border-red-400"
-                            : "border-gray-200"
-                    }`}
-                />
+                <div className="mt-1 flex items-center gap-2">
+                    <input
+                        type="text"
+                        value={year}
+                        onChange={(e) => setYear(e.target.value)}
+                        placeholder="Year"
+                        className="w-1/3 rounded-xl border border-gray-200 bg-white p-3 outline-none transition focus:ring-2 focus:ring-blue-400"
+                    />
+                    <span className="text-gray-400 font-bold">-</span>
+                    <input
+                        type="text"
+                        value={letter}
+                        onChange={(e) => setLetter(e.target.value)}
+                        placeholder="Ltr"
+                        className="w-1/4 rounded-xl border border-gray-200 bg-white p-3 outline-none transition focus:ring-2 focus:ring-blue-400 text-center"
+                        maxLength={2}
+                    />
+                    <span className="text-gray-400 font-bold">-</span>
+                    <input
+                        type="text"
+                        value={num}
+                        readOnly
+                        placeholder="Auto"
+                        className="w-1/3 rounded-xl border border-gray-200 bg-gray-50 p-3 outline-none text-gray-500 cursor-not-allowed font-mono"
+                    />
+                </div>
+                
+                {/* Hidden input to register jmb with react-hook-form */}
+                <input type="hidden" {...register("jmb")} />
 
                 {errors.jmb && (
                     <p className="mt-1 text-sm text-red-500">
@@ -192,7 +263,7 @@ export function PatientForm({
             {/* OCCUPATION */}
             <div>
                 <label className="text-sm text-gray-600">
-                    Zanimanje
+                    Occupation
                 </label>
 
                 <input
@@ -205,7 +276,7 @@ export function PatientForm({
             <div className="space-y-3">
 
                 <label className="text-sm text-gray-600">
-                    Status zaposlenja
+                    Employment Status
                 </label>
 
                 <div className="flex flex-wrap gap-6 rounded-2xl border border-gray-200 bg-white p-4">
@@ -213,19 +284,19 @@ export function PatientForm({
                     <label className="flex items-center gap-2 text-sm text-gray-700">
                         <input
                             type="radio"
-                            value="Zaposlen/a"
+                            value="Employed"
                             {...register("employmentStatus")}
                         />
-                        Zaposlen/a
+                        Employed
                     </label>
 
                     <label className="flex items-center gap-2 text-sm text-gray-700">
                         <input
                             type="radio"
-                            value="Nezaposlen/a"
+                            value="Unemployed"
                             {...register("employmentStatus")}
                         />
-                        Nezaposlen/a
+                        Unemployed
                     </label>
 
                     <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -240,10 +311,10 @@ export function PatientForm({
                     <label className="flex items-center gap-2 text-sm text-gray-700">
                         <input
                             type="radio"
-                            value="Penzioner"
+                            value="Pensioner"
                             {...register("employmentStatus")}
                         />
-                        Penzioner
+                        Pensioner
                     </label>
 
                 </div>
@@ -253,7 +324,7 @@ export function PatientForm({
             {/* ADDRESS */}
             <div>
                 <label className="text-sm text-gray-600">
-                    Adresa
+                    Address
                 </label>
 
                 <input
@@ -265,29 +336,97 @@ export function PatientForm({
             {/* DATE OF BIRTH */}
             <div>
                 <label className="text-sm text-gray-600">
-                    Datum rođenja
+                    Date of birth
                 </label>
 
-                <input
-                    type="text"
-                    placeholder="dd.mm.gggg"
-                    {...register("dateOfBirth")}
-                    className="mt-1 w-full rounded-xl border border-gray-200 bg-white p-3 outline-none transition focus:ring-2 focus:ring-blue-400"
-                />
+                <div className="mt-1 flex gap-2">
+                    <select
+                        value={(() => {
+                            const dob = watch("dateOfBirth") || "";
+                            const parts = dob.split(/[.\-\/]/);
+                            return parts.length >= 1 ? parts[0] : "";
+                        })()}
+                        onChange={(e) => {
+                            const dob = watch("dateOfBirth") || "";
+                            const parts = dob.split(/[.\-\/]/);
+                            const m = parts[1] || "";
+                            const y = parts[2] || "";
+                            setValue("dateOfBirth", `${e.target.value}-${m}-${y}`, { shouldValidate: true });
+                        }}
+                        className="w-full rounded-xl border border-gray-200 bg-white p-3 outline-none transition focus:ring-2 focus:ring-blue-400"
+                    >
+                        <option value="">Day</option>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                            <option key={d} value={String(d).padStart(2, "0")}>
+                                {String(d).padStart(2, "0")}
+                            </option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={(() => {
+                            const dob = watch("dateOfBirth") || "";
+                            const parts = dob.split(/[.\-\/]/);
+                            return parts.length >= 2 ? parts[1] : "";
+                        })()}
+                        onChange={(e) => {
+                            const dob = watch("dateOfBirth") || "";
+                            const parts = dob.split(/[.\-\/]/);
+                            const d = parts[0] || "";
+                            const y = parts[2] || "";
+                            setValue("dateOfBirth", `${d}-${e.target.value}-${y}`, { shouldValidate: true });
+                        }}
+                        className="w-full rounded-xl border border-gray-200 bg-white p-3 outline-none transition focus:ring-2 focus:ring-blue-400"
+                    >
+                        <option value="">Month</option>
+                        {[
+                            "January", "February", "March", "April", "May", "June",
+                            "July", "August", "September", "October", "November", "December"
+                        ].map((name, i) => (
+                            <option key={i} value={String(i + 1).padStart(2, "0")}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={(() => {
+                            const dob = watch("dateOfBirth") || "";
+                            const parts = dob.split(/[.\-\/]/);
+                            return parts.length >= 3 ? parts[2] : "";
+                        })()}
+                        onChange={(e) => {
+                            const dob = watch("dateOfBirth") || "";
+                            const parts = dob.split(/[.\-\/]/);
+                            const d = parts[0] || "";
+                            const m = parts[1] || "";
+                            setValue("dateOfBirth", `${d}-${m}-${e.target.value}`, { shouldValidate: true });
+                        }}
+                        className="w-full rounded-xl border border-gray-200 bg-white p-3 outline-none transition focus:ring-2 focus:ring-blue-400"
+                    >
+                        <option value="">Year</option>
+                        {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                            <option key={y} value={String(y)}>
+                                {y}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <input type="hidden" {...register("dateOfBirth")} />
             </div>
 
             {/* ANAMNEZA */}
             <div className="space-y-6 rounded-3xl bg-white p-6 shadow-sm">
 
                 <h2 className="text-xl font-semibold">
-                    Anamneza
+                    Medical History
                 </h2>
 
                 {/* ALLERGIES */}
                 <div className="space-y-3">
 
                     <label className="text-sm font-medium text-gray-700">
-                        Da li ste alergični?
+                        Are you allergic?
                     </label>
 
                     <div className="flex items-center gap-6">
@@ -302,7 +441,7 @@ export function PatientForm({
                                     })
                                 }
                             />
-                            Da
+                            Yes
                         </label>
 
                         <label className="flex items-center gap-2">
@@ -315,7 +454,7 @@ export function PatientForm({
                                     })
                                 }
                             />
-                            Ne
+                            No
                         </label>
 
                     </div>
@@ -324,7 +463,7 @@ export function PatientForm({
                         <>
                             <input
                                 {...register("allergiesDetails")}
-                                placeholder="Na šta ste alergični?"
+                                placeholder="What are you allergic to?"
                                 className="w-full rounded-xl border border-gray-200 bg-white p-3 outline-none focus:ring-2 focus:ring-blue-400"
                             />
 
@@ -344,7 +483,7 @@ export function PatientForm({
                 <div className="space-y-3">
 
                     <label className="text-sm font-medium text-gray-700">
-                        Da li ste ranije primali anesteziju?
+                        Have you received anesthesia before?
                     </label>
 
                     <div className="flex items-center gap-6">
@@ -360,7 +499,7 @@ export function PatientForm({
                                     )
                                 }
                             />
-                            Da
+                            Yes
                         </label>
 
                         <label className="flex items-center gap-2">
@@ -374,7 +513,7 @@ export function PatientForm({
                                     )
                                 }
                             />
-                            Ne
+                            No
                         </label>
 
                     </div>
@@ -384,7 +523,7 @@ export function PatientForm({
                             {...register(
                                 "anesthesiaComplications"
                             )}
-                            placeholder="Da li je bilo problema?"
+                            placeholder="Were there any problems?"
                             className="w-full rounded-xl border border-gray-200 bg-white p-3 outline-none focus:ring-2 focus:ring-blue-400"
                         />
                     )}
@@ -395,7 +534,7 @@ export function PatientForm({
                 <div className="space-y-3">
 
                     <label className="text-sm font-medium text-gray-700">
-                        Pijete li neke lijekove?
+                        Are you taking any medications?
                     </label>
 
                     <div className="flex items-center gap-6">
@@ -410,7 +549,7 @@ export function PatientForm({
                                     })
                                 }
                             />
-                            Da
+                            Yes
                         </label>
 
                         <label className="flex items-center gap-2">
@@ -423,7 +562,7 @@ export function PatientForm({
                                     })
                                 }
                             />
-                            Ne
+                            No
                         </label>
 
                     </div>
@@ -432,7 +571,7 @@ export function PatientForm({
                         <>
                             <input
                                 {...register("medicationsDetails")}
-                                placeholder="Koje lijekove pijete?"
+                                placeholder="What medications are you taking?"
                                 className="w-full rounded-xl border border-gray-200 bg-white p-3 outline-none focus:ring-2 focus:ring-blue-400"
                             />
 
@@ -449,7 +588,7 @@ export function PatientForm({
                 {/* PREVIOUS DISEASES */}
                 <div>
                     <label className="text-sm text-gray-600">
-                        Ranije bolesti
+                        Previous diseases
                     </label>
 
                     <textarea
@@ -462,7 +601,7 @@ export function PatientForm({
                 {/* CURRENT DISEASE */}
                 <div>
                     <label className="text-sm text-gray-600">
-                        Sadašnja bolest
+                        Current disease
                     </label>
 
                     <textarea
@@ -476,16 +615,30 @@ export function PatientForm({
             {/* NOTES */}
             <div>
                 <label className="text-sm text-gray-600">
-                    Interne napomene
+                    Internal notes
                 </label>
 
                 <textarea
                     {...register("notes")}
                     rows={4}
-                    placeholder="Dodajte interne napomene..."
+                    placeholder="Add internal notes..."
                     className="mt-2 w-full rounded-xl border border-gray-200 bg-white p-3 outline-none transition focus:ring-2 focus:ring-blue-400"
                 />
             </div>
+            {/* ERROR SUMMARY */}
+            {Object.keys(errors).length > 0 && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                    <h3 className="font-semibold text-red-800">Form has errors:</h3>
+                    <ul className="list-disc pl-5 mt-2 space-y-1 text-sm text-red-600">
+                        {Object.entries(errors).map(([key, error]) => (
+                            <li key={key}>
+                                <strong>{key}:</strong> {error?.message?.toString()}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             {/* BUTTON */}
             <button
                 type="submit"
@@ -498,10 +651,10 @@ export function PatientForm({
                 }`}
             >
                 {isLoading
-                    ? "Spremanje..."
+                    ? "Saving..."
                     : patient
-                        ? "Sačuvaj izmjene"
-                        : "Kreiraj pacijenta"}
+                        ? "Save changes"
+                        : "Create patient"}
             </button>
 
         </form>

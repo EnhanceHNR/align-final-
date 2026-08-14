@@ -20,11 +20,11 @@ export default function PriceListTable({
       <table className="w-full">
         <thead className="border-b bg-gray-50">
         <tr className="text-left text-sm text-gray-500">
-          <th className="px-6 py-4">Šifra</th>
-          <th className="px-6 py-4">Usluga</th>
-          <th className="px-6 py-4">Cijena</th>
+          <th className="px-6 py-4">Code</th>
+          <th className="px-6 py-4">Service</th>
+          <th className="px-6 py-4">Price</th>
           <th className="px-6 py-4 text-right">
-            Akcije
+            Actions
           </th>
         </tr>
         </thead>
@@ -50,7 +50,7 @@ export default function PriceListTable({
               <button
                 onClick={() => {
                   const confirmed = window.confirm(
-                    `Da li ste sigurni da želite obrisati uslugu "${service.name}"?`
+                    `Are you sure you want to delete the service "${service.name}"?`
                   );
 
                   if (confirmed) {
@@ -58,7 +58,7 @@ export default function PriceListTable({
                   }
                 }}
                 className="text-red-500 transition hover:text-red-700"
-                title="Obriši uslugu"
+                title="Delete service"
               >
                 <Trash2 size={18} />
               </button>
@@ -72,7 +72,7 @@ export default function PriceListTable({
               colSpan={4}
               className="px-6 py-8 text-center text-gray-500"
             >
-              Nema unesenih usluga.
+              No services entered.
             </td>
           </tr>
         )}

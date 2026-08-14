@@ -14,11 +14,15 @@ async function checkOverlap(params: {
     startTime: Date;
     endTime: Date;
     excludeId?: string;
+    chairId?: string | null;
 }) {
     return prisma.appointment.findFirst({
         where: {
             ...(params.excludeId && {
                 id: { not: params.excludeId },
+            }),
+            ...(params.chairId && {
+                chairId: params.chairId,
             }),
             status: { notIn: ["CANCELLED"] },
             AND: [
@@ -41,7 +45,8 @@ export const appointmentRouter = router({
             z.object({
                 patientId: z
                     .string()
-                    .cuid("Molimo odaberite pacijenta."),
+                    .cuid("Please select a patient."),
+                chairId: z.string().cuid("Please select a chair.").optional().nullable(),
                 startTime: z.coerce.date(),
                 endTime: z.coerce.date().optional(),
                 reason: z.string().trim().optional(),
@@ -57,26 +62,28 @@ export const appointmentRouter = router({
             if (endTime <= startTime) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
-                    message: "Kraj termina mora biti nakon početka.",
+                    message: "End time must be after start time.",
                 });
             }
 
             const conflictingAppointment = await checkOverlap({
                 startTime,
                 endTime,
+                chairId: input.chairId,
             });
 
             if (conflictingAppointment) {
                 throw new TRPCError({
                     code: "CONFLICT",
                     message:
-                        "Odabrani termin je već zauzet. Molimo odaberite drugi termin.",
+                        "The selected time slot is already booked for this chair. Please choose another time.",
                 });
             }
 
             return prisma.appointment.create({
                 data: {
                     patientId: input.patientId,
+                    chairId: input.chairId,
                     startTime,
                     endTime,
                     reason: input.reason ?? null,
@@ -88,6 +95,7 @@ export const appointmentRouter = router({
                             fullName: true,
                         },
                     },
+                    chair: true,
                 },
             });
         }),
@@ -101,6 +109,7 @@ export const appointmentRouter = router({
         .input(
             z.object({
                 id: z.string().cuid(),
+                chairId: z.string().cuid().optional().nullable(),
                 startTime: z.coerce.date().optional(),
                 endTime: z.coerce.date().optional(),
                 reason: z.string().trim().optional(),
@@ -116,7 +125,7 @@ export const appointmentRouter = router({
             if (!existingAppointment) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
-                    message: "Termin nije pronađen.",
+                    message: "Appointment not found.",
                 });
             }
 
@@ -126,10 +135,13 @@ export const appointmentRouter = router({
             const updatedEndTime =
                 input.endTime ?? existingAppointment.endTime;
 
+            const updatedChairId = 
+                input.chairId !== undefined ? input.chairId : existingAppointment.chairId;
+
             if (updatedEndTime <= updatedStartTime) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
-                    message: "Kraj termina mora biti nakon početka.",
+                    message: "End time must be after start time.",
                 });
             }
 
@@ -138,12 +150,13 @@ export const appointmentRouter = router({
                 startTime: updatedStartTime,
                 endTime: updatedEndTime,
                 excludeId: input.id,
+                chairId: updatedChairId,
             });
 
             if (conflict) {
                 throw new TRPCError({
                     code: "CONFLICT",
-                    message: "Termin se preklapa sa drugim terminom.",
+                    message: "The appointment overlaps with another appointment on this chair.",
                 });
             }
 
@@ -151,6 +164,7 @@ export const appointmentRouter = router({
                 where: { id: input.id },
                 data: {
                     ...input,
+                    chairId: input.chairId,
                     startTime: input.startTime ?? undefined,
                     endTime: input.endTime ?? undefined,
                 },
@@ -160,6 +174,7 @@ export const appointmentRouter = router({
                             fullName: true,
                         },
                     },
+                    chair: true,
                 },
             });
         }),
@@ -188,6 +203,7 @@ export const appointmentRouter = router({
                                 email: true,
                             },
                         },
+                        chair: true,
                         visitNotes: {
                             orderBy: {
                                 createdAt: "desc",
@@ -199,7 +215,7 @@ export const appointmentRouter = router({
             if (!appointment) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
-                    message: "Termin nije pronađen.",
+                    message: "Appointment not found.",
                 });
             }
 
@@ -242,6 +258,7 @@ export const appointmentRouter = router({
                                 fullName: true,
                             },
                         },
+                        chair: true,
                     },
                 }),
             ]);
@@ -307,6 +324,7 @@ export const appointmentRouter = router({
                             phone: true,
                         },
                     },
+                    chair: true,
                 },
             });
         }),
@@ -461,7 +479,7 @@ export const appointmentRouter = router({
             if (!existing) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
-                    message: "Termin nije pronađen.",
+                    message: "Appointment not found.",
                 });
             }
 

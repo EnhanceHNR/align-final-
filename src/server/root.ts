@@ -4,12 +4,27 @@ import { odontogramRouter } from "./routers/odontogram.router"; // src/server/ap
 import { appointmentRouter } from "./routers/appointment.router";
 import { visitNotesRouter } from "./routers/visit-notes.router";
 import { invoiceRouter } from "./routers/invoice.router";
+import { labRouter } from "./routers/lab.router";
+import { labSubmissionRouter } from "./routers/labSubmission.router";
+import { labTransactionRouter } from "./routers/labTransaction.router";
+import { inventoryRouter } from "./routers/inventory.router";
+import { chairRouter } from "./routers/chairs.router";
+import { googleCalendarRouter } from "./routers/googleCalendar.router";
+import { learningRouter } from "./routers/learning.router";
+
 export const appRouter = router({
   patients: patientsRouter,
   odontogram: odontogramRouter,
   appointment: appointmentRouter,
   visitNotes: visitNotesRouter,
   invoice: invoiceRouter,
+  lab: labRouter,
+  labSubmission: labSubmissionRouter,
+  labTransaction: labTransactionRouter,
+  inventory: inventoryRouter,
+  chairs: chairRouter,
+  googleCalendar: googleCalendarRouter,
+  learning: learningRouter,
 });
 
 export type AppRouter = typeof appRouter;

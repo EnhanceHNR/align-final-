@@ -118,7 +118,7 @@ export default function InvoiceForm() {
     },
     onError: (error) => {
       console.error("Error creating invoice:", error);
-      setSubmitError(error.message || "Greška pri čuvanju računa");
+      setSubmitError(error.message || "Error saving invoice");
     },
   });
 
@@ -142,7 +142,7 @@ export default function InvoiceForm() {
     let hasError = false;
 
     if (!selectedPatientId) {
-      setPatientError("Odaberite pacijenta.");
+      setPatientError("Select a patient.");
       hasError = true;
     }
 
@@ -150,7 +150,7 @@ export default function InvoiceForm() {
       items.length === 0 ||
       items.every((item) => item.serviceId === "")
     ) {
-      setServiceError("Dodajte barem jednu uslugu.");
+      setServiceError("Add at least one service.");
       hasError = true;
     }
 
@@ -188,14 +188,14 @@ export default function InvoiceForm() {
   return (
     <div className="rounded-3xl bg-white p-6 shadow-sm">
       <h2 className="mb-6 text-2xl font-semibold">
-        Novi račun
+        New invoice
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
-            Pacijent
+            Patient
           </label>
 
           <Popover open={patientOpen} onOpenChange={setPatientOpen}>
@@ -208,15 +208,15 @@ export default function InvoiceForm() {
               >
                 {selectedPatientId
                   ? patients.find((p) => p.id === selectedPatientId)?.fullName
-                  : "Odaberite pacijenta"}
+                  : "Select a patient"}
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
 
             <PopoverContent className="w-[450px] p-0">
               <Command>
-                <CommandInput placeholder="Pretraži pacijente..." />
-                <CommandEmpty>Nema pronađenih pacijenata.</CommandEmpty>
+                <CommandInput placeholder="Search patients..." />
+                <CommandEmpty>No patients found.</CommandEmpty>
                 <CommandGroup className="max-h-72 overflow-y-auto">
                   {patients.map((patient) => (
                     <CommandItem
@@ -250,7 +250,7 @@ export default function InvoiceForm() {
 
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
-            Datum
+            Date
           </label>
 
           <Popover>
@@ -264,7 +264,7 @@ export default function InvoiceForm() {
 
                 {date
                   ? format(date, "dd.MM.yyyy.")
-                  : "Odaberite datum"}
+                  : "Select a date"}
               </Button>
             </PopoverTrigger>
 
@@ -281,7 +281,7 @@ export default function InvoiceForm() {
 
         <div className="space-y-4">
           <label className="block text-sm font-medium text-gray-700">
-            Usluge
+            Services
           </label>
 
           {items.map((item, index) => {
@@ -311,7 +311,7 @@ export default function InvoiceForm() {
                         ? services.find(
                           (s) => s.code === item.serviceId
                         )?.name
-                        : "Odaberite uslugu"}
+                        : "Select a service"}
 
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -319,10 +319,10 @@ export default function InvoiceForm() {
 
                   <PopoverContent className="w-[450px] p-0">
                     <Command>
-                      <CommandInput placeholder="Pretraži uslugu..." />
+                      <CommandInput placeholder="Search service..." />
 
                       <CommandEmpty>
-                        Nema pronađenih usluga.
+                        No services found.
                       </CommandEmpty>
 
                       <CommandGroup className="max-h-72 overflow-y-auto">
@@ -407,7 +407,7 @@ export default function InvoiceForm() {
             variant="outline"
             onClick={addItem}
           >
-            + Dodaj uslugu
+            + Add service
           </Button>
 
           {serviceError && (
@@ -419,15 +419,15 @@ export default function InvoiceForm() {
 
         <div className="rounded-xl bg-gray-50 p-4 space-y-2">
           <div className="flex justify-between text-sm">
-            <span>Podzbroj:</span>
+            <span>Subtotal:</span>
             <span>{subtotal.toFixed(2)} KM</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span>PDV (17%):</span>
+            <span>VAT (17%):</span>
             <span>{taxAmount.toFixed(2)} KM</span>
           </div>
           <div className="border-t pt-2 flex justify-between text-lg font-semibold">
-            <span>Ukupno:</span>
+            <span>Total:</span>
             <span>{total.toFixed(2)} KM</span>
           </div>
         </div>
@@ -442,9 +442,9 @@ export default function InvoiceForm() {
             onChange={(e) => setStatus(e.target.value as "DRAFT" | "PAID" | "UNPAID")}
             className="w-full rounded-xl border border-gray-300 p-3 h-12"
           >
-            <option value="DRAFT">Nacrt</option>
-            <option value="PAID">Plaćen</option>
-            <option value="UNPAID">Neplaćen</option>
+            <option value="DRAFT">Draft</option>
+            <option value="PAID">Paid</option>
+            <option value="UNPAID">Unpaid</option>
           </select>
         </div>
 
@@ -460,7 +460,7 @@ export default function InvoiceForm() {
             disabled={createInvoice.isPending}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            {createInvoice.isPending ? "Čuvanje..." : "Sačuvaj račun"}
+            {createInvoice.isPending ? "Saving..." : "Save invoice"}
           </Button>
         </div>
       </form>

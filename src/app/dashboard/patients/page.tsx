@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2, Upload } from "lucide-react";
+import { ImportCsvDialog } from "@/components/shared/import-csv-dialog";
 
 import { useDebounce } from "~/hooks/use-debounce";
 import { api } from "~/trpc/react";
@@ -47,20 +48,27 @@ export default function PatientsPage() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-semibold">
-                            Baza Pacijenata
+                            Patient Database
                         </h1>
 
                         <p className="mt-1 text-gray-500">
-                            Pregled svih registrovanih pacijenata.
+                            Overview of all registered patients.
                         </p>
                     </div>
 
-                    <Link
-                        href="/dashboard/patients/create"
-                        className="rounded-xl bg-blue-600 px-5 py-3 text-white transition hover:bg-blue-700"
-                    >
-                        + Novi pacijent
-                    </Link>
+                    <div className="flex gap-3">
+                        <ImportCsvDialog mode="patients" onSuccess={() => refetch()} trigger={
+                            <button className="flex items-center gap-2 rounded-xl bg-white border border-gray-200 px-4 py-3 font-medium text-gray-700 transition hover:bg-gray-50 shadow-sm">
+                                <Upload className="h-4 w-4" /> Import CSV
+                            </button>
+                        } />
+                        <Link
+                            href="/dashboard/patients/create"
+                            className="flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 font-medium text-white transition hover:bg-blue-700 shadow-sm"
+                        >
+                            + New patient
+                        </Link>
+                    </div>
                 </div>
 
                 {/* SEARCH */}
@@ -68,13 +76,13 @@ export default function PatientsPage() {
                     <input
                         value={search}
                         onChange={(e) => handleSearchChange(e.target.value)}
-                        placeholder="Pretraži po imenu, JMB-u ili telefonu..."
+                        placeholder="Search by name, ID or phone..."
                         className="w-full rounded-xl border border-gray-200 p-3 outline-none transition focus:ring-2 focus:ring-blue-400"
                     />
 
                     {isSearching && (
                         <p className="mt-2 text-sm text-gray-400">
-                            Pretraga...
+                            Searching...
                         </p>
                     )}
                 </div>
@@ -84,7 +92,7 @@ export default function PatientsPage() {
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
                         <div className="rounded-2xl bg-white p-8 shadow-xl">
                             <p className="mb-6 text-lg font-medium">
-                                Jeste li sigurni da želite obrisati ovog pacijenta?
+                                Are you sure you want to delete this patient?
                             </p>
 
                             <div className="flex gap-4">
@@ -96,15 +104,15 @@ export default function PatientsPage() {
                                     className="rounded-xl bg-red-600 px-6 py-2 text-white transition hover:bg-red-700 disabled:opacity-50"
                                 >
                                     {deletePatient.isPending
-                                        ? "Brisanje..."
-                                        : "Obriši"}
+                                        ? "Deleting..."
+                                        : "Delete"}
                                 </button>
 
                                 <button
                                     onClick={() => setConfirmId(null)}
                                     className="rounded-xl border border-gray-200 px-6 py-2 text-gray-600 transition hover:bg-gray-50"
                                 >
-                                    Otkaži
+                                    Cancel
                                 </button>
                             </div>
                         </div>
@@ -116,10 +124,10 @@ export default function PatientsPage() {
                     <table className="w-full">
                         <thead className="border-b bg-gray-50">
                         <tr className="text-left text-sm text-gray-500">
-                            <th className="px-6 py-4">Pacijent</th>
-                            <th className="px-6 py-4">JMB</th>
-                            <th className="px-6 py-4">Telefon</th>
-                            <th className="px-6 py-4">Akcije</th>
+                            <th className="px-6 py-4">Patient</th>
+                            <th className="px-6 py-4">Patient ID</th>
+                            <th className="px-6 py-4">Phone</th>
+                            <th className="px-6 py-4">Actions</th>
                         </tr>
                         </thead>
 
@@ -130,7 +138,7 @@ export default function PatientsPage() {
                                     colSpan={4}
                                     className="px-6 py-10 text-center text-gray-400"
                                 >
-                                    Učitavanje...
+                                    Loading...
                                 </td>
                             </tr>
                         )}
@@ -159,7 +167,7 @@ export default function PatientsPage() {
                                             <Link
                                                 href={`/dashboard/patients/${patient.id}`}
                                                 className="text-blue-600 transition hover:text-blue-800"
-                                                title="Profil"
+                                                title="Profile"
                                             >
                                                 <Eye size={18} />
                                             </Link>
@@ -167,7 +175,7 @@ export default function PatientsPage() {
                                             <Link
                                                 href={`/dashboard/patients/${patient.id}/edit`}
                                                 className="text-gray-600 transition hover:text-gray-800"
-                                                title="Uredi"
+                                                title="Edit"
                                             >
                                                 <Pencil size={18} />
                                             </Link>
@@ -178,7 +186,7 @@ export default function PatientsPage() {
                                                         setConfirmId(patient.id)
                                                     }
                                                     className="text-red-500 transition hover:text-red-700"
-                                                    title="Obriši"
+                                                    title="Delete"
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>
@@ -195,7 +203,7 @@ export default function PatientsPage() {
                                         colSpan={4}
                                         className="px-6 py-10 text-center text-gray-500"
                                     >
-                                        Nema pronađenih pacijenata.
+                                        No patients found.
                                     </td>
                                 </tr>
                             )}
@@ -206,7 +214,7 @@ export default function PatientsPage() {
                     {data && data.pagination.totalPages > 1 && (
                         <div className="flex items-center justify-between border-t px-6 py-4">
                             <p className="text-sm text-gray-500">
-                                Ukupno: {data.pagination.total} pacijenata
+                                Total: {data.pagination.total} patients
                             </p>
 
                             <div className="flex gap-2">
@@ -215,7 +223,7 @@ export default function PatientsPage() {
                                     disabled={!data.pagination.hasPrev}
                                     className="rounded-lg border border-gray-200 px-4 py-2 text-sm transition hover:bg-gray-50 disabled:opacity-40"
                                 >
-                                    ← Prethodna
+                                    ← Previous
                                 </button>
 
                                 <span className="flex items-center px-3 text-sm text-gray-600">
@@ -228,7 +236,7 @@ export default function PatientsPage() {
                                     disabled={!data.pagination.hasNext}
                                     className="rounded-lg border border-gray-200 px-4 py-2 text-sm transition hover:bg-gray-50 disabled:opacity-40"
                                 >
-                                    Sljedeća →
+                                    Next →
                                 </button>
                             </div>
                         </div>

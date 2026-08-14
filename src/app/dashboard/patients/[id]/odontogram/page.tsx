@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sheet";
 
 const surfaceTranslations: Record<string, string> = {
-  TOP: "Gore", BOTTOM: "Dolje", LEFT: "Lijevo", RIGHT: "Desno", CENTER: "Centar",
+  TOP: "Top", BOTTOM: "Bottom", LEFT: "Left", RIGHT: "Right", CENTER: "Center",
 };
 
 const upperRight = [18, 17, 16, 15, 14, 13, 12, 11];
@@ -48,7 +48,7 @@ export default function OdontogramPage() {
       setIsSheetOpen(false);
       setSelectedTooth(null);
       setSelectedSurface(null);
-      alert("Status zuba uspješno spremljen!");
+      alert("Tooth status successfully saved!");
     },
   });
 
@@ -120,25 +120,25 @@ export default function OdontogramPage() {
                         onClick={() => router.push(`/dashboard/patients/${patientId}`)}
                         className="text-sm text-blue-600 hover:underline flex items-center gap-1 mb-1"
                     >
-                        ← Nazad na profil pacijenta
+                        ← Back to patient profile
                     </button>
                     <h1 className="text-2xl font-bold text-gray-800">
-                        Odontogram: {patientData ? patientData.fullName : "Učitavanje..."}
+                        Odontogram: {patientData ? patientData.fullName : "Loading..."}
                     </h1>
-                    <p className="text-xs text-gray-500 mt-1">ID Pacijenta: {patientId}</p>
+                    <p className="text-xs text-gray-500 mt-1">Patient ID: {patientId}</p>
                 </div>
             </div>
 
             {/* DENTAL MAP */}
             <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 flex flex-col items-center justify-center min-h-[400px]">
                 <p className="text-sm font-medium text-gray-600 mb-8 text-center">
-                    🦷 Kliknite na površinu zuba da biste unijeli dijagnozu.
+                    🦷 Click on the tooth surface to enter a diagnosis.
                 </p>
 
                 {/* GORNJA VILICA */}
                 <div className="flex flex-col items-center gap-4 w-full border-b border-dashed border-gray-300 pb-6 mb-6">
                     <span className="text-xs font-bold text-gray-400 tracking-wider">
-                        GORNJA VILICA (MAXILLA)
+                        UPPER JAW (MAXILLA)
                     </span>
                     <div className="flex gap-4 justify-center items-center flex-wrap">
                         <div className="flex gap-2">{upperRight.map(renderTooth)}</div>
@@ -155,7 +155,7 @@ export default function OdontogramPage() {
                         <div className="flex gap-2">{lowerLeft.map(renderTooth)}</div>
                     </div>
                     <span className="text-xs font-bold text-gray-400 tracking-wider mt-2">
-                        DONJA VILICA (MANDIBULA)
+                        LOWER JAW (MANDIBLE)
                     </span>
                 </div>
             </div>
@@ -176,7 +176,7 @@ export default function OdontogramPage() {
                     onOpenAutoFocus={(e) => e.preventDefault()}
                 >
                     <SheetHeader>
-                        <SheetTitle>Dijagnoza i Plan Tretmana</SheetTitle>
+                        <SheetTitle>Diagnosis and Treatment Plan</SheetTitle>
                     </SheetHeader>
 
                     <div className="mt-6 space-y-4">
@@ -185,10 +185,10 @@ export default function OdontogramPage() {
                                 {/* Info o odabranom zubu */}
                                 <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
                                     <p className="text-sm text-blue-800 font-semibold">
-                                        Odabrani Zub: Br. {selectedTooth}
+                                        Selected Tooth: No. {selectedTooth}
                                     </p>
                                     <p className="text-sm text-blue-600 mt-1">
-                                        Površina: <strong>{surfaceTranslations[selectedSurface]}</strong>
+                                        Surface: <strong>{surfaceTranslations[selectedSurface]}</strong>
                                     </p>
                                 </div>
 
@@ -207,7 +207,7 @@ export default function OdontogramPage() {
                                     rows={4}
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
-                                    placeholder="Unesite zapažanja..."
+                                    placeholder="Enter observations..."
                                     className="w-full border border-gray-300 rounded-lg p-2 text-sm text-gray-700"
                                 />
 
@@ -223,13 +223,13 @@ export default function OdontogramPage() {
                                     disabled={saveMutation.isPending}
                                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors shadow-sm disabled:opacity-50"
                                 >
-                                    {saveMutation.isPending ? "Spremanje..." : "Spremi Status Zuba"}
+                                    {saveMutation.isPending ? "Saving..." : "Save Tooth Status"}
                                 </button>
 
                                 {/* Historija za ovaj zub */}
                                 <div className="mt-6 border-t pt-4">
                                     <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                                        Historija Površina — Zub {selectedTooth}
+                                        Surface History — Tooth {selectedTooth}
                                     </h4>
                                     {teethData?.filter((t) => t.toothNumber === selectedTooth).length ? (
                                         <div className="space-y-2">
@@ -254,30 +254,30 @@ export default function OdontogramPage() {
                                         </div>
                                     ) : (
                                         <p className="text-sm text-gray-400">
-                                            Nema historije za ovaj zub.
+                                            No history for this tooth.
                                         </p>
                                     )}
                                 </div>
                             </>
                         ) : (
                             <p className="text-center py-12 text-gray-400 text-sm">
-                                Odaberite zub sa šeme.
+                                Select a tooth from the diagram.
                             </p>
                         )}
 
                         {/* Legenda */}
                         <div className="mt-8 pt-4 border-t border-gray-100">
                             <h4 className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-3">
-                                Legenda Statusa
+                                Status Legend
                             </h4>
                             <div className="grid grid-cols-2 gap-x-2 gap-y-2.5 text-xs">
                                 {[
-                                    { color: "bg-white border border-gray-300", label: "Zdrav zub" },
-                                    { color: "bg-[#ef4444]", label: "Karijes" },
-                                    { color: "bg-[#10b981]", label: "Plomba" },
-                                    { color: "bg-[#475569]", label: "Nedostaje zub" },
-                                    { color: "bg-[#8b5cf6]", label: "Most" },
-                                    { color: "bg-[#f59e0b]", label: "Implantat" },
+                                    { color: "bg-white border border-gray-300", label: "Healthy tooth" },
+                                    { color: "bg-[#ef4444]", label: "Caries" },
+                                    { color: "bg-[#10b981]", label: "Filling" },
+                                    { color: "bg-[#475569]", label: "Missing tooth" },
+                                    { color: "bg-[#8b5cf6]", label: "Bridge" },
+                                    { color: "bg-[#f59e0b]", label: "Implant" },
                                 ].map(({ color, label }) => (
                                     <div key={label} className="flex items-center gap-2">
                                         <span className={`w-3 h-3 rounded-full ${color} inline-block shadow-sm`} />

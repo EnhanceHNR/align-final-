@@ -27,12 +27,12 @@ export async function GET(
 
         if (!invoice) {
             return NextResponse.json(
-                { error: "Račun nije pronađen" },
+                { error: "Invoice not found" },
                 { status: 404 }
             );
         }
 
-        const date = new Date(invoice.createdAt).toLocaleDateString("bs-BA");
+        const date = new Date(invoice.createdAt).toLocaleDateString("en-GB");
         const logo = getLogoBase64();
 
         const subtotal = (invoice as any).subtotal || invoice.totalAmount / 1.17;
@@ -41,10 +41,10 @@ export async function GET(
 
         const html = `
 <!DOCTYPE html>
-<html lang="bs">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Račun</title>
+<title>Invoice</title>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -182,32 +182,32 @@ td {
     <img class="logo" src="${logo}" />
     <div>
       <div class="title">CITY DENT</div>
-      <div class="muted">Privatna stomatološka ordinacija</div>
+      <div class="muted">Private dental clinic</div>
       <div class="muted">Dr. Erdin Tatarević</div>
       <div class="muted">Višnjik 34 B, Sarajevo</div>
     </div>
   </div>
 
   <div class="right">
-    <div><b>Broj računa:</b> ${invoice.invoiceNumber}</div>
-    <div><b>Datum:</b> ${date}</div>
+    <div><b>Invoice No:</b> ${invoice.invoiceNumber}</div>
+    <div><b>Date:</b> ${date}</div>
   </div>
 </div>
 
-<div class="section-title">RAČUN</div>
+<div class="section-title">INVOICE</div>
 
 <div>
-  <b>Pacijent:</b> ${invoice.patient.fullName}<br/>
-  <b>Telefon:</b> ${invoice.patient.phone || "-"}
+  <b>Patient:</b> ${invoice.patient.fullName}<br/>
+  <b>Phone:</b> ${invoice.patient.phone || "-"}
 </div>
 
 <table>
   <thead>
     <tr>
-      <th>Usluga</th>
-      <th>Količina</th>
-      <th>Cijena</th>
-      <th>Ukupno</th>
+      <th>Service</th>
+      <th>Quantity</th>
+      <th>Price</th>
+      <th>Total</th>
     </tr>
   </thead>
   <tbody>
@@ -229,29 +229,29 @@ td {
 
 <div class="total">
   <div class="total-row">
-    <span>Podzbroj:</span>
+    <span>Subtotal:</span>
     <span>${subtotal.toFixed(2)} KM</span>
   </div>
   <div class="total-row">
-    <span>PDV (17%):</span>
+    <span>VAT (17%):</span>
     <span>${taxAmount.toFixed(2)} KM</span>
   </div>
   <div class="total-final">
-    Ukupno za platiti: ${invoice.totalAmount.toFixed(2)} KM
+    Total to pay: ${invoice.totalAmount.toFixed(2)} KM
   </div>
 </div>
 
 <div class="footer">
   <div>
-    Hvala na povjerenju!<br/>
+    Thank you for your trust!<br/>
     Sarajevo, ${date}
   </div>
 
   <div class="signature">
-    Potpis i pečat
+    Signature and stamp
     <div class="line"></div>
     <div><b>Dr. Erdin Tatarević</b></div>
-    <div>Stomatolog</div>
+    <div>Dentist</div>
   </div>
 </div>
 
@@ -277,13 +277,13 @@ td {
         return new NextResponse(pdfBuffer as any, {
             headers: {
                 "Content-Type": "application/pdf",
-                "Content-Disposition": `attachment; filename="racun-${invoice.invoiceNumber}.pdf"`,
+                "Content-Disposition": `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`,
             },
         });
     } catch (err) {
         console.error(err);
         return NextResponse.json(
-            { error: "Greška pri generisanju PDF-a" },
+            { error: "Error generating PDF" },
             { status: 500 }
         );
     }

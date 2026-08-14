@@ -7,9 +7,9 @@ import InvoicePreview from "@/components/invoices/InvoicePreview";
 import { api } from "~/trpc/react";
 
 const statusLabels: Record<string, string> = {
-  DRAFT: "Nacrt",
-  PAID: "Plaćen",
-  UNPAID: "Neplaćen",
+  DRAFT: "Draft",
+  PAID: "Paid",
+  UNPAID: "Unpaid",
 };
 
 export default function InvoiceDetailsPage() {
@@ -30,10 +30,10 @@ export default function InvoiceDetailsPage() {
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft size={18} />
-            Nazad na račune
+            Back to invoices
           </Link>
           <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <p className="text-center text-gray-500">Učitavanje...</p>
+            <p className="text-center text-gray-500">Loading...</p>
           </div>
         </div>
       </div>
@@ -49,11 +49,11 @@ export default function InvoiceDetailsPage() {
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft size={18} />
-            Nazad na račune
+            Back to invoices
           </Link>
           <div className="rounded-3xl bg-white p-6 shadow-sm">
             <p className="text-center text-red-500">
-              Greška pri učitavanju računa.
+              Error loading invoice.
             </p>
           </div>
         </div>
@@ -85,7 +85,7 @@ export default function InvoiceDetailsPage() {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft size={18} />
-          Nazad na račune
+          Back to invoices
         </Link>
 
         <InvoicePreview invoice={transformedInvoice} invoiceId={invoice.id} />

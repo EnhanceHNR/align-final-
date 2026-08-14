@@ -12,7 +12,7 @@ export default function CreateInvoicePage() {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft size={18} />
-          Nazad na račune
+          Back to invoices
         </Link>
 
         <InvoiceForm />

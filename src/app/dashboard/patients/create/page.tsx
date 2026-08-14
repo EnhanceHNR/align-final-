@@ -31,10 +31,10 @@ export default function CreatePatientPage() {
                 onClick={() => window.history.back()}
                 className="mb-6 rounded-xl bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-gray-100"
             >
-                ← Nazad
+                ← Back
             </button>
 
-            <h1 className="mb-8 text-3xl font-semibold">Kreiraj pacijenta</h1>
+            <h1 className="mb-8 text-3xl font-semibold">Create patient</h1>
 
             {error && (
                 <div className="mb-6 rounded-xl border border-red-100 bg-red-50 p-4">

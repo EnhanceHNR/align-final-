@@ -15,11 +15,11 @@ const STATUS_STYLES: Record<string, string> = {
 };
  
 const STATUS_LABELS: Record<string, string> = {
-    SCHEDULED:   "Zakazano",
-    WAITING:     "Čeka",
-    IN_PROGRESS: "U toku",
-    COMPLETED:   "Završeno",
-    CANCELLED:   "Otkazano",
+    SCHEDULED:   "Scheduled",
+    WAITING:     "Waiting",
+    IN_PROGRESS: "In progress",
+    COMPLETED:   "Completed",
+    CANCELLED:   "Cancelled",
 };
  
 const workingHours = Array.from({ length: 11 }, (_, i) => {
@@ -28,11 +28,11 @@ const workingHours = Array.from({ length: 11 }, (_, i) => {
 });
  
 function formatBosnianDate(date: Date) {
-    const mjeseci = [
-        "januar", "februar", "mart", "april", "maj", "juni",
-        "juli", "august", "septembar", "oktobar", "novembar", "decembar",
+    const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
     ];
-    return `${date.getDate()}. ${mjeseci[date.getMonth()]} ${date.getFullYear()}.`;
+    return `${date.getDate()}. ${months[date.getMonth()]} ${date.getFullYear()}.`;
 }
  
 function formatTime(date: Date) {
@@ -48,7 +48,7 @@ function getWeekStart(date: Date) {
     return d;
 }
  
-const weekDays = ["Pon", "Uto", "Sri", "Čet", "Pet", "Sub", "Ned"];
+const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
  
 export default function AppointmentsCalendarPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -56,10 +56,14 @@ export default function AppointmentsCalendarPage() {
  
     const utils = api.useUtils();
  
-    const { data: events, isLoading } = api.appointment.getCalendarEvents.useQuery({
+    const { data: events, isLoading: eventsLoading } = api.appointment.getCalendarEvents.useQuery({
         date: currentDate,
         view,
     });
+
+    const { data: chairs, isLoading: chairsLoading } = api.chairs.list.useQuery();
+
+    const isLoading = eventsLoading || chairsLoading;
  
     const updateStatus = api.appointment.update.useMutation({
         onSuccess: () => {
@@ -95,62 +99,62 @@ export default function AppointmentsCalendarPage() {
         : `${formatBosnianDate(weekDates[0]!)} — ${formatBosnianDate(weekDates[6]!)}`;
  
     return (
-        <div className="flex h-full flex-col p-6 space-y-6">
+        <div className="flex h-full flex-col p-3 sm:p-6 space-y-4 sm:space-y-6">
  
             {/* HEADER */}
-            <div className="flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <CalendarIcon className="w-6 h-6 text-orange-600" />
-                        Kalendar i termini
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+                        <CalendarIcon className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 flex-shrink-0" />
+                        Calendar and Appointments
                     </h1>
-                    <p className="text-sm text-gray-500 mt-1">Radno vrijeme: 08:00 — 18:00</p>
+                    <p className="text-sm text-gray-500 mt-1">Working hours: 08:00 — 18:00</p>
                 </div>
  
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                     {/* Day / Week toggle */}
-                    <div className="flex rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="flex rounded-xl border border-gray-200 overflow-hidden shrink-0">
                         <button
                             onClick={() => setView("day")}
-                            className={`px-4 py-2 text-sm font-medium transition ${
+                            className={`px-3 sm:px-4 py-2 text-sm font-medium transition ${
                                 view === "day"
                                     ? "bg-orange-600 text-white"
                                     : "bg-white text-gray-600 hover:bg-gray-50"
                             }`}
                         >
-                            Dan
+                            Day
                         </button>
                         <button
                             onClick={() => setView("week")}
-                            className={`px-4 py-2 text-sm font-medium transition ${
+                            className={`px-3 sm:px-4 py-2 text-sm font-medium transition ${
                                 view === "week"
                                     ? "bg-orange-600 text-white"
                                     : "bg-white text-gray-600 hover:bg-gray-50"
                             }`}
                         >
-                            Sedmica
+                            Week
                         </button>
                     </div>
  
                     {/* Date navigacija */}
-                    <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md" onClick={handlePrev}>
+                    <div className="flex items-center gap-1 sm:gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200 w-full sm:w-auto justify-between sm:justify-start">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md shrink-0" onClick={handlePrev}>
                             <ChevronLeft className="w-4 h-4" />
                         </Button>
-                        <span className="text-sm font-medium px-2 min-w-[160px] text-center text-slate-700 select-none">
+                        <span className="text-sm font-medium px-1 sm:px-2 min-w-[140px] sm:min-w-[160px] text-center text-slate-700 select-none truncate">
                             {headerLabel}
                         </span>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md" onClick={handleNext}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md shrink-0" onClick={handleNext}>
                             <ChevronRight className="w-4 h-4" />
                         </Button>
                     </div>
- 
+                    
                     <Button
                         variant="outline"
                         onClick={handleToday}
                         className="rounded-xl text-sm"
                     >
-                        Danas
+                        Today
                     </Button>
  
                     <AppointmentFormSheet patientId="" />
@@ -161,43 +165,61 @@ export default function AppointmentsCalendarPage() {
             <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-auto">
  
                 {isLoading && (
-                    <p className="text-center py-12 text-gray-400">Učitavanje termina...</p>
+                    <p className="text-center py-12 text-gray-400">Loading appointments...</p>
                 )}
  
                 {!isLoading && view === "day" && (
-                    <div className="grid grid-cols-1 md:grid-cols-8 gap-4">
+                        <div className="flex flex-1 min-w-0 overflow-x-auto gap-4 snap-x">
+                            {/* Time labels column */}
+                            <div className="hidden md:flex flex-col space-y-[48px] text-sm text-gray-400 font-medium pt-[44px] border-r border-gray-100 pr-4 shrink-0 sticky left-0 bg-white z-20">
+                                {workingHours.map((t) => (
+                                    <div key={t} className="h-4 flex items-start justify-end">{t}</div>
+                                ))}
+                            </div>
 
-                        <div className="hidden md:flex flex-col space-y-[48px] text-sm text-gray-400 font-medium pt-2 border-r border-gray-100 pr-4">
-                            {workingHours.map((t) => (
-                                <div key={t} className="h-4 flex items-start justify-end">{t}</div>
-                            ))}
+                            {/* Chair columns */}
+                            {[{ id: null, name: "Unassigned" }, ...(chairs || [])].map((chair, index) => {
+                                const chairEvents = events?.filter(e => 
+                                    (e as any).chairId === chair.id
+                                ) || [];
+
+                                // If unassigned has no events, don't show it if there are other chairs
+                                if (chair.id === null && chairEvents.length === 0 && (chairs?.length || 0) > 0) return null;
+
+                                return (
+                                    <div key={chair.id || 'unassigned'} className="flex-1 min-w-[280px] snap-center relative border-r border-gray-100 last:border-0 pr-4">
+                                        <div className="sticky top-0 bg-white z-10 pb-4 pt-2 font-bold text-center border-b border-gray-100 mb-2 truncate">
+                                            {chair.name}
+                                        </div>
+                                        
+                                        <div className="relative min-h-[800px]">
+                                            <div className="absolute inset-0 flex flex-col space-y-[52px] opacity-10 pointer-events-none">
+                                                {workingHours.map((_, i) => (
+                                                    <div key={i} className="border-t border-gray-400 w-full" />
+                                                ))}
+                                            </div>
+                
+                                            <div className="relative z-10 flex flex-col gap-3 mt-2">
+                                                {chairEvents.length === 0 && (
+                                                    <p className="text-center py-12 text-gray-400 text-sm">
+                                                        No appointments
+                                                    </p>
+                                                )}
+                                                {chairEvents.map((event) => (
+                                                    <AppointmentCard
+                                                        key={event.id}
+                                                        event={event}
+                                                        onStatusChange={(status) =>
+                                                            updateStatus.mutate({ id: event.id, status })
+                                                        }
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
- 
-                        <div className="col-span-7 relative">
-                            <div className="absolute inset-0 flex flex-col space-y-[52px] opacity-10 pointer-events-none">
-                                {workingHours.map((_, i) => (
-                                    <div key={i} className="border-t border-gray-400 w-full" />
-                                ))}
-                            </div>
- 
-                            <div className="relative z-10 flex flex-col gap-3 mt-2">
-                                {events?.length === 0 && (
-                                    <p className="text-center py-12 text-gray-400 text-sm">
-                                        Nema zakazanih termina za ovaj dan.
-                                    </p>
-                                )}
-                                {events?.map((event) => (
-                                    <AppointmentCard
-                                        key={event.id}
-                                        event={event}
-                                        onStatusChange={(status) =>
-                                            updateStatus.mutate({ id: event.id, status })
-                                        }
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
                 )}
  
                 {!isLoading && view === "week" && (
@@ -247,7 +269,7 @@ export default function AppointmentsCalendarPage() {
             </div>
  
             {/* Legenda statusa */}
-            <div className="flex items-center gap-6 px-2">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-6 px-2">
                 {Object.entries(STATUS_LABELS).map(([status, label]) => (
                     <div key={status} className="flex items-center gap-2">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLES[status]}`}>
@@ -307,7 +329,7 @@ function AppointmentCard({
                             onClick={() => onStatusChange("WAITING")}
                             className="text-xs px-3 py-1 rounded-lg bg-white/60 hover:bg-white/90 font-medium transition"
                         >
-                            → Čeka
+                            → Waiting
                         </button>
                     )}
                     {event.status === "WAITING" && (
@@ -315,7 +337,7 @@ function AppointmentCard({
                             onClick={() => onStatusChange("IN_PROGRESS")}
                             className="text-xs px-3 py-1 rounded-lg bg-white/60 hover:bg-white/90 font-medium transition"
                         >
-                            → U toku
+                            → In progress
                         </button>
                     )}
                     {event.status === "IN_PROGRESS" && (
@@ -323,14 +345,14 @@ function AppointmentCard({
                             onClick={() => onStatusChange("COMPLETED")}
                             className="text-xs px-3 py-1 rounded-lg bg-white/60 hover:bg-white/90 font-medium transition"
                         >
-                            ✓ Završi
+                            ✓ Complete
                         </button>
                     )}
                     <button
                         onClick={() => onStatusChange("CANCELLED")}
                         className="text-xs px-3 py-1 rounded-lg bg-white/60 hover:bg-red-100 text-red-600 font-medium transition"
                     >
-                        × Otkaži
+                        × Cancel
                     </button>
                 </div>
             )}

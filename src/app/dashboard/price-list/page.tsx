@@ -56,17 +56,17 @@ export default function PriceListPage() {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-black"
         >
           <ArrowLeft className="h-4 w-4" />
-          Nazad na račune
+          Back to invoices
         </Link>
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-semibold">
-              Cjenovnik
+              Price list
             </h1>
 
             <p className="mt-1 text-gray-500">
-              Pregled svih stomatoloških usluga i njihovih cijena.
+              Overview of all dental services and their prices.
             </p>
           </div>
 
@@ -74,7 +74,7 @@ export default function PriceListPage() {
             variant="outline"
             onClick={handleDownloadPdf}
           >
-            Pregled
+            Preview
           </Button>
         </div>
 
@@ -89,34 +89,34 @@ export default function PriceListPage() {
         {/* Napomene */}
         <div className="rounded-3xl bg-white p-6 shadow-sm">
           <h3 className="mb-5 text-xl font-semibold">
-            Napomene
+            Notes
           </h3>
 
           <ul className="list-disc space-y-3 pl-5 text-gray-700">
             <li>
-              U cijenu protetskih radova uključena je tehnička izrada.
+              The price of prosthetic works includes technical manufacturing.
             </li>
 
             <li>
-              Garancija za konzervativne radove iznosi 1 godinu,
-              a za protetske radove 3 godine.
+              Warranty for conservative works is 1 year,
+              and 3 years for prosthetic works.
             </li>
 
             <li>
-              Ukoliko ne otkažete termin najmanje 2 sata prije
-              zakazanog vremena, naplaćuje se rezervacija termina
-              u iznosu od 20 KM.
+              If you do not cancel the appointment at least 2 hours before
+              the scheduled time, an appointment reservation fee of
+              20 KM will be charged.
             </li>
 
             <li>
-              Za strane državljane cijene konzervativnih radova
-              su duple.
+              For foreign citizens, prices of conservative works
+              are doubled.
             </li>
           </ul>
 
           <div className="mt-6 border-t pt-4 text-gray-500">
             <p className="font-medium">
-              Hvala na povjerenju!
+              Thank you for your trust!
             </p>
 
             <p className="mt-2">
@@ -124,7 +124,7 @@ export default function PriceListPage() {
             </p>
 
             <p>
-              Dr. Erdin Tatarević, stomatolog
+              Dr. Erdin Tatarević, dentist
             </p>
           </div>
         </div>

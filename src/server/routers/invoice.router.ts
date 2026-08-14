@@ -80,7 +80,7 @@ export const invoiceRouter = router({
       if (!patient) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Pacijent nije pronađen.",
+          message: "Patient not found.",
         });
       }
 
@@ -157,7 +157,7 @@ export const invoiceRouter = router({
       if (!invoice) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Račun nije pronađen.",
+          message: "Invoice not found.",
         });
       }
 
@@ -235,14 +235,14 @@ export const invoiceRouter = router({
       if (!existing) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Račun nije pronađen.",
+          message: "Invoice not found.",
         });
       }
 
       if (existing.status === "PAID") {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Ne možete mijenjati plaćene račune.",
+          message: "You cannot modify paid invoices.",
         });
       }
 
@@ -257,7 +257,7 @@ export const invoiceRouter = router({
         if (!patient) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Pacijent nije pronađen.",
+            message: "Patient not found.",
           });
         }
 
@@ -330,7 +330,7 @@ export const invoiceRouter = router({
       if (!existing) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Račun nije pronađen.",
+          message: "Invoice not found.",
         });
       }
 
@@ -338,7 +338,7 @@ export const invoiceRouter = router({
       if (existing.status === "PAID") {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Ne možete brisati plaćene račune.",
+          message: "You cannot delete paid invoices.",
         });
       }
 
@@ -363,14 +363,14 @@ export const invoiceRouter = router({
       if (!existing) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Račun nije pronađen.",
+          message: "Invoice not found.",
         });
       }
 
       if (existing.status === "PAID") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Račun je već plaćen.",
+          message: "The invoice is already paid.",
         });
       }
 

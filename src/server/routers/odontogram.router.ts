@@ -24,7 +24,7 @@ export const odontogramRouter = router({
             if (!patient) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
-                    message: "Pacijent nije pronađen",
+                    message: "Patient not found",
                 });
             }
 
@@ -62,7 +62,7 @@ export const odontogramRouter = router({
             if (!patient) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
-                    message: "Pacijent nije pronađen",
+                    message: "Patient not found",
                 });
             }
 
