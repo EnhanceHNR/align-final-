@@ -17,7 +17,7 @@ export function AnalyticsClientPage({ submissions, labs }: { submissions: Submis
   const allServices = useMemo(() => {
     const services = new Set<string>();
     labs.forEach(lab => {
-      if (lab.services) {
+      if (lab.services && Array.isArray(lab.services)) {
         lab.services.forEach((s: any) => {
           if (s.name) services.add(s.name.trim());
         });

@@ -233,7 +233,7 @@ export async function fetchSubmissions() {
         include: { lab: true, patient: true }
     }).then(submissions => submissions.map(sub => ({
         ...sub,
-        labName: sub.lab.name,
+        labName: sub.lab?.name || 'Unknown Lab',
         patientName: sub.patient?.fullName || sub.patientName
     })));
 }
