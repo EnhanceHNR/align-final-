@@ -93,7 +93,7 @@ export function AnalyticsClientPage({ submissions, labs }: { submissions: Submis
     if (!selectedService) return [];
     const data: any[] = [];
     labs.forEach(lab => {
-      if (lab.services) {
+      if (lab.services && Array.isArray(lab.services)) {
         const serviceMatch = lab.services.find((s: any) => s.name.trim().toLowerCase() === selectedService.toLowerCase());
         if (serviceMatch && serviceMatch.price) {
           data.push({

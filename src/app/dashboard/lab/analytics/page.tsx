@@ -7,11 +7,8 @@ export default async function AnalyticsPage() {
   const submissions = await fetchSubmissions();
   const labs = await fetchEntitiesAction("labs");
 
-  const validSubmissions = submissions.map(sub => ({
-    ...sub,
-    createdAt: new Date(sub.createdAt),
-    appointmentDate: sub.appointmentDate ? new Date(sub.appointmentDate) : undefined,
-  }));
+  const safeSubmissions = JSON.parse(JSON.stringify(submissions));
+  const safeLabs = JSON.parse(JSON.stringify(labs));
 
-  return <AnalyticsClientPage submissions={validSubmissions as any} labs={labs as any} />;
+  return <AnalyticsClientPage submissions={safeSubmissions} labs={safeLabs} />;
 }
