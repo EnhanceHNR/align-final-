@@ -1,0 +1,753 @@
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { sendSchemaClient } from "@/lib/schemas";
+import { sendSubmissionAction, fetchEntitiesAction } from "@/app/actions";
+import { useEffect, useState, useMemo, useRef } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/firebase";
+import Image from 'next/image';
+import { AutocompleteInput } from "./AutocompleteInput";
+import { LocalCombobox } from "./LocalCombobox";
+import { LabSelector } from "./LabSelector";
+import { Send, Image as ImageIcon, Clock, Camera, ChevronRight, ChevronLeft, Plus, X, UserCheck, Package, Truck, User, FlaskConical, Upload, Repeat } from "lucide-react";
+import { CameraModal } from "../CameraModal";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import type { Lab, LabService, Submission } from "@/lib/types";
+
+type SendFormValues = z.infer<typeof sendSchemaClient>;
+
+type SendFormProps = {
+  users?: { id: string; fullName: string; email: string }[];
+  receivedRecords?: Submission[];
+};
+
+export function SendForm({ users = [], receivedRecords = [] }: SendFormProps) {
+  const { toast } = useToast();
+  const { user } = useUser();
+  const [step, setStep] = useState(1);
+  const [labs, setLabs] = useState<Lab[]>([]);
+  const [isLoadingLabs, setIsLoadingLabs] = useState(true);
+  
+  // Camera Modal States
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraType, setCameraType] = useState<'selfie' | 'product' | 'delivery' | 'bill'>('product');
+  const [uploadType, setUploadType] = useState<'selfie' | 'product' | 'delivery' | 'bill'>('product');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Photo Previews and Files
+  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
+  const [productPreviews, setProductPreviews] = useState<string[]>([]);
+  const [deliveryPreview, setDeliveryPreview] = useState<string | null>(null);
+  const [billPreview, setBillPreview] = useState<string | null>(null);
+  
+  const [selfieFile, setSelfieFile] = useState<File | null>(null);
+  const [productFiles, setProductFiles] = useState<File[]>([]);
+  const [deliveryFile, setDeliveryFile] = useState<File | null>(null);
+  const [billFile, setBillFile] = useState<File | null>(null);
+
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sendType, setSendType] = useState<'new' | 'resend'>('new');
+  const [selectedReceivedId, setSelectedReceivedId] = useState<string | null>(null);
+
+  const form = useForm<SendFormValues>({
+    resolver: zodResolver(sendSchemaClient),
+    defaultValues: {
+      type: "send",
+      senderName: "",
+      item: "",
+      deliveryPerson: "",
+      labName: "",
+      patientName: "",
+      appointmentStatus: undefined,
+      productPhotos: [],
+      documentType: "None",
+      billAmount: "",
+    },
+  });
+
+  const [patients, setPatients] = useState<any[]>([]);
+
+  useEffect(() => {
+    setCurrentTime(new Date());
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    
+    async function loadEntities() {
+        try {
+            const [labsData, patientsData] = await Promise.all([
+                fetchEntitiesAction('labs'),
+                fetchEntitiesAction('patients')
+            ]);
+            setLabs(labsData as Lab[]);
+            setPatients(patientsData as any[]);
+        } catch (error) {
+            console.error("Failed to load entities:", error);
+        } finally {
+            setIsLoadingLabs(false);
+        }
+    }
+    loadEntities();
+    
+    return () => clearInterval(timer);
+  }, []);
+
+  // Derived data
+  const allServices = useMemo(() => {
+    const services = new Set<string>();
+    labs.forEach(lab => {
+      lab.services?.forEach(s => {
+        if (s.name) services.add(s.name.trim());
+      });
+    });
+    return Array.from(services).sort();
+  }, [labs]);
+
+  const selectedService = form.watch("item");
+  const availableLabs = useMemo(() => {
+    if (!selectedService) return [];
+    return labs.filter(lab => lab.services?.some(s => s.name === selectedService));
+  }, [labs, selectedService]);
+
+  const selectedLabName = form.watch("labName");
+  const appointmentStatus = form.watch("appointmentStatus");
+  const documentType = form.watch("documentType");
+
+  const selectedPrice = useMemo(() => {
+    if (!selectedLabName || !selectedService) return null;
+    const lab = labs.find(l => l.name === selectedLabName);
+    return lab?.services?.find(s => s.name === selectedService)?.price;
+  }, [labs, selectedLabName, selectedService]);
+
+  const selectedTat = useMemo(() => {
+    if (!selectedLabName || !selectedService) return null;
+    const lab = labs.find(l => l.name === selectedLabName);
+    return lab?.services?.find(s => s.name === selectedService)?.tat;
+  }, [labs, selectedLabName, selectedService]);
+
+  useEffect(() => {
+      form.setValue('servicePrice', selectedPrice ? String(selectedPrice) : '');
+      form.setValue('tat', selectedTat ? String(selectedTat) : '');
+  }, [selectedPrice, selectedTat, form]);
+
+  const selectedPatientName = form.watch("patientName");
+  
+  const patientReceivedRecords = useMemo(() => {
+    if (!selectedPatientName) return [];
+    return receivedRecords.filter(r => r.patientName === selectedPatientName);
+  }, [receivedRecords, selectedPatientName]);
+
+  const handleReceivedRecordSelect = (id: string) => {
+    if (id === "none") {
+        setSelectedReceivedId(null);
+        form.setValue("item", "");
+        form.setValue("labName", "");
+        return;
+    }
+
+    const record = receivedRecords.find(r => r.id === id);
+    if (record) {
+        setSelectedReceivedId(id);
+        form.setValue("item", record.item);
+        form.setValue("labName", record.labName);
+        toast({
+            title: "Record Linked",
+            description: `Auto-filled details for ${record.patientName}`,
+        });
+    }
+  };
+
+  const handleCapture = (file: File) => {
+    if (cameraType === 'selfie') {
+      setSelfieFile(file);
+      setSelfiePreview(URL.createObjectURL(file));
+      form.setValue("senderSelfie", file, { shouldValidate: true });
+    } else if (cameraType === 'product') {
+      const newFiles = [...productFiles, file];
+      setProductFiles(newFiles);
+      setProductPreviews([...productPreviews, URL.createObjectURL(file)]);
+      form.setValue("productPhotos", newFiles, { shouldValidate: true });
+    } else if (cameraType === 'delivery') {
+      setDeliveryFile(file);
+      setDeliveryPreview(URL.createObjectURL(file));
+      form.setValue("deliveryPersonPhoto", file, { shouldValidate: true });
+    } else if (cameraType === 'bill') {
+      setBillFile(file);
+      setBillPreview(URL.createObjectURL(file));
+      form.setValue("billPhoto", file, { shouldValidate: true });
+    }
+    setIsCameraOpen(false);
+  };
+
+  const triggerUpload = (type: 'selfie' | 'product' | 'delivery' | 'bill') => {
+    setUploadType(type);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      if (uploadType === 'product') {
+        const fileArray = Array.from(files);
+        const newFiles = [...productFiles, ...fileArray];
+        const newPreviews = [...productPreviews, ...fileArray.map(f => URL.createObjectURL(f))];
+        setProductFiles(newFiles);
+        setProductPreviews(newPreviews);
+        form.setValue("productPhotos", newFiles, { shouldValidate: true });
+      } else {
+        const file = files[0];
+        if (uploadType === 'selfie') {
+          setSelfieFile(file);
+          setSelfiePreview(URL.createObjectURL(file));
+          form.setValue("senderSelfie", file, { shouldValidate: true });
+        } else if (uploadType === 'delivery') {
+          setDeliveryFile(file);
+          setDeliveryPreview(URL.createObjectURL(file));
+          form.setValue("deliveryPersonPhoto", file, { shouldValidate: true });
+        } else if (uploadType === 'bill') {
+          setBillFile(file);
+          setBillPreview(URL.createObjectURL(file));
+          form.setValue("billPhoto", file, { shouldValidate: true });
+        }
+      }
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeProductPhoto = (index: number) => {
+    const newFiles = productFiles.filter((_, i) => i !== index);
+    const newPreviews = productPreviews.filter((_, i) => i !== index);
+    setProductFiles(newFiles);
+    setProductPreviews(newPreviews);
+    form.setValue("productPhotos", newFiles, { shouldValidate: true });
+  };
+
+  const nextStep = async () => {
+    let fieldsToValidate: any[] = [];
+    if (step === 1) fieldsToValidate = ["patientName", "item"];
+    if (step === 2) fieldsToValidate = ["labName"];
+    if (step === 3) fieldsToValidate = ["senderSelfie", "productPhotos"];
+
+    const isValid = await form.trigger(fieldsToValidate);
+    if (isValid) setStep(step + 1);
+  };
+
+  const prevStep = () => setStep(step - 1);
+
+  const onSubmit = async (data: SendFormValues) => {
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("type", "send");
+      formData.append("senderName", data.senderName);
+      formData.append("item", data.item);
+      formData.append("deliveryPerson", data.deliveryPerson || "");
+      formData.append("labName", data.labName);
+      formData.append("patientName", data.patientName);
+      formData.append("approvalStatus", "Pending");
+      if (user?.email) {
+          formData.append("senderEmail", user.email);
+      }
+      
+      if (data.appointmentDate) {
+        formData.append("appointmentDate", data.appointmentDate.toISOString());
+      }
+
+      if (sendType === 'resend' && selectedReceivedId) {
+        formData.append("linkedRecordId", selectedReceivedId);
+      }
+      
+      if (selfieFile) formData.append("senderSelfie", selfieFile);
+      if (deliveryFile) formData.append("deliveryPersonPhoto", deliveryFile);
+      if (billFile) formData.append("billPhoto", billFile);
+      productFiles.forEach((file) => formData.append("productPhotos", file));
+      
+      // Add price and tat info
+      if (data.servicePrice) formData.append("servicePrice", data.servicePrice);
+      if (data.tat) formData.append("tat", data.tat);
+      if (data.documentType) formData.append("documentType", data.documentType);
+      
+      if (data.documentType && data.documentType !== "None" && data.billAmount) {
+        formData.append("billAmount", data.billAmount);
+      }
+
+      const result = await sendSubmissionAction({}, formData);
+
+      if (result?.message && !result?.errors) {
+        toast({ title: "Success!", description: result.message });
+        form.reset();
+        setStep(1);
+        setSelfiePreview(null);
+        setSelfieFile(null);
+        setProductPreviews([]);
+        setProductFiles([]);
+        setDeliveryPreview(null);
+        setDeliveryFile(null);
+        setSelectedReceivedId(null);
+      } else if (result?.errors) {
+        const errorMessages = Object.entries(result.errors)
+          .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`)
+          .join("\n");
+        toast({ 
+          title: "Validation Error", 
+          description: errorMessages, 
+          variant: "destructive" 
+        });
+
+        // Navigate to the step containing the first error
+        const firstErrorKey = Object.keys(result.errors)[0];
+        const step1Fields = ["patientName", "item"];
+        const step2Fields = ["labName"];
+        const step3Fields = ["senderSelfie", "productPhotos"];
+        const step4Fields = ["deliveryPersonPhoto", "billPhoto"];
+
+        if (step1Fields.includes(firstErrorKey)) setStep(1);
+        else if (step2Fields.includes(firstErrorKey)) setStep(2);
+        else if (step3Fields.includes(firstErrorKey)) setStep(3);
+        else if (step4Fields.includes(firstErrorKey)) setStep(4);
+      } else if (result?.message) {
+        toast({ title: "Error", description: result.message, variant: "destructive" });
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Submission failed.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-12">
+        
+        {/* Step Indicator */}
+        <div className="flex items-center justify-between px-2 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex flex-col items-center gap-2">
+                    <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-500",
+                        step === i ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110" : 
+                        step > i ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                    )}>
+                        {step > i ? <UserCheck className="w-5 h-5" /> : i}
+                    </div>
+                    <span className={cn("text-[10px] font-bold uppercase tracking-widest", step === i ? "text-primary" : "text-muted-foreground")}>
+                        {i === 1 ? 'Start' : i === 2 ? 'Lab' : i === 3 ? 'Photos' : 'Final'}
+                    </span>
+                </div>
+            ))}
+        </div>
+
+        {/* Step 1: Patient & Service */}
+        {step === 1 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="glass-card p-6 rounded-3xl space-y-6">
+                    <div className="flex bg-muted p-1 rounded-xl">
+                        <button 
+                            type="button" 
+                            className={cn("flex-1 py-3 text-sm font-bold rounded-lg transition-all", sendType === 'new' ? "bg-background shadow text-primary" : "text-muted-foreground")}
+                            onClick={() => { setSendType('new'); setSelectedReceivedId(null); }}
+                        >
+                            <span className="flex items-center justify-center gap-2"><Send className="w-4 h-4" /> Send New</span>
+                        </button>
+                        <button 
+                            type="button" 
+                            className={cn("flex-1 py-3 text-sm font-bold rounded-lg transition-all", sendType === 'resend' ? "bg-background shadow text-primary" : "text-muted-foreground")}
+                            onClick={() => setSendType('resend')}
+                        >
+                            <span className="flex items-center justify-center gap-2"><Repeat className="w-4 h-4" /> Resend</span>
+                        </button>
+                    </div>
+
+                    <h2 className="text-xl font-black flex items-center gap-2 mt-4">
+                        <User className="w-5 h-5 text-primary" />
+                        Patient Details
+                    </h2>
+                    <LocalCombobox 
+                        form={form} 
+                        name="patientName" 
+                        label="Patient Name" 
+                        options={patients.map(p => p.name)}
+                        placeholder="Search or add new patient..."
+                    />
+                    
+                    {sendType === 'resend' && (
+                        <div className="space-y-4 p-4 rounded-2xl border-2 border-dashed border-primary/20 bg-primary/5 animate-in fade-in slide-in-from-top-2">
+                            <Label className="text-sm font-bold">Select Past Received Item</Label>
+                            <Select onValueChange={handleReceivedRecordSelect} value={selectedReceivedId || "none"}>
+                                <SelectTrigger className="h-12 rounded-xl bg-background border-none shadow-sm">
+                                    <SelectValue placeholder={patientReceivedRecords.length > 0 ? "Select past received item..." : (selectedPatientName ? "No past records found for this patient." : "Enter patient name first")} />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-none shadow-2xl max-h-[250px]">
+                                    <SelectItem value="none" className="rounded-xl font-bold text-muted-foreground">-- Select Item --</SelectItem>
+                                    {patientReceivedRecords.map(record => (
+                                        <SelectItem key={record.id} value={record.id} className="rounded-xl">
+                                            <div className="flex flex-col gap-0.5 py-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase font-black">{record.item}</span>
+                                                </div>
+                                                <span className="text-[10px] text-muted-foreground italic">{record.labName} • Received {format(new Date(record.createdAt), 'PP')}</span>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
+                    <div className="space-y-4">
+                        <LocalCombobox 
+                            form={form} 
+                            name="item" 
+                            label="Service / Product Needed" 
+                            options={allServices} 
+                            placeholder="What are we sending?" 
+                        />
+                    </div>
+                </div>
+                <Button type="button" onClick={nextStep} className="w-full h-14 rounded-2xl font-black text-lg gap-2 shadow-xl shadow-primary/20">
+                    Next Step <ChevronRight className="w-5 h-5" />
+                </Button>
+            </div>
+        )}
+
+        {/* Step 2: Lab & Price */}
+        {step === 2 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="glass-card p-6 rounded-3xl space-y-6">
+                    <h2 className="text-xl font-black flex items-center gap-2">
+                        <FlaskConical className="w-5 h-5 text-primary" />
+                        Select Lab
+                    </h2>
+                    
+                    <LabSelector 
+                        form={form} 
+                        name="labName" 
+                        label="Lab / Person" 
+                        labs={labs}
+                        selectedService={selectedService}
+                    />
+
+                    {selectedLabName && selectedService && (
+                        <div className="flex flex-col gap-4 mt-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="servicePrice"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Service Price (₹) <span className="opacity-50">(Optional)</span></FormLabel>
+                                            <FormControl>
+                                                <Input type="number" placeholder="Enter price" {...field} className="h-12 rounded-xl bg-background/50 font-bold text-lg" />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="tat"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Turn Around Time (Days) <span className="opacity-50">(Optional)</span></FormLabel>
+                                            <FormControl>
+                                                <Input type="number" placeholder="e.g., 2" {...field} className="h-12 rounded-xl bg-background/50 font-bold text-lg" />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <Button type="button" variant="ghost" onClick={prevStep} className="h-14 rounded-2xl font-bold gap-2">
+                        <ChevronLeft className="w-5 h-5" /> Back
+                    </Button>
+                    <Button type="button" onClick={nextStep} className="h-14 rounded-2xl font-black text-lg gap-2 shadow-xl shadow-primary/20">
+                        Next <ChevronRight className="w-5 h-5" />
+                    </Button>
+                </div>
+            </div>
+        )}
+
+        {/* Step 3: Photos */}
+        {step === 3 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                {/* Sender & Selfie Section */}
+                <div className="glass-card p-6 rounded-3xl space-y-6 border-l-4 border-l-primary">
+                    <h2 className="text-xl font-black flex items-center gap-2">
+                        <UserCheck className="w-5 h-5 text-primary" />
+                        Staff Verification
+                    </h2>
+                    
+                    <FormField
+                        control={form.control}
+                        name="senderName"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="font-bold">Select Staff Member</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger className="h-12 rounded-xl bg-background/50 border-none shadow-inner">
+                                            <SelectValue placeholder="Who is sending this?" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                                        {users.map(u => (
+                                            <SelectItem key={u.id} value={u.fullName} className="rounded-xl">
+                                                {u.fullName}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <div className="space-y-4">
+                        <Label className="text-sm font-bold">Sender Selfie</Label>
+                        <div className="relative aspect-square sm:aspect-video rounded-2xl bg-muted/30 overflow-hidden border-2 border-dashed border-primary/20 flex items-center justify-center">
+                            {selfiePreview ? (
+                                <Image src={selfiePreview} alt="Selfie" fill className="object-cover" />
+                            ) : (
+                                <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 w-full h-full p-2 sm:p-4">
+                                    <Button type="button" variant="ghost" className="flex-1 flex flex-col gap-1 sm:gap-2 h-auto py-4 px-1 sm:py-6 sm:px-6 text-muted-foreground hover:text-primary transition-colors rounded-2xl bg-background/50 border border-transparent hover:border-primary/20 shadow-sm" onClick={() => { setCameraType('selfie'); setIsCameraOpen(true); }}>
+                                        <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+                                        <span className="font-bold text-[10px] sm:text-xs uppercase">Camera</span>
+                                    </Button>
+                                    <span className="text-muted-foreground font-medium text-[10px] sm:text-xs uppercase tracking-widest hidden sm:block">OR</span>
+                                    <Button type="button" variant="ghost" className="flex-1 flex flex-col gap-1 sm:gap-2 h-auto py-4 px-1 sm:py-6 sm:px-6 text-muted-foreground hover:text-primary transition-colors rounded-2xl bg-background/50 border border-transparent hover:border-primary/20 shadow-sm" onClick={() => triggerUpload('selfie')}>
+                                        <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
+                                        <span className="font-bold text-[10px] sm:text-xs uppercase">Upload</span>
+                                    </Button>
+                                </div>
+                            )}
+                            {selfiePreview && (
+                                <button type="button" onClick={() => { setSelfiePreview(null); setSelfieFile(null); }} className="absolute top-2 right-2 w-7 h-7 bg-background/50 text-white rounded-full flex items-center justify-center backdrop-blur-md">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                        {form.formState.errors.senderSelfie && <p className="text-xs text-destructive font-bold text-center mt-2 uppercase tracking-tight">{form.formState.errors.senderSelfie.message as string}</p>}
+                    </div>
+                </div>
+
+                {/* Product Photos */}
+                <div className="glass-card p-6 rounded-3xl space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <h2 className="text-lg font-black flex items-center gap-2">
+                            <Package className="w-5 h-5 text-primary" />
+                            Product Photos
+                        </h2>
+                        <div className="flex gap-2">
+                            <Button type="button" size="sm" variant="outline" className="rounded-xl h-8 gap-1 font-bold text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => triggerUpload('product')}>
+                                <Upload className="w-4 h-4" /> Upload
+                            </Button>
+                            <Button type="button" size="sm" variant="outline" className="rounded-xl h-8 gap-1 font-bold text-primary border-primary/20 hover:bg-primary/5" onClick={() => { setCameraType('product'); setIsCameraOpen(true); }}>
+                                <Camera className="w-4 h-4" /> Capture
+                            </Button>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                        {productPreviews.map((preview, i) => (
+                            <div key={i} className="relative aspect-square rounded-2xl overflow-hidden group">
+                                <Image src={preview} alt={`Product ${i+1}`} fill className="object-cover" />
+                                <button type="button" onClick={() => removeProductPhoto(i)} className="absolute top-2 right-2 w-7 h-7 bg-destructive text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ))}
+                        {productPreviews.length === 0 && (
+                            <div className="col-span-2 py-12 border-2 border-dashed border-muted rounded-2xl flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                                <ImageIcon className="w-8 h-8 opacity-20" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">At least 1 photo required</span>
+                            </div>
+                        )}
+                    </div>
+                    {form.formState.errors.productPhotos && <p className="text-xs text-destructive font-bold">{form.formState.errors.productPhotos.message as string}</p>}
+                </div>
+
+                {/* Delivery Photo */}
+                <div className="glass-card p-6 rounded-3xl space-y-4">
+                    <h2 className="text-lg font-black flex items-center gap-2">
+                        <Truck className="w-5 h-5 text-primary" />
+                        Delivery Person Photo
+                    </h2>
+                    <div className="relative aspect-square sm:aspect-video rounded-2xl bg-muted/30 overflow-hidden border-2 border-dashed border-primary/20 flex items-center justify-center">
+                        {deliveryPreview ? (
+                            <Image src={deliveryPreview} alt="Delivery" fill className="object-cover" />
+                        ) : (
+                            <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 w-full h-full p-2 sm:p-4">
+                                <Button type="button" variant="ghost" className="flex-1 flex flex-col gap-1 sm:gap-2 h-auto py-4 px-1 sm:py-6 sm:px-6 text-muted-foreground hover:text-primary transition-colors rounded-2xl bg-background/50 border border-transparent hover:border-primary/20 shadow-sm" onClick={() => { setCameraType('delivery'); setIsCameraOpen(true); }}>
+                                    <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+                                    <span className="font-bold text-[10px] sm:text-xs uppercase">Camera</span>
+                                </Button>
+                                <span className="text-muted-foreground font-medium text-[10px] sm:text-xs uppercase tracking-widest hidden sm:block">OR</span>
+                                <Button type="button" variant="ghost" className="flex-1 flex flex-col gap-1 sm:gap-2 h-auto py-4 px-1 sm:py-6 sm:px-6 text-muted-foreground hover:text-primary transition-colors rounded-2xl bg-background/50 border border-transparent hover:border-primary/20 shadow-sm" onClick={() => triggerUpload('delivery')}>
+                                    <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
+                                    <span className="font-bold text-[10px] sm:text-xs uppercase">Upload</span>
+                                </Button>
+                            </div>
+                        )}
+                        {deliveryPreview && (
+                            <button type="button" onClick={() => { setDeliveryPreview(null); setDeliveryFile(null); }} className="absolute top-2 right-2 w-7 h-7 bg-background/50 text-white rounded-full flex items-center justify-center backdrop-blur-md">
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <Button type="button" variant="ghost" onClick={prevStep} className="h-14 rounded-2xl font-bold gap-2">
+                        <ChevronLeft className="w-5 h-5" /> Back
+                    </Button>
+                    <Button type="button" onClick={nextStep} className="h-14 rounded-2xl font-black text-lg gap-2 shadow-xl shadow-primary/20">
+                        Next <ChevronRight className="w-5 h-5" />
+                    </Button>
+                </div>
+            </div>
+        )}
+
+        {/* Step 4: Final Details */}
+        {step === 4 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="glass-card p-6 rounded-3xl space-y-6">
+                    <h2 className="text-xl font-black flex items-center gap-2">
+                        <Send className="w-5 h-5 text-primary" />
+                        Final Logistics
+                    </h2>
+
+                    <FormField
+                        control={form.control}
+                        name="deliveryPerson"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel className="font-bold">Delivery Person / Service</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Courier name, staff, etc." {...field} className="h-12 rounded-xl bg-background/50" />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+
+
+                    <div className="p-4 rounded-2xl border border-primary/20 bg-primary/5 space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="documentType"
+                            render={({ field }) => (
+                                <FormItem className="p-3 bg-background/50 rounded-lg">
+                                    <div className="space-y-0.5 mb-3">
+                                        <FormLabel className="font-bold text-base">Include Document</FormLabel>
+                                        <p className="text-xs text-muted-foreground font-medium">Select Challan or Bill for this case</p>
+                                    </div>
+                                    <Select onValueChange={field.onChange} value={field.value || 'None'}>
+                                        <FormControl>
+                                            <SelectTrigger className="h-12 rounded-xl bg-background border-none shadow-sm">
+                                                <SelectValue placeholder="Select Document Type" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent className="rounded-xl border-none shadow-2xl">
+                                            <SelectItem value="None">None</SelectItem>
+                                            <SelectItem value="Challan">Challan (Saved without adding to outstanding)</SelectItem>
+                                            <SelectItem value="Bill">Bill (Adds to outstanding balance)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {documentType && documentType !== 'None' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                                <FormField
+                                    control={form.control}
+                                    name="billAmount"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Bill Amount (₹)</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" placeholder="Enter amount" {...field} className="h-12 rounded-xl bg-background/50 font-bold" />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                
+                                <div className="space-y-2">
+                                    <FormLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Bill Photo</FormLabel>
+                                    <div className="relative h-12 rounded-xl bg-background/50 overflow-hidden border border-input flex flex-row items-center justify-center gap-3 cursor-pointer hover:bg-muted/50 transition-colors px-2">
+                                        {billPreview ? (
+                                            <div className="absolute inset-0 w-full h-full" onClick={() => { setCameraType('bill'); setIsCameraOpen(true); }}>
+                                                <Image src={billPreview} alt="Bill Preview" fill className="object-cover opacity-50" />
+                                                <div className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs bg-background/50 backdrop-blur-sm">Photo Selected (Click to change)</div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="flex-1 flex items-center justify-center gap-2 text-muted-foreground hover:text-primary font-bold text-xs h-full" onClick={() => { setCameraType('bill'); setIsCameraOpen(true); }}>
+                                                    <Camera className="w-4 h-4 text-primary" /> Capture
+                                                </div>
+                                                <div className="w-px h-6 bg-muted-foreground/30"></div>
+                                                <div className="flex-1 flex items-center justify-center gap-2 text-muted-foreground hover:text-blue-500 font-bold text-xs h-full" onClick={(e) => { e.stopPropagation(); triggerUpload('bill'); }}>
+                                                    <Upload className="w-4 h-4 text-blue-500" /> Upload
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                    {form.formState.errors.billPhoto && <p className="text-xs text-destructive font-bold">{form.formState.errors.billPhoto.message as string}</p>}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <Button type="button" variant="ghost" onClick={prevStep} className="h-14 rounded-2xl font-bold gap-2">
+                        <ChevronLeft className="w-5 h-5" /> Back
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting} className="h-14 rounded-2xl font-black text-lg gap-2 shadow-xl shadow-primary/20">
+                        {isSubmitting ? "Sending..." : "Confirm & Send"}
+                        <Send className="w-5 h-5" />
+                    </Button>
+                </div>
+            </div>
+        )}
+
+        <CameraModal
+            isOpen={isCameraOpen}
+            onClose={() => setIsCameraOpen(false)}
+            onCapture={handleCapture}
+        />
+        
+        {/* Hidden File Input */}
+        <input 
+            type="file" 
+            accept="image/*" 
+            multiple={uploadType === 'product'} 
+            className="hidden" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+        />
+      </form>
+    </Form>
+  );
+}

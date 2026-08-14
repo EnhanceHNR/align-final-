@@ -1,0 +1,584 @@
+
+{
+  "entities": {
+    "StockEntry": {
+      "title": "Stock Entry",
+      "description": "Represents a batch of an item with a specific quantity and expiry date.",
+      "type": "object",
+      "properties": {
+        "quantity": {
+          "type": "number"
+        },
+        "expiryDate": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["quantity", "expiryDate"]
+    },
+    "Item": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Item",
+      "type": "object",
+      "description": "Represents an inventory item.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Item entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the item."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the item."
+        },
+        "company": {
+          "type": "string",
+          "description": "Company associated with the item."
+        },
+        "brandName": {
+          "type": "string",
+          "description": "Brand name of the item."
+        },
+        "itemCount": {
+          "type": "number",
+          "description": "Total number of items in stock across all batches."
+        },
+        "stock": {
+          "type": "array",
+          "description": "An array of stock batches, each with its own quantity and expiry date.",
+          "items": {
+            "$ref": "#/entities/StockEntry"
+          }
+        },
+        "quantity": {
+          "type": "object",
+          "description": "Describes the unit of a single item.",
+          "properties": {
+            "value": { "type": "number" },
+            "unit": { "type": "string" }
+          }
+        },
+        "dealerId": {
+          "type": "string",
+          "description": "Reference to Dealer. (Relationship: Dealer 1:N Item)"
+        },
+        "dealerAvailability": {
+          "type": "boolean",
+          "description": "Indicates if the dealer/supplier is currently available."
+        },
+        "costPerUnit": {
+          "type": "number",
+          "description": "Cost per unit of the item."
+        },
+        "minimumQuantity": {
+          "type": "number",
+          "description": "Minimum quantity of the item before an alert is triggered."
+        },
+        "lastOrderDate": {
+          "type": "string",
+          "description": "Date of the last order for the item.",
+          "format": "date-time"
+        },
+        "openingDate": {
+          "type": "string",
+          "description": "Opening date of the item's current stock.",
+          "format": "date-time"
+        },
+        "closingDate": {
+          "type": "string",
+          "description": "Closing/end date of the item's current stock.",
+          "format": "date-time"
+        },
+        "cases": {
+          "type": "number",
+          "description": "Number of cases/packages for the item."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to Category. (Relationship: Category 1:N Item)"
+        },
+        "barcode": {
+          "type": "string",
+          "description": "Barcode or QR code for the item."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "company",
+        "brandName",
+        "itemCount",
+        "stock",
+        "quantity",
+        "dealerId",
+        "dealerAvailability",
+        "costPerUnit",
+        "minimumQuantity"
+      ]
+    },
+    "OrderRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OrderRecord",
+      "type": "object",
+      "description": "Represents a record of an order placed for an item.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the OrderRecord entity."
+        },
+        "itemId": {
+          "type": "string",
+          "description": "Reference to Item. (Relationship: Item 1:N OrderRecord)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the item ordered."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the item ordered."
+        },
+        "company": {
+          "type": "string",
+          "description": "Company of the item ordered."
+        },
+        "brandName": {
+          "type": "string",
+          "description": "Brand name of the item ordered."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantity of the item ordered."
+        },
+        "dealerAvailability": {
+          "type": "boolean",
+          "description": "Dealer availability at the time of order."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the item at the time of order."
+        },
+        "estimatedArrivalDate": {
+          "type": "string",
+          "description": "Estimated arrival date of the order.",
+          "format": "date-time"
+        },
+        "orderingDate": {
+          "type": "string",
+          "description": "Date when the order was placed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "itemId",
+        "name",
+        "quantity",
+        "dealerAvailability",
+        "price",
+        "estimatedArrivalDate",
+        "orderingDate"
+      ]
+    },
+    "Delivery": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Delivery",
+      "type": "object",
+      "description": "Represents a delivery of an ordered item.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Delivery entity."
+        },
+        "orderRecordId": {
+          "type": "string",
+          "description": "Reference to OrderRecord. (Relationship: OrderRecord 1:N Delivery)"
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "URL of the photo of the delivered item.",
+          "format": "uri"
+        },
+        "receiverId": {
+          "type": "string",
+          "description": "Reference to User who received the delivery. (Relationship: User 1:N Delivery)"
+        },
+        "billPhotoUrl": {
+          "type": "string",
+          "description": "URL of the photo of the bill.",
+          "format": "uri"
+        },
+        "actualPrice": {
+          "type": "number",
+          "description": "Actual price of the item on the bill."
+        },
+        "deliveryDate": {
+          "type": "string",
+          "description": "Date when the item was delivered.",
+          "format": "date-time"
+        },
+        "isApproved": {
+          "type": "boolean",
+          "description": "Indicates if the delivery has been approved."
+        },
+        "isPaid": {
+          "type": "boolean",
+          "description": "Indicates if the delivery bill has been paid."
+        }
+      },
+      "required": [
+        "id",
+        "orderRecordId",
+        "photoUrl",
+        "receiverId",
+        "billPhotoUrl",
+        "actualPrice",
+        "deliveryDate",
+        "isApproved"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user (e.g., Admin, Staff)."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "role"
+      ]
+    },
+    "Dealer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Dealer",
+      "type": "object",
+      "description": "Represents a dealer or supplier of items.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Dealer entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the dealer."
+        },
+        "contact": {
+          "type": "string",
+          "description": "Contact information for the dealer."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Rating of the dealer."
+        },
+        "priceListUrl": {
+          "type": "string",
+          "description": "URL to the dealer's price list.",
+          "format": "uri"
+        },
+        "suppliedItems": {
+          "type": "array",
+          "description": "An array of item IDs that this dealer supplies.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "contact"
+      ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification for various events.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Notification entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Notification)"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of notification (e.g., low stock, expiry date)."
+        },
+        "message": {
+          "type": "string",
+          "description": "Message content of the notification."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of when the notification was created.",
+          "format": "date-time"
+        },
+        "isRead": {
+          "type": "boolean",
+          "description": "Indicates if the notification has been read."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "message",
+        "timestamp",
+        "isRead"
+      ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a category for items.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Category entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the category."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Statement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Statement",
+      "type": "object",
+      "description": "Represents a generated bill or statement for a dealer over a period of time.",
+      "properties": {
+        "id": { "type": "string" },
+        "dealerId": { "type": "string" },
+        "dealerName": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pending", "Paid"] },
+        "deliveryIds": { "type": "array", "items": { "type": "string" } },
+        "generatedDate": { "type": "string", "format": "date-time"},
+        "paymentMode": { "type": "string", "enum": ["Card", "Cheque", "Cash", "UPI", "Other"] },
+        "paymentReference": { "type": "string" }
+      },
+      "required": ["id", "dealerId", "dealerName", "startDate", "endDate", "totalAmount", "status", "deliveryIds", "generatedDate"]
+    },
+     "ConsumptionRecord": {
+      "title": "Consumption Record",
+      "description": "Represents a record of an item being consumed from the inventory.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "itemId": { "type": "string" },
+        "itemName": { "type": "string" },
+        "quantityConsumed": { "type": "number" },
+        "unit": { "type": "string" },
+        "consumedBy": { "type": "string", "description": "The UID of the user who consumed the item." },
+        "consumedByName": { "type": "string", "description": "The name or email of the user for display purposes." },
+        "consumptionDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "itemId", "itemName", "quantityConsumed", "unit", "consumedBy", "consumedByName", "consumptionDate"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Path-based ownership for private user data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "Stores notifications for each user. Path-based ownership for user-specific notifications.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "notificationId",
+              "description": "The unique identifier for the notification."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/deliveries/{deliveryId}",
+        "definition": {
+          "entityName": "Delivery",
+          "schema": {
+            "$ref": "#/backend/entities/Delivery"
+          },
+          "description": "Stores all delivery records. Accessible by all authenticated users.",
+          "params": [
+            {
+              "name": "deliveryId",
+              "description": "The unique identifier for the delivery record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/dealers/{dealerId}",
+        "definition": {
+          "entityName": "Dealer",
+          "schema": {
+            "$ref": "#/backend/entities/Dealer"
+          },
+          "description": "Stores dealer profiles.",
+          "params": [
+            {
+              "name": "dealerId",
+              "description": "The unique identifier for the dealer."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/items/{itemId}",
+        "definition": {
+          "entityName": "Item",
+          "schema": {
+            "$ref": "#/backend/entities/Item"
+          },
+          "description": "Stores all inventory items. Accessible by authenticated users.",
+          "params": [
+            {
+              "name": "itemId",
+              "description": "The unique identifier for the item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orderRecords/{orderRecordId}",
+        "definition": {
+          "entityName": "OrderRecord",
+          "schema": {
+            "$ref": "#/backend/entities/OrderRecord"
+          },
+          "description": "Stores all order records. Accessible by authenticated users.",
+          "params": [
+            {
+              "name": "orderRecordId",
+              "description": "The unique identifier for the order record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Stores item categories.",
+          "params": [
+            {
+              "name": "categoryId",
+              "description": "The unique identifier for the category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/statements/{statementId}",
+        "definition": {
+            "entityName": "Statement",
+            "schema": { "$ref": "#/backend/entities/Statement" },
+            "description": "Stores generated billing statements for dealers.",
+            "params": [
+                {
+                    "name": "statementId",
+                    "description": "The unique identifier for the statement."
+                }
+            ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Admin role. Existence of document confers admin privileges.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+       {
+        "path": "/consumptionHistory/{recordId}",
+        "definition": {
+            "entityName": "ConsumptionRecord",
+            "schema": { "$ref": "#/backend/entities/ConsumptionRecord" },
+            "description": "Stores a log of all consumed items.",
+            "params": [
+                {
+                    "name": "recordId",
+                    "description": "The unique identifier for the consumption record."
+                }
+            ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the Inventory and Procurement Management System described. It uses path-based ownership for user-related data and a membership map approach for collaborative entities, ensuring clear access control and scalability. Denormalization is used extensively to avoid `get()` calls in security rules, enhancing atomicity. The structure supports the application's requirements for user roles (Admin, Staff), item tracking, purchase orders, delivery verification, and notifications.\n\nAuthorization Independence is achieved by denormalizing authorization data. For example, items related to a specific dealer are stored under `/dealers/{dealerId}/items/{itemId}`. This structure means that when writing security rules for items, access control can be based solely on the dealer ID present in the path, without needing to `get()` the dealer document itself. Similarly, deliveries are nested under `/users/{userId}/deliveries/{deliveryId}`, linking deliveries directly to the receiving user, which simplifies security rules for delivery access.\n\nTo support the required QAPs, structural segregation is applied. User-specific data (deliveries) are stored under the `/users/{userId}` path, ensuring that listing operations can be secured based on the authenticated user ID. For collaborative data, such as items that multiple users might need to view or manage, consider adding a `members` field to the item document, containing a map of user IDs to roles, and then securing list operations based on the presence of the user's ID in that map. Notifications are segregated under `/users/{userId}/notifications/{notificationId}` to ensure users can only access their own notifications."
+  }
+}

@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow authorized users to read and write to the verifications folder.
+    // This is required for uploading delivery proof images and retrieving their
+    // download URLs to save in Firestore.
+    match /verifications/{orderId}/{fileName} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /returns/{billId}/{fileName} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Deny all other access to prevent unauthorized file operations.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

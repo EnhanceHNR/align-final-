@@ -1,0 +1,263 @@
+/**
+ * @fileoverview Firestore Security Rules for the Inventory and Procurement Management System.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a combination of user-ownership and shared-access models.
+ * User-specific data is secured via path-based ownership.
+ * Top-level collections are generally readable, with owner-only write access enforced via denormalized `userId` or similar fields.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles and private data.
+ * - /users/{userId}/notifications/{notificationId}: Stores user-specific notifications.
+ * - /items/{itemId}: Stores inventory items.
+ * - /orderRecords/{orderRecordId}: Stores order records.
+ * - /deliveries/{deliveryId}: Stores delivery records.
+ * - /dealers/{dealerId}: Stores dealer profiles.
+ * - /categories/{categoryId}: Stores item categories.
+ * - /statements/{statementId}: Stores billing statements for dealers.
+ * - /roles_admin/{userId}: Confers admin privileges based on document existence.
+ * - /consumptionHistory/{recordId}: Stores a log of all consumed items.
+ *
+ * Key Security Decisions:
+ * - User listing is disabled.
+ * - Ambiguous relationships default to strict owner-only access.
+ * - Data validation is limited to fields critical for authorization and relational integrity, allowing flexible data shapes during prototyping.
+ *
+ * Denormalization for Authorization:
+ *  - Many collections use an 'ownerId' or 'userId' field within the document to quickly check ownership, avoiding costly `get()` calls.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Grants access to user profile data based on path-based ownership.
+     * @path /users/{userId}
+     * @allow (create) Authenticated user can create their own profile.
+     * @allow (get, update, delete) Authenticated user can only access their own profile.
+     * @deny (create) if the userId does not match the authenticated user's ID.
+     * @deny (get, update, delete) if the userId does not match the authenticated user's ID.
+     * @principle Enforces strict user-ownership.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isAdmin() {
+        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+      }
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Grants access to user-specific notifications based on path-based ownership.
+     * @path /users/{userId}/notifications/{notificationId}
+     * @allow (create) Authenticated user can create a notification for themselves.
+     * @allow (get, list, update, delete) Authenticated user can only access their own notifications.
+     * @deny (create) if the userId does not match the authenticated user's ID.
+     * @deny (get, list, update, delete) if the userId does not match the authenticated user's ID.
+     * @principle Enforces strict user-ownership for notifications.
+     */
+    match /users/{userId}/notifications/{notificationId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    /**
+     * @description Grants read access to all authenticated users for delivery records.
+     *                Allows any authenticated user to create, update, or delete a delivery record.
+     * @path /deliveries/{deliveryId}
+     * @allow (get, list) Any authenticated user can read delivery records.
+     * @allow (create) Any authenticated user can create a delivery record.
+     * @allow (update) Any authenticated user can update a delivery record.
+     * @allow (delete) Any authenticated user can delete a delivery record.
+     * @deny (none) No specific denial conditions are defined.
+     * @principle Allows public read access with write access limited to authenticated users.
+     */
+    match /deliveries/{deliveryId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Grants read access to all authenticated users for dealer profiles.
+     *                Allows any authenticated user to create, update, or delete a dealer profile.
+     * @path /dealers/{dealerId}
+     * @allow (get, list) Any authenticated user can read dealer profiles.
+     * @allow (create) Any authenticated user can create a dealer profile.
+     * @allow (update) Any authenticated user can update a dealer profile.
+     * @allow (delete) Any authenticated user can delete a dealer profile.
+     * @deny (none) No specific denial conditions are defined.
+     */
+    match /dealers/{dealerId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Grants read access to all authenticated users for inventory items.
+     *                Allows any authenticated user to create, update, or delete an item.
+     * @path /items/{itemId}
+     * @allow (get, list) Any authenticated user can read inventory items.
+     * @allow (create) Any authenticated user can create an item.
+     * @allow (update) Any authenticated user can update an item.
+     * @allow (delete) Any authenticated user can delete an item.
+     * @deny (none) No specific denial conditions are defined.
+     */
+    match /items/{itemId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Grants read access to all authenticated users for order records.
+     *                Allows any authenticated user to create, update, or delete an order record.
+     * @path /orderRecords/{orderRecordId}
+     * @allow (get, list) Any authenticated user can read order records.
+     * @allow (create) Any authenticated user can create an order record.
+     * @allow (update) Any authenticated user can update an order record.
+     * @allow (delete) Any authenticated user can delete an order record.
+     * @deny (none) No specific denial conditions are defined.
+     */
+    match /orderRecords/{orderRecordId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Grants read access to all authenticated users for item categories.
+     *                Allows any authenticated user to create, update, or delete a category.
+     * @path /categories/{categoryId}
+     * @allow (get, list) Any authenticated user can read categories.
+     * @allow (create) Any authenticated user can create a category.
+     * @allow (update) Any authenticated user can update a category.
+     * @allow (delete) Any authenticated user can delete a category.
+     * @deny (none) No specific denial conditions are defined.
+     */
+    match /categories/{categoryId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Grants read access to all authenticated users for billing statements.
+     *                Allows any authenticated user to create, update, or delete a statement.
+     * @path /statements/{statementId}
+     * @allow (get, list) Any authenticated user can read statements.
+     * @allow (create) Any authenticated user can create a statement.
+     * @allow (update) Any authenticated user can update a statement.
+     * @allow (delete) Any authenticated user can delete a statement.
+     * @deny (none) No specific denial conditions are defined.
+     */
+    match /statements/{statementId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Confers admin privileges based on the existence of a document in this collection.
+     *              Any authenticated user to create, update, or delete.
+     * @path /roles_admin/{userId}
+     * @allow (get) Any authenticated user can check for admin role.
+     * @allow (list) Listing is disallowed
+     * @allow (create) Any authenticated user can create an admin role.
+     * @allow (update) Any authenticated user can update an admin role.
+     * @allow (delete) Any authenticated user can delete an admin role.
+     * @deny (none) No specific denial conditions are defined.
+     */
+    match /roles_admin/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+     /**
+      * @description Grants read access to all authenticated users for consumption records.
+      *                Allows any authenticated user to create, update, or delete a consumption record.
+      * @path /consumptionHistory/{recordId}
+      * @allow (get, list) Any authenticated user can read consumption records.
+      * @allow (create) Any authenticated user can create a consumption record.
+      * @allow (update) Any authenticated user can update a consumption record.
+      * @allow (delete) Any authenticated user can delete a consumption record.
+      * @deny (none) No specific denial conditions are defined.
+      */
+    match /consumptionHistory/{recordId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Grants create access to all authenticated users for mail.
+     */
+    match /mail/{mailId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow create: if isSignedIn();
+    }
+
+    match /metadata/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

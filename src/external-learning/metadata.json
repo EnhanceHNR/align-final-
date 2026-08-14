@@ -1,0 +1,10 @@
+{
+  "name": "Enhance HNR",
+  "description": "High-performance prosthetic device manufacturing management system with AI-driven technical guidance and sequential workflow tracking.",
+  "requestFramePermissions": [
+    "microphone",
+    "display-capture",
+    "camera",
+    "geolocation"
+  ]
+}

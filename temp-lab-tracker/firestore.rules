@@ -1,0 +1,172 @@
+/**
+ * @file Firestore Security Rules for LabTrack Mobile
+ * @description This ruleset enforces a role-based access control model with strict ownership for user data and shared access for lab cases.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles, accessible only to the user themselves.
+ * - /invitations/{invitationId}: Stores invitation tokens. Anyone can read to validate tokens, but only admins can create.
+ * - /patients/{patientId}: Stores patient data. Publicly readable, but write access is not defined (TODO).
+ * - /labServices/{labServiceId}: Stores lab service data. Publicly readable, but write access is not defined (TODO).
+ * - /labs/{labId}: Stores lab data. Publicly readable, but write access is not defined (TODO).
+ * - /labCases/{labCaseId}: Stores lab case data, with flexible write access determined by the 'members' field.
+ * - /labCases/{labCaseId}/shipments/{shipmentId}: Stores shipment data, with access controlled by the parent lab case.
+ *
+ * Key Security Decisions:
+ * - User data is strictly private (owner-only access).
+ * - Listing users is not permitted.
+ * - Public read access is granted for patients, labServices, and labs.
+ * - Lab case access is managed via a 'members' map on the document, allowing for shared access.
+ *
+ * Denormalization for Authorization:
+ * - The 'labCases' documents use a 'members' map to store user roles for the case, avoiding the need to fetch roles from the 'users' collection.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Checks if the current user is signed in.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle This is a helper function.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the current user is the owner of the resource.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle This is a helper function.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the current user is the owner of the existing resource.
+     */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Checks if the user is an admin.
+     * @path N/A
+     */
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    /**
+     * @description Defines rules for user profiles.
+     * @path /users/{userId}
+     * @allow (create) User with uid 'user123' can create their profile if request.auth.uid == 'user123'.
+     * @allow (get) User with uid 'user123' can get their profile if request.auth.uid == 'user123'.
+     * @allow (update) User with uid 'user123' can update their profile if request.auth.uid == 'user123'.
+     * @allow (delete) User with uid 'user123' can delete their profile if request.auth.uid == 'user123'.
+     * @deny (create) User with uid 'user456' cannot create a profile for 'user123'.
+     * @deny (get) User with uid 'user456' cannot get the profile of 'user123'.
+     * @principle Enforces document ownership for all operations on user profiles.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.uid == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Defines rules for invitations.
+     * @path /invitations/{invitationId}
+     * @allow (create) An admin can create invitations.
+     * @allow (get) Anyone can read invitations to validate tokens.
+     * @deny (create) A non-admin cannot create invitations.
+     * @deny (update) Invitations cannot be updated.
+     * @deny (delete) Invitations cannot be deleted.
+     * @principle Restricts invitation creation to admins, allows public read for token validation.
+     */
+    match /invitations/{invitationId} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isAdmin();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Defines rules for patients.
+     * @path /patients/{patientId}
+     * @allow (get, list) Anyone can read patient data.
+     * @deny (create, update, delete) No write access defined yet.
+     * @principle Allows public read access to patient data.
+     */
+    match /patients/{patientId} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isSignedIn(); // Allow authenticated users; deletes managed server-side.
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Defines rules for lab services.
+     * @path /labServices/{labServiceId}
+     * @allow (get, list) Anyone can read lab service data.
+     * @deny (create, update, delete) No write access defined yet.
+     * @principle Allows public read access to lab service data.
+     */
+    match /labServices/{labServiceId} {
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+
+    /**
+     * @description Defines rules for labs.
+     * @path /labs/{labId}
+     * @allow (get, list) Anyone can read lab data.
+     * @deny (create, update, delete) No write access defined yet.
+     * @principle Allows public read access to lab data.
+     */
+    match /labs/{labId} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isSignedIn(); // Allow authenticated users; deletes managed server-side.
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Defines rules for lab cases.
+     * @path /labCases/{labCaseId}
+     * @allow (get) Anyone can read lab case data.
+     * @allow (create) Only signed-in users can create lab cases.
+     * @allow (update, delete) Only members of the lab case can modify or delete it.
+     * @deny (create) Anonymous users cannot create lab cases.
+     * @deny (update, delete) Non-members cannot modify or delete lab cases.
+     * @principle Controls access to lab cases based on membership.
+     */
+    match /labCases/{labCaseId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn();
+      allow update: if resource.data.keys().hasAll(['id']) && resource != null && request.auth.uid in resource.data;
+      allow delete: if resource.data.keys().hasAll(['id']) && resource != null && request.auth.uid in resource.data;
+    }
+
+    /**
+     * @description Defines rules for shipments.
+     * @path /labCases/{labCaseId}/shipments/{shipmentId}
+     * @allow (get, list) Anyone can read shipment data associated with a lab case.
+     * @allow (create, update, delete) Only members of the parent lab case can manage shipments.
+     * @deny (create, update, delete) Non-members cannot manage shipments.
+     * @principle Restricts shipment management to members of the parent lab case.
+     */
+    match /labCases/{labCaseId}/shipments/{shipmentId} {
+      allow get, list: if true;
+      allow create: if get(/databases/$(database)/documents/labCases/$(labCaseId)).data.keys().hasAll(['id']) && request.auth.uid in get(/databases/$(database)/documents/labCases/$(labCaseId)).data;
+      allow update: if get(/databases/$(database)/documents/labCases/$(labCaseId)).data.keys().hasAll(['id']) && request.auth.uid in get(/databases/$(database)/documents/labCases/$(labCaseId)).data && resource != null;
+      allow delete: if get(/databases/$(database)/documents/labCases/$(labCaseId)).data.keys().hasAll(['id']) && request.auth.uid in get(/databases/$(database)/documents/labCases/$(labCaseId)).data && resource != null;
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "placeholderImages": [
+    {
+      "id": "dashboard-hero",
+      "description": "A modern laboratory setting with scientific equipment.",
+      "imageUrl": "https://images.unsplash.com/photo-1614934273038-8829c68de36c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxsYWJvcmF0b3J5JTIwc2NpZW5jZXxlbnwwfHx8fDE3NjE2ODE0Nzh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "laboratory science"
+    },
+    {
+      "id": "app-logo",
+      "description": "A minimalist logo for a lab tracking application.",
+      "imageUrl": "https://images.unsplash.com/photo-1660071155921-7204712d7d1a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmbGFzayUyMGxvZ298ZW58MHx8fHwxNzYxNzIyMTExfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "flask logo"
+    }
+  ]
+}

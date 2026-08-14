@@ -1,0 +1,40 @@
+{
+  "placeholderImages": [
+    {
+      "id": "user-avatar-1",
+      "description": "User avatar",
+      "imageUrl": "https://picsum.photos/seed/user1/40/40",
+      "imageHint": "person face"
+    },
+    {
+      "id": "item-photo-1",
+      "description": "Photo of a dental tool",
+      "imageUrl": "https://picsum.photos/seed/item1/100/100",
+      "imageHint": "dental tool"
+    },
+    {
+      "id": "item-photo-2",
+      "description": "Photo of a box of gloves",
+      "imageUrl": "https://picsum.photos/seed/item2/100/100",
+      "imageHint": "gloves box"
+    },
+    {
+      "id": "item-photo-3",
+      "description": "Photo of dental composite",
+      "imageUrl": "https://picsum.photos/seed/item3/100/100",
+      "imageHint": "dental composite"
+    },
+    {
+      "id": "item-photo-4",
+      "description": "Photo of a bottle of bonding agent",
+      "imageUrl": "https://picsum.photos/seed/item4/100/100",
+      "imageHint": "bottle medical"
+    },
+    {
+      "id": "login-background",
+      "description": "Abstract background for login page",
+      "imageUrl": "https://picsum.photos/seed/loginbg/1920/1080",
+      "imageHint": "abstract warehouse"
+    }
+  ]
+}

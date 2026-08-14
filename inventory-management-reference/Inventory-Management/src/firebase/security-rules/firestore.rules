@@ -1,0 +1,214 @@
+rules_version = '2';
+// Force deploy 1
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Enforces access control for user profiles.
+     * @path /users/{userId}
+     * @allow (create) Authenticated user can create their own profile if the userId matches their auth.uid.
+     * @allow (get, update, delete) Authenticated user can only access/modify their own profile.
+     * @deny (create) An unauthenticated user cannot create a profile.
+     * @deny (update, delete) An unauthenticated user cannot update/delete a profile.
+     * @deny (get, list) Other authenticated users cannot access this profile
+     * @principle Enforces document ownership for user profiles.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource.data != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if request.auth != null;
+      allow create: if request.auth.uid == userId;
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces access control for user notifications.
+     * @path /users/{userId}/notifications/{notificationId}
+     * @allow (create) Authenticated user can create notifications under their profile.
+     * @allow (get, list, update, delete) Authenticated user can only access/modify notifications under their own profile.
+     * @deny (create) An unauthenticated user cannot create a notification.
+     * @deny (update, delete) An unauthenticated user cannot update/delete a notification.
+     * @deny (get) Other authenticated users cannot access this notification
+     * @principle Restricts access to a user's own notifications.
+     */
+    match /users/{userId}/notifications/{notificationId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource.data != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if request.auth.uid == userId;
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces access control for user deliveries.
+     * @path /users/{userId}/deliveries/{deliveryId}
+     * @allow (create) Authenticated user can create deliveries under their profile.
+     * @allow (get, list, update, delete) Authenticated user can only access/modify deliveries under their own profile.
+     * @deny (create) An unauthenticated user cannot create a delivery.
+     * @deny (update, delete) An unauthenticated user cannot update/delete a delivery.
+     * @deny (get) Other authenticated users cannot access this delivery
+     * @principle Restricts access to a user's own delivery records.
+     */
+    match /users/{userId}/deliveries/{deliveryId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource.data != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if request.auth.uid == userId;
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows access to dealer profiles for authenticated users.
+     * @path /dealers/{dealerId}
+     * @allow (get, list) All authenticated users can read dealer profiles.
+     * @deny (create, update, delete) Only an admin can create/modify/delete dealer profiles. // TODO: refine later
+     * @principle Allows public read access with restricted writes.
+     */
+    match /dealers/{dealerId} {
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Allows access to inventory items for authenticated users.
+     * @path /items/{itemId}
+     * @allow (get, list) All authenticated users can read inventory items.
+     * @deny (create, update, delete) Only an admin can create/modify/delete inventory items. // TODO: refine later
+     * @principle Allows public read access with restricted writes.
+     */
+    match /items/{itemId} {
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Allows access to order records for authenticated users.
+     * @path /items/{itemId}/orderRecords/{orderRecordId}
+     * @allow (get, list) All authenticated users can read order records.
+     * @deny (create, update, delete) Only an admin can create/modify/delete order records. // TODO: refine later
+     * @principle Allows public read access with restricted writes.
+     */
+    match /items/{itemId}/orderRecords/{orderRecordId} {
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    match /metadata/{document=**} {
+      allow read, write: if request.auth.uid != null;
+    }
+
+    match /consumptionRecords/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /orderRecords/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /deliveries/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /statements/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /bills/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    /**
+     * @description Enforces access control for categories. for authenticated users.
+     * @path /categories/{categoryId}
+     * @allow (get, list) All authenticated users can read item categories.
+     * @deny (create, update, delete) Only an admin can create/modify/delete item categories. // TODO: refine later
+     * @principle Allows public read access with restricted writes.
+     */
+    match /categories/{categoryId} {
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Confers admin privileges based on the existence of a document.
+     * @path /roles_admin/{userId}
+     * @allow (create) Authenticated user can create their own admin document if the userId matches their auth.uid.
+     * @allow (get, update, delete) Authenticated user can only access/modify their own admin document.
+     * @deny (create) An unauthenticated user cannot create an admin role.
+     * @deny (update, delete) An unauthenticated user cannot update/delete an admin role.
+     *  @deny (get, list) Other authenticated users cannot access this profile
+     * @principle Enforces document ownership for admin roles.
+     */
+    match /roles_admin/{userId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+       function isExistingOwner(userId) {
+        return isOwner(userId) && resource.data != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if request.auth.uid == userId;
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}

@@ -1,0 +1,237 @@
+'use client';
+import { PageHeader } from "@/components/shared/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCollection, firestore } from "@/firebase";
+import { Dealer } from "@/lib/types";
+import { collection, deleteDoc, doc } from "firebase/firestore";
+import { MoreVertical, PlusCircle, Trash2, FileDown, Edit } from "lucide-react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast";
+import { exportToCsv, exportToPdf } from "@/lib/utils";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+
+import { ImportCsvDialog } from "@/components/shared/import-csv-dialog";
+
+
+export default function DealersPage() {
+    const { toast } = useToast();
+    const dealersCollection = useMemo(() => firestore ? collection(firestore, 'dealers') : null, []);
+    const { data: dealers, isLoading, forceRefetch } = useCollection<Dealer>(dealersCollection);
+
+    const [dealerToDelete, setDealerToDelete] = useState<string | null>(null);
+
+    const handleDeleteDealer = async () => {
+        if (!dealerToDelete || !firestore) return;
+
+        try {
+            await deleteDoc(doc(firestore, 'dealers', dealerToDelete));
+            toast({
+                title: "Dealer Deleted",
+                description: "The dealer has been successfully deleted.",
+            });
+        } catch (error) {
+            console.error("Error deleting dealer: ", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Failed to delete dealer. Please try again.",
+            });
+        } finally {
+            setDealerToDelete(null);
+        }
+    };
+    
+    const handleExport = (format: 'csv' | 'pdf') => {
+        if (!dealers) return;
+        
+        const columns = [
+            { key: 'id', title: 'ID' },
+            { key: 'name', title: 'Name' },
+            { key: 'contactPerson', title: 'Contact Person' },
+            { key: 'email', title: 'Email' },
+            { key: 'phone', title: 'Phone' },
+            { key: 'address', title: 'Address' },
+            { key: 'website', title: 'Website' },
+        ] as { key: keyof Dealer, title: string }[];
+        
+        if (format === 'csv') {
+            exportToCsv(dealers, 'dealers.csv', columns);
+        } else {
+            exportToPdf(dealers, 'dealers.pdf', columns);
+        }
+    };
+
+    return (
+        <>
+            <div className="flex flex-col gap-6">
+                <PageHeader title="Dealers">
+                    <div className="flex items-center gap-2">
+                        <ImportCsvDialog mode="dealers" onSuccess={() => forceRefetch?.()} />
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline">
+                                    <FileDown className="mr-2" /> Export
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuItem onClick={() => handleExport('csv')}>Export as CSV</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleExport('pdf')}>Export as PDF</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button asChild>
+                            <Link href="/dealers/add">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Add Dealer
+                            </Link>
+                        </Button>
+                    </div>
+                </PageHeader>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Dealer Management</CardTitle>
+                        <CardDescription>
+                            A list of all dealers in your system.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         {isLoading ? (
+                            <div className="space-y-4">
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                            </div>
+                         ) : dealers && dealers.length > 0 ? (
+                            <>
+                            {/* Mobile View: Cards */}
+                            <div className="block md:hidden space-y-4">
+                                {dealers.map(dealer => (
+                                    <div key={dealer.id} className="p-4 border rounded-xl bg-card shadow-sm flex flex-col gap-2">
+                                        <div className="flex justify-between items-start">
+                                            <h3 className="font-bold text-lg text-primary leading-tight">{dealer.name}</h3>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-2">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/dealers/${dealer.id}/edit`}>
+                                                            <Edit className="mr-2 h-4 w-4" />
+                                                            Edit
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem onClick={() => setDealerToDelete(dealer.id)} className="text-destructive">
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-1 text-sm text-muted-foreground mt-2">
+                                            <p><span className="font-semibold">Contact:</span> {dealer.contactPerson || 'N/A'}</p>
+                                            <p><span className="font-semibold">Phone:</span> {dealer.phone || 'N/A'}</p>
+                                            <p><span className="font-semibold">Email:</span> {dealer.email || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Desktop View: Table */}
+                            <div className="hidden md:block border rounded-md">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Contact Person</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Phone</TableHead>
+                                            <TableHead><span className="sr-only">Actions</span></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {dealers.map(dealer => (
+                                            <TableRow key={dealer.id}>
+                                                <TableCell className="font-medium">{dealer.name}</TableCell>
+                                                <TableCell>{dealer.contactPerson}</TableCell>
+                                                <TableCell>{dealer.email}</TableCell>
+                                                <TableCell>{dealer.phone}</TableCell>
+                                                <TableCell className="text-right">
+                                                     <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                <MoreVertical className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem asChild>
+                                                                <Link href={`/dealers/${dealer.id}/edit`}>
+                                                                    <Edit className="mr-2 h-4 w-4" />
+                                                                    Edit
+                                                                </Link>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem onClick={() => setDealerToDelete(dealer.id)} className="text-destructive">
+                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                Delete
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            </>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg">
+                                <h3 className="text-lg font-semibold">No Dealers Found</h3>
+                                <p className="text-muted-foreground mt-2">
+                                    Add a new dealer to get started.
+                                </p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+            <AlertDialog open={!!dealerToDelete} onOpenChange={(open) => !open && setDealerToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the dealer
+                            and all associated data.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setDealerToDelete(null)}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteDealer} className="bg-destructive hover:bg-destructive/90">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+    );
+}

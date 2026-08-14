@@ -1,0 +1,336 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the LabTrack Mobile application.",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique identifier for the user, matching Firebase Auth UID."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role within the application.",
+          "enum": ["admin", "employee"]
+        }
+      },
+      "required": [
+        "uid",
+        "name",
+        "email",
+        "role"
+      ]
+    },
+    "Invitation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Invitation",
+      "type": "object",
+      "description": "Represents an invitation sent to a new user to join the application.",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The email address of the user being invited.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "The role to be assigned to the invited user.",
+          "enum": ["admin", "employee"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the invitation was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "email",
+        "role",
+        "createdAt"
+      ]
+    },
+    "Patient": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Patient",
+      "type": "object",
+      "description": "Represents a patient whose lab cases are being tracked.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the patient."
+        },
+        "name": {
+          "type": "string",
+          "description": "The patient's full name."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "LabService": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LabService",
+      "type": "object",
+      "description": "Represents a service offered by a lab.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the lab service."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the lab service."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the lab service."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "price"
+      ]
+    },
+    "Lab": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lab",
+      "type": "object",
+      "description": "Represents a partner laboratory.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the lab."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the laboratory."
+        },
+        "services": {
+          "type": "array",
+          "description": "References to LabServices offered by the lab.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "LabCase": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LabCase",
+      "type": "object",
+      "description": "Represents a single lab case being tracked.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the lab case."
+        },
+        "patientName": {
+          "type": "string",
+          "description": "The name of the patient associated with the lab case."
+        },
+        "serviceName": {
+          "type": "string",
+          "description": "The name of the lab service being performed."
+        },
+        "labName": {
+          "type": "string",
+          "description": "The name of the lab performing the service."
+        },
+        "creationDate": {
+          "type": "string",
+          "description": "The date and time when the lab case was created.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the lab case.",
+          "enum": ["Sent", "Delivered"]
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any notes or comments about the lab case."
+        },
+        "appointmentStatus": {
+          "type": "string",
+          "description": "Indicates whether an appointment was given.",
+          "enum": ["Appointment given", "Appointment not given"]
+        },
+        "appointmentDate": {
+          "type": "string",
+          "description": "The date of the appointment, if applicable.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "patientName",
+        "serviceName",
+        "labName",
+        "creationDate",
+        "status"
+      ]
+    },
+    "Shipment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Shipment",
+      "type": "object",
+      "description": "Represents a shipment associated with a lab case.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Shipment."
+        },
+        "labCaseId": {
+          "type": "string",
+          "description": "Reference to the associated LabCase."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of shipment.",
+          "enum": ["outgoing", "incoming"]
+        },
+        "actorName": {
+          "type": "string",
+          "description": "The name of the person sending or receiving the shipment."
+        },
+        "itemName": {
+          "type": "string",
+          "description": "The name of the item being shipped."
+        },
+        "deliveryPerson": {
+          "type": "string",
+          "description": "The name of the delivery person, if applicable."
+        },
+        "shipmentDate": {
+          "type": "string",
+          "description": "The date and time of the shipment.",
+          "format": "date-time"
+        },
+        "actorPhotoUrl": {
+          "type": "string",
+          "description": "URL of the photo of the sender/receiver."
+        },
+        "itemPhotoUrl": {
+          "type": "string",
+          "description": "URL of the photo of the item being shipped."
+        },
+        "voucherPhotoUrl": {
+          "type": "string",
+          "description": "URL of the photo of the shipment voucher."
+        },
+        "deliveryPersonPhotoUrl": {
+          "type": "string",
+          "description": "URL of the photo of the delivery person, if applicable."
+        }
+      },
+      "required": [
+        "id",
+        "labCaseId",
+        "type",
+        "actorName",
+        "itemName",
+        "shipmentDate",
+        "actorPhotoUrl",
+        "itemPhotoUrl",
+        "voucherPhotoUrl"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/entities/User"
+          },
+          "description": "Stores user profiles. The `userId` is the Firebase Auth UID."
+        }
+      },
+      {
+        "path": "/invitations/{invitationId}",
+        "definition": {
+          "entityName": "Invitation",
+          "schema": {
+            "$ref": "#/entities/Invitation"
+          },
+          "description": "Stores pending user invitations. The `invitationId` is a unique token."
+        }
+      },
+      {
+        "path": "/patients/{patientId}",
+        "definition": {
+          "entityName": "Patient",
+          "schema": {
+            "$ref": "#/entities/Patient"
+          },
+          "description": "Stores patient names for autocomplete functionality."
+        }
+      },
+      {
+        "path": "/labServices/{labServiceId}",
+        "definition": {
+          "entityName": "LabService",
+          "schema": {
+            "$ref": "#/entities/LabService"
+          },
+          "description": "Stores a list of all possible lab services."
+        }
+      },
+      {
+        "path": "/labs/{labId}",
+        "definition": {
+          "entityName": "Lab",
+          "schema": {
+            "$ref": "#/entities/Lab"
+          },
+          "description": "Stores information about partner laboratories."
+        }
+      },
+      {
+        "path": "/labCases/{labCaseId}",
+        "definition": {
+          "entityName": "LabCase",
+          "schema": {
+            "$ref": "#/entities/LabCase"
+          },
+          "description": "Stores individual lab cases being tracked."
+        }
+      },
+      {
+        "path": "/labCases/{labCaseId}/shipments/{shipmentId}",
+        "definition": {
+          "entityName": "Shipment",
+          "schema": {
+            "$ref": "#/entities/Shipment"
+          },
+          "description": "Stores shipment information for each lab case."
+        }
+      }
+    ]
+  }
+}

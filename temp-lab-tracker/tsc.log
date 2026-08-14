@@ -1,0 +1,4 @@
+node: OpenSSL configuration error:
+809DCEEF01000000:error:80000001:system library:BIO_new_file:Operation not permitted:../deps/openssl/openssl/crypto/bio/bss_file.c:67:calling fopen(/System/Library/OpenSSL//openssl.cnf, rb)
+
+
