@@ -25,6 +25,13 @@ import {
     Factory,
     CreditCard,
     ImageIcon,
+    Clock,
+    UserCog,
+    CalendarRange,
+    Banknote,
+    LogOut,
+    Undo2,
+    CheckCircle,
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -94,7 +101,7 @@ export function DashboardSidebar({
                     />
                 </Link>
 
-                <Accordion type="multiple" defaultValue={["patient-management", "lab-management", "inventory-management", "elearning-management"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["patient-management", "lab-management", "inventory-management", "hr-management", "elearning-management"]} className="w-full">
                   <AccordionItem value="patient-management" className="border-b-0">
                     <AccordionTrigger className="hover:no-underline py-2 text-sm font-semibold text-slate-400 uppercase tracking-wider">
                       Patient Management
@@ -254,6 +261,101 @@ export function DashboardSidebar({
                           />
                       </Link>
 
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="hr-management" className="border-b-0">
+                    <AccordionTrigger className="hover:no-underline py-2 text-sm font-semibold text-slate-400 uppercase tracking-wider mt-4">
+                      HR & Attendance
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-1 pb-2">
+                      <Link href="/dashboard/attendance">
+                          <NavItem
+                              icon={<Clock size={18} />}
+                              label="Attendance"
+                              active={pathname === "/dashboard/attendance"}
+                          />
+                      </Link>
+
+                      <Link href="/dashboard/attendance/leaves">
+                          <NavItem
+                              icon={<CalendarRange size={18} />}
+                              label="My Leaves"
+                              active={pathname.startsWith("/dashboard/attendance/leaves")}
+                          />
+                      </Link>
+
+                      <Link href="/dashboard/attendance/payroll">
+                          <NavItem
+                              icon={<Banknote size={18} />}
+                              label="Payroll"
+                              active={pathname.startsWith("/dashboard/attendance/payroll")}
+                          />
+                      </Link>
+
+                      <Link href="/dashboard/attendance/resignations">
+                          <NavItem
+                              icon={<LogOut size={18} />}
+                              label="Resignations"
+                              active={pathname.startsWith("/dashboard/attendance/resignations")}
+                          />
+                      </Link>
+
+                      <Link href="/dashboard/attendance/documents">
+                          <NavItem
+                              icon={<FileText size={18} />}
+                              label="Documents"
+                              active={pathname.startsWith("/dashboard/attendance/documents")}
+                          />
+                      </Link>
+
+                      <Link href="/dashboard/attendance/rejoin-requests">
+                          <NavItem
+                              icon={<Undo2 size={18} />}
+                              label="Rejoin Requests"
+                              active={pathname.startsWith("/dashboard/attendance/rejoin-requests")}
+                          />
+                      </Link>
+
+                      {isMaster && (
+                        <>
+                          <Link href="/dashboard/attendance/employees">
+                              <NavItem
+                                  icon={<UserCog size={18} />}
+                                  label="Employees"
+                                  active={pathname.startsWith("/dashboard/attendance/employees")}
+                                  isMasterOnly={true}
+                              />
+                          </Link>
+
+                          <Link href="/dashboard/attendance/approvals">
+                              <NavItem
+                                  icon={<CheckCircle size={18} />}
+                                  label="Approvals"
+                                  active={pathname.startsWith("/dashboard/attendance/approvals")}
+                                  isMasterOnly={true}
+                              />
+                          </Link>
+
+                          <Link href="/dashboard/attendance/holidays">
+                              <NavItem
+                                  icon={<CalendarRange size={18} />}
+                                  label="Holidays"
+                                  active={pathname.startsWith("/dashboard/attendance/holidays")}
+                                  isMasterOnly={true}
+                              />
+                          </Link>
+
+                          <Link href="/dashboard/attendance/analytics">
+                              <NavItem
+                                  icon={<BarChart2 size={18} />}
+                                  label="Analytics"
+                                  active={pathname.startsWith("/dashboard/attendance/analytics")}
+                                  isMasterOnly={true}
+                              />
+                          </Link>
+                        </>
+                      )}
                     </AccordionContent>
                   </AccordionItem>
 

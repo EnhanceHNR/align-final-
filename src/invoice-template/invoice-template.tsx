@@ -29,7 +29,7 @@ export default function InvoiceTemplate({
             <div className="relative h-20 w-28">
               <Image
                 src="/clinic-logo-v3.png"
-                alt="City Dent Logo"
+                alt="Align.io Logo"
                 fill
                 priority
                 className="object-contain"
@@ -42,7 +42,7 @@ export default function InvoiceTemplate({
               </p>
 
               <h1 className="mt-1 text-3xl font-bold">
-                CITY DENT
+                Align.io
               </h1>
 
               <div className="mt-2 text-sm text-gray-700">

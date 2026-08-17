@@ -8,7 +8,7 @@ import { sendSchema, receiveSchema } from '@/lib/schemas';
 
 // User Management Actions
 export async function createInternalUserAction(adminUid: string, userData: { email: string; password: string; fullName: string; role: 'admin' | 'staff' }) {
-  // Mocked for now, City Dent handles users differently
+  // Mocked for now, Align.io handles users differently
   return { success: true, message: `Successfully created ${userData.role} account for ${userData.fullName}.` };
 }
 

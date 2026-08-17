@@ -180,11 +180,7 @@ export default function LoginPage() {
         </div>
       </main>
 
-      <footer className="p-6 text-center z-10">
-        <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.4em]">
-          CITY DENT © 2026 | All rights reserved
-        </p>
-      </footer>
+
     </div>
   );
 }

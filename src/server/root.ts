@@ -11,7 +11,9 @@ import { inventoryRouter } from "./routers/inventory.router";
 import { chairRouter } from "./routers/chairs.router";
 import { googleCalendarRouter } from "./routers/googleCalendar.router";
 import { learningRouter } from "./routers/learning.router";
-
+import { employeeRouter } from "./routers/employee.router";
+import { attendanceRouter } from "./routers/attendance.router";
+import { hrRouter } from "./routers/hr.router";
 export const appRouter = router({
   patients: patientsRouter,
   odontogram: odontogramRouter,
@@ -25,6 +27,9 @@ export const appRouter = router({
   chairs: chairRouter,
   googleCalendar: googleCalendarRouter,
   learning: learningRouter,
+  employee: employeeRouter,
+  attendance: attendanceRouter,
+  hr: hrRouter,
 });
 
 export type AppRouter = typeof appRouter;

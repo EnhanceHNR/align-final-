@@ -181,7 +181,7 @@ td {
   <div class="brand">
     <img class="logo" src="${logo}" />
     <div>
-      <div class="title">CITY DENT</div>
+      <div class="title">Align.io</div>
       <div class="muted">Private dental clinic</div>
       <div class="muted">Dr. Erdin Tatarević</div>
       <div class="muted">Višnjik 34 B, Sarajevo</div>

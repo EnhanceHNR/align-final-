@@ -23,7 +23,7 @@ export default function PriceListTemplate({
             <div className="relative h-20 w-20">
               <Image
                 src="/clinic-logo-v3.png"
-                alt="City Dent Logo"
+                alt="Align.io Logo"
                 fill
                 priority
                 className="object-contain"
@@ -36,7 +36,7 @@ export default function PriceListTemplate({
               </p>
 
               <h1 className="text-xl font-bold tracking-wide text-gray-900">
-                CITY DENT
+                Align.io
               </h1>
 
 

@@ -19,6 +19,7 @@ model User {
   placedOrders       PurchaseOrder[]     @relation("PlacedOrders")
   receivedDeliveries Delivery[]          @relation("ReceivedDeliveries")
   consumedItems      ConsumptionRecord[] @relation("ConsumedItems")
+  employeeProfile    EmployeeProfile?
 }
 
 model Patient {
@@ -448,4 +449,171 @@ model LearningMaterial {
   type        String   @default("IMAGE") // "IMAGE" or "VIDEO"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model EmployeeProfile {
+  id                         String   @id @default(cuid())
+  userId                     String   @unique
+  user                       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                       String
+  department                 String?
+  manager                    String?
+  avatarUrl                  String?
+  employeeType               String   @default("Employee") // Super Admin, Admin, Employee
+  phoneNumber                String?
+  mobileNumber               String?
+  address                    String?
+  bloodGroup                 String?
+  dateOfBirth                DateTime?
+  emergencyContact           String?
+  baseSalary                 Float    @default(0)
+  weeklyOffs                 Json?    // e.g., ["Saturday", "Sunday"]
+  bufferTime                 Int      @default(0) // in minutes
+  joiningDate                DateTime?
+  paidLeaveBalance           Int      @default(0)
+  sickLeaveBalance           Int      @default(0)
+  doubleLateThresholdMinutes Int      @default(0)
+  organization               String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  attendances                Attendance[]
+  leaves                     LeaveRequest[]
+  shifts                     ShiftSegment[]
+  payrolls                   PayrollRecord[]
+  resignations               ResignationRequest[]
+  rejoins                    RejoinRequest[]
+  documents                  EmployeeDocument[]
+  lateRequests               LateRequest[]
+  earlyRequests              EarlyPunchOutRequest[]
+}
+
+model ShiftSegment {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  startTime         String          // "HH:mm"
+  endTime           String          // "HH:mm"
+}
+
+model Attendance {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  date              DateTime        // Only Date part matters, can store as DateTime
+  status            String          @default("Present") // Present, Late, Double Late, Absent, Holiday, Weekend, PaidLeave, UnpaidLeave
+  lateMinutes       Int             @default(0)
+  lateExcused       Boolean         @default(false)
+  lateExcusedReason String?
+  isLateException   Boolean         @default(false)
+  lateExceptionReason String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  sessions          AttendanceSession[]
+}
+
+model AttendanceSession {
+  id           String     @id @default(cuid())
+  attendanceId String
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  
+  clockInTime  DateTime
+  clockInPhoto String?
+  clockInLat   Float?
+  clockInLng   Float?
+  
+  clockOutTime DateTime?
+  clockOutPhoto String?
+  clockOutLat  Float?
+  clockOutLng  Float?
+
+  duration     String?
+  remarks      String?
+}
+
+model LeaveRequest {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  type              String          // Paid Leave, Unpaid Leave, Sick Leave, Casual Leave
+  startDate         DateTime
+  endDate           DateTime
+  days              Int
+  dateOfApplying    DateTime        @default(now())
+  reason            String?
+  emergencyContact  String?
+  status            String          @default("Pending") // Pending, Approved, Rejected
+  reviewedBy        String?
+  reviewedDate      DateTime?
+}
+
+model PayrollRecord {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  month             String
+  year              Int
+  baseSalary        Float
+  netSalary         Float
+  status            String          @default("Draft")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model ResignationRequest {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  reason            String
+  lastWorkingDay    DateTime
+  status            String          @default("Pending")
+  createdAt         DateTime        @default(now())
+}
+
+model RejoinRequest {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  reason            String
+  requestedDate     DateTime
+  status            String          @default("Pending")
+  createdAt         DateTime        @default(now())
+}
+
+model EmployeeDocument {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  title             String
+  fileUrl           String
+  uploadedAt        DateTime        @default(now())
+}
+
+model Holiday {
+  id          String   @id @default(cuid())
+  name        String
+  date        DateTime
+  type        String   @default("Public")
+  createdAt   DateTime @default(now())
+}
+
+model LateRequest {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  date              DateTime
+  reason            String
+  status            String          @default("Pending")
+  createdAt         DateTime        @default(now())
+}
+
+model EarlyPunchOutRequest {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  date              DateTime
+  reason            String
+  status            String          @default("Pending")
+  createdAt         DateTime        @default(now())
 }
