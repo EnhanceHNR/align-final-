@@ -1,7 +1,7 @@
 # 00 Non-Technical Project Overview
 
 ## 3.1 What is this project?
-This project is an internal management system named Citydent IMS. It manages patients, appointments, treatments, invoicing, laboratory submissions, inventory, human resources, and learning materials for a dental practice.
+This project is an internal management system named Aligne. It manages patients, appointments, treatments, invoicing, laboratory submissions, inventory, human resources, and learning materials for a dental practice.
 
 ## 3.2 How does the project work?
 1. User logs into the web application.
@@ -71,4 +71,4 @@ USER -> WEBSITE -> BACKEND -> DATABASE + FILE STORAGE
 - Docker: A tool to run software in isolated containers.
 
 ## 3.14 Management Summary
-Citydent IMS is a robust application for dental practice management. It relies on a PostgreSQL database and Firebase. Backups must be prioritized to ensure business continuity.
+Aligne is a robust application for dental practice management. It relies on a PostgreSQL database and Firebase. Backups must be prioritized to ensure business continuity.

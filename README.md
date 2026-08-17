@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="./public/citydent-app-thumbnail.webp" alt="City Dent App" width="900"/>
+  <img src="./public/aligne-app-thumbnail.webp" alt="Aligne App" width="900"/>
 </p>
 
-# City Dent - Dental Management System
+# Aligne - Dental Management System
  
 ![Next.js](https://img.shields.io/badge/Next.js-15.2-black?style=flat&logo=next.js)
 ![React](https://img.shields.io/badge/React-19.0-blue?style=flat&logo=react)
@@ -24,9 +24,9 @@
  
 ## Introduction
  
-City Dent is a comprehensive dental practice management system built for modern clinics. It handles patient records, appointments, treatments, invoicing with automatic tax calculation and provides a clean, intuitive interface for daily operations.
+Aligne is a comprehensive dental practice management system built for modern clinics. It handles patient records, appointments, treatments, invoicing with automatic tax calculation and provides a clean, intuitive interface for daily operations.
  
-The system is designed for the City Dent clinic in Bosnia and Herzegovina, with full support for Bosnian language and local business requirements.
+The system is designed for the Aligne clinic in Bosnia and Herzegovina, with full support for Bosnian language and local business requirements.
  
 ---
  
@@ -123,7 +123,7 @@ pnpm install
 3. Set up environment variables.
 Create a new file named `.env` in the root of your project and add the following content:
 ```bash
-DATABASE_URL="postgresql://user:password@localhost:5432/citydent"
+DATABASE_URL="postgresql://user:password@localhost:5432/aligne"
 NEXTAUTH_SECRET="your-secret-here"
 NEXTAUTH_URL="http://localhost:3000"
 ```

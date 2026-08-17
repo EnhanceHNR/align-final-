@@ -6,7 +6,7 @@ test.describe('Calendar Feature (Authenticated)', () => {
     // 1. Perform Admin Login
     await page.goto('http://localhost:3000/');
     await page.locator('text=Master Ulaz').click();
-    await page.locator('input[type="email"]').fill('admin@citydent.com');
+    await page.locator('input[type="email"]').fill('admin@aligne.com');
     await page.locator('input[type="password"]').fill('password123');
     await page.getByRole('button', { name: /Pristupi panelu/i }).click();
     

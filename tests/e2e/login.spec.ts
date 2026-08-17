@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('CityDent Login Flow', () => {
+test.describe('Aligne Login Flow', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('http://localhost:3000/');
@@ -11,7 +11,7 @@ test.describe('CityDent Login Flow', () => {
     await page.locator('text=Master Ulaz').click();
 
     
-    await page.locator('input[type="email"]').fill('admin@citydent.com');
+    await page.locator('input[type="email"]').fill('admin@aligne.com');
     await page.locator('input[type="password"]').fill('password123');
     await page.getByRole('button', { name: /Pristupi panelu/i }).click();
 
@@ -20,7 +20,7 @@ test.describe('CityDent Login Flow', () => {
 
     
     const cookies = await page.context().cookies();
-    const tokenCookie = cookies.find(c => c.name === 'citydent_token');
+    const tokenCookie = cookies.find(c => c.name === 'aligne_token');
     expect(tokenCookie).toBeTruthy();
     expect(tokenCookie?.httpOnly).toBe(true);
 
@@ -31,7 +31,7 @@ test.describe('CityDent Login Flow', () => {
       await expect(page).toHaveURL(/.*login|http:\/\/localhost:3000\/?/);
       
       const postLogoutCookies = await page.context().cookies();
-      const clearedToken = postLogoutCookies.find(c => c.name === 'citydent_token');
+      const clearedToken = postLogoutCookies.find(c => c.name === 'aligne_token');
       expect(clearedToken).toBeFalsy();
     }
   });
@@ -39,7 +39,7 @@ test.describe('CityDent Login Flow', () => {
   test('Should show error message for invalid credentials or inactive accounts', async ({ page }) => {
     await page.locator('text=Master Ulaz').click();
 
-    await page.locator('input[type="email"]').fill('wrong-admin@citydent.com');
+    await page.locator('input[type="email"]').fill('wrong-admin@aligne.com');
     await page.locator('input[type="password"]').fill('WrongPassword123');
     await page.getByRole('button', { name: /Pristupi panelu/i }).click();
 
@@ -57,7 +57,7 @@ test.describe('CityDent Login Flow', () => {
 
     
     await page.locator('input[type="password"]').fill('');
-    await page.locator('input[type="email"]').fill('admin@citydent.com');
+    await page.locator('input[type="email"]').fill('admin@aligne.com');
     await page.getByRole('button', { name: /Pristupi panelu/i }).click();
     await expect(page.locator('input[type="password"]')).toBeVisible();
   });

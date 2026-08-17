@@ -9,7 +9,7 @@ test.describe.skip('Patient Management Workflows', () => {
     if (await staffButton.isVisible()) {
       await staffButton.click();
     }
-    await page.locator('input[type="email"], input[placeholder*="example@citydent.com"]').fill('staff@citydent.com');
+    await page.locator('input[type="email"], input[placeholder*="example@aligne.com"]').fill('staff@aligne.com');
     await page.locator('input[type="password"]').fill('staff123');
     await page.getByRole('button', { name: 'Pristupi panelu' }).click();
     await page.waitForURL('http://localhost:3000/dashboard');

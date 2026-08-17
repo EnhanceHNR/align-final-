@@ -9,7 +9,7 @@ test.describe('Odontogram Interactive Matrix - Operational Dashboard Workflow', 
     if (await staffButton.isVisible()) {
       await staffButton.click();
     }
-    await page.locator('input[type="email"]').fill('staff@citydent.com');
+    await page.locator('input[type="email"]').fill('staff@aligne.com');
     await page.locator('input[type="password"]').fill('staff123');
     await page.getByRole('button', { name: 'Pristupi panelu' }).click();
     await page.waitForURL('**/dashboard');

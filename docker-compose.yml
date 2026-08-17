@@ -1,16 +1,16 @@
 services:
   postgres:
     image: postgres:16
-    container_name: citydent-ims-db
+    container_name: aligne-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: citydent-ims
+      POSTGRES_DB: aligne
     ports:
       - "5433:5432"
     volumes:
-      - citydent-ims-data:/var/lib/postgresql/data
+      - aligne-data:/var/lib/postgresql/data
 
 volumes:
-  citydent-ims-data:
+  aligne-data:
