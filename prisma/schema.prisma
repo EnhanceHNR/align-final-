@@ -31,7 +31,7 @@ model Patient {
   sex                String?
   address            String?
   phone              String?
-  jmb                String              @unique
+  jmb                String
   employmentStatus   String?
   occupation         String?
   createdAt          DateTime            @default(now())
@@ -48,7 +48,9 @@ model Patient {
   labSubmissions     LabSubmission[]
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
+  @@unique([jmb, organizationId])
 }
+
 
 model Anamnesis {
   id                      String   @id @default(cuid())

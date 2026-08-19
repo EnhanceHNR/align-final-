@@ -244,9 +244,9 @@ export function PatientForm({
                     <input
                         type="text"
                         value={num}
-                        readOnly
-                        placeholder="Auto"
-                        className="w-1/3 rounded-xl border border-gray-200 bg-gray-50 p-3 outline-none text-gray-500 cursor-not-allowed font-mono"
+                        onChange={(e) => setNum(e.target.value)}
+                        placeholder="0001"
+                        className="w-1/3 rounded-xl border border-gray-200 bg-white p-3 outline-none transition focus:ring-2 focus:ring-blue-400 font-mono"
                     />
                 </div>
                 

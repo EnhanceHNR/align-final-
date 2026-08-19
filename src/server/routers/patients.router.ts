@@ -69,7 +69,7 @@ export const patientsRouter = router({
      */
     create: protectedProcedure
         .input(createPatientInput)
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
             const {
                 allergiesFlag, allergiesDetails,
                 anesthesiaHistoryFlag, anesthesiaComplications,
@@ -80,8 +80,9 @@ export const patientsRouter = router({
             } = input;
 
             // Provjeri da pacijent sa istim JMB-om ne postoji
-            const existing = await prisma.patient.findUnique({
-                where: { jmb: patientData.jmb },
+            const orgId = ctx.user.organizationId;
+            const existing = await prisma.patient.findFirst({
+                where: { jmb: patientData.jmb, organizationId: orgId },
                 select: { id: true },
             });
 
@@ -95,6 +96,7 @@ export const patientsRouter = router({
             const patient = await prisma.patient.create({
                 data: {
                     ...patientData,
+                    organizationId: orgId,
                     // Prazni string za email/notes konvertujemo u null za bazu
                     email: patientData.email || null,
                     notes: patientData.notes || null,
@@ -126,9 +128,9 @@ export const patientsRouter = router({
      */
     getById: protectedProcedure
         .input(z.object({ id: z.string().cuid() }))
-        .query(async ({ input }) => {
-            const patient = await prisma.patient.findUnique({
-                where: { id: input.id },
+        .query(async ({ input, ctx }) => {
+            const patient = await prisma.patient.findFirst({
+                where: { id: input.id, organizationId: ctx.user.organizationId },
                 include: {
                     anamnesis:      true,
                     appointments:   { orderBy: { startTime: "desc" }, take: 10 },
@@ -159,19 +161,21 @@ export const patientsRouter = router({
      */
     list: protectedProcedure
         .input(listPatientsInput)
-        .query(async ({ input }) => {
+        .query(async ({ input, ctx }) => {
             const { search, page, perPage, sortBy, sortDir } = input;
             const skip = (page - 1) * perPage;
 
+            const baseWhere = { organizationId: ctx.user.organizationId };
             const where = search
                 ? {
+                    ...baseWhere,
                     OR: [
                         { fullName: { contains: search, mode: "insensitive" as const } },
                         { jmb:      { contains: search, mode: "insensitive" as const } },
                         { phone:    { contains: search, mode: "insensitive" as const } },
                     ],
                 }
-                : {};
+                : baseWhere;
 
             const [total, patients] = await Promise.all([
                 prisma.patient.count({ where }),
@@ -215,7 +219,7 @@ export const patientsRouter = router({
      */
     update: protectedProcedure
         .input(updatePatientInput)
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
             const {
                 id,
                 allergiesFlag, allergiesDetails,
@@ -228,8 +232,8 @@ export const patientsRouter = router({
             } = input;
 
             // Provjeri da pacijent postoji i dohvati trenutni JMB
-            const existing = await prisma.patient.findUnique({
-                where: { id },
+            const existing = await prisma.patient.findFirst({
+                where: { id, organizationId: ctx.user.organizationId },
                 select: { id: true, jmb: true },
             });
 
@@ -242,8 +246,8 @@ export const patientsRouter = router({
 
             // Ako se JMB mijenja, provjeri da novi JMB nije zauzet drugim pacijentom
             if (jmb && jmb !== existing.jmb) {
-                const jmbTaken = await prisma.patient.findUnique({
-                    where: { jmb },
+                const jmbTaken = await prisma.patient.findFirst({
+                    where: { jmb, organizationId: ctx.user.organizationId },
                     select: { id: true },
                 });
                 if (jmbTaken) {
@@ -297,9 +301,9 @@ export const patientsRouter = router({
      */
     delete: masterOnlyProcedure
         .input(z.object({ id: z.string().cuid() }))
-        .mutation(async ({ input }) => {
-            const existing = await prisma.patient.findUnique({
-                where: { id: input.id },
+        .mutation(async ({ input, ctx }) => {
+            const existing = await prisma.patient.findFirst({
+                where: { id: input.id, organizationId: ctx.user.organizationId },
                 select: { id: true },
             });
 
@@ -320,11 +324,11 @@ export const patientsRouter = router({
      */
     getNextPatientId: protectedProcedure
         .input(z.object({ prefix: z.string() }))
-        .query(async ({ input }) => {
+        .query(async ({ input, ctx }) => {
             const { prefix } = input;
             const prefixStr = prefix + "-";
             const patients = await prisma.patient.findMany({
-                where: { jmb: { startsWith: prefixStr } },
+                where: { jmb: { startsWith: prefixStr }, organizationId: ctx.user.organizationId },
                 select: { jmb: true }
             });
             let maxNum = 0;
