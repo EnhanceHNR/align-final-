@@ -181,12 +181,30 @@ export default function EmployeeDetailsPage() {
           </Card>
 
           <Card className="shadow-sm border-0 bg-white">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold">Salary Calculation</CardTitle>
+            <CardHeader className="pb-3 flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-semibold">Salary & Payroll</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${employee.baseSalary.toFixed(2)}</div>
-              <p className="text-sm text-muted-foreground mt-1">Base Monthly Salary</p>
+            <CardContent className="space-y-4">
+              <div>
+                  <div className="text-2xl font-bold">${employee.baseSalary.toFixed(2)}</div>
+                  <p className="text-sm text-muted-foreground mt-1">Base Monthly Salary</p>
+              </div>
+              <div className="pt-4 border-t space-y-2">
+                 <p className="text-xs font-semibold text-muted-foreground uppercase">Current Month Estimate</p>
+                 <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Days Present:</span>
+                    <span className="font-medium">{employee.attendances?.length || 0} days</span>
+                 </div>
+                 <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Estimated Payout:</span>
+                    <span className="font-medium text-emerald-600">${((employee.baseSalary / 30) * (employee.attendances?.length || 0)).toFixed(2)}</span>
+                 </div>
+              </div>
+              <div className="pt-4 space-y-2">
+                 <Button variant="outline" className="w-full text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => router.push('/dashboard/attendance/payroll')}>
+                    Process Payroll
+                 </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -196,7 +214,8 @@ export default function EmployeeDetailsPage() {
           <Tabs defaultValue="attendance" className="w-full">
             <TabsList className="w-full justify-start rounded-md bg-white border border-slate-200 p-1 mb-6">
               <TabsTrigger value="attendance" className="flex-1 data-[state=active]:bg-slate-100 data-[state=active]:shadow-none">Attendance History</TabsTrigger>
-              <TabsTrigger value="config" className="flex-1 data-[state=active]:bg-slate-100 data-[state=active]:shadow-none">Configuration History</TabsTrigger>
+              <TabsTrigger value="salary" className="flex-1 data-[state=active]:bg-slate-100 data-[state=active]:shadow-none">Salary Configuration</TabsTrigger>
+              <TabsTrigger value="config" className="flex-1 data-[state=active]:bg-slate-100 data-[state=active]:shadow-none">History & Config</TabsTrigger>
             </TabsList>
 
             <TabsContent value="attendance" className="space-y-6 m-0">
@@ -283,6 +302,71 @@ export default function EmployeeDetailsPage() {
                   </div>
                 </Card>
               </div>
+            </TabsContent>
+
+                        <TabsContent value="salary" className="m-0 space-y-6">
+              <div className="flex justify-between items-center">
+                 <h2 className="text-2xl font-semibold">Salary Configuration</h2>
+                 <Button onClick={handleEditOpen}>Update Base Salary</Button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <Card className="shadow-sm border-0 bg-white">
+                    <CardHeader>
+                       <CardTitle>Earnings</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                       <div className="flex justify-between items-center p-3 border rounded-lg bg-slate-50">
+                          <div>
+                             <p className="font-medium">Base Salary</p>
+                             <p className="text-sm text-muted-foreground">Fixed monthly</p>
+                          </div>
+                          <div className="font-bold">${employee.baseSalary.toFixed(2)}</div>
+                       </div>
+                       <div className="flex justify-between items-center p-3 border rounded-lg bg-slate-50 opacity-60">
+                          <div>
+                             <p className="font-medium">House Rent Allowance (HRA)</p>
+                             <p className="text-sm text-muted-foreground">Dynamic module coming soon</p>
+                          </div>
+                          <div className="font-bold">$0.00</div>
+                       </div>
+                    </CardContent>
+                 </Card>
+
+                 <Card className="shadow-sm border-0 bg-white">
+                    <CardHeader>
+                       <CardTitle>Deductions</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                       <div className="flex justify-between items-center p-3 border rounded-lg bg-slate-50">
+                          <div>
+                             <p className="font-medium">Absenteeism Penalty</p>
+                             <p className="text-sm text-muted-foreground">Calculated from calendar</p>
+                          </div>
+                          <div className="font-bold text-destructive">-${((employee.baseSalary / 30) * (30 - (employee.attendances?.length || 30))).toFixed(2)}</div>
+                       </div>
+                       <div className="flex justify-between items-center p-3 border rounded-lg bg-slate-50 opacity-60">
+                          <div>
+                             <p className="font-medium">Taxes (Provident Fund)</p>
+                             <p className="text-sm text-muted-foreground">Dynamic module coming soon</p>
+                          </div>
+                          <div className="font-bold text-destructive">-$0.00</div>
+                       </div>
+                    </CardContent>
+                 </Card>
+              </div>
+
+              <Card className="shadow-sm border-0 bg-white bg-blue-50/50">
+                <CardContent className="p-6 flex justify-between items-center">
+                   <div>
+                      <h3 className="text-lg font-bold">Estimated Net Salary</h3>
+                      <p className="text-sm text-muted-foreground">For the current billing cycle</p>
+                   </div>
+                   <div className="text-3xl font-bold text-emerald-600">
+                      ${((employee.baseSalary) - ((employee.baseSalary / 30) * (30 - (employee.attendances?.length || 30)))).toFixed(2)}
+                   </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="config" className="m-0">
