@@ -101,11 +101,11 @@ export const columns = (options: GetColumnsOptions): ColumnDef<InventoryItem>[] 
     }
   },
   {
-    accessorKey: "quantity",
+    accessorKey: "quantityValue",
     header: "Unit Size",
     cell: ({ row }) => {
         const item = row.original
-        return <div className="text-center">{`${item.quantity.value} ${item.quantity.unit}`}</div>
+        return <div className="text-center">{`${item.quantityValue} ${item.quantityUnit}`}</div>
     }
   },
   {

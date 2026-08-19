@@ -70,7 +70,7 @@ export function AdjustStockDialog({ item, onConfirm, onOpenChange }: AdjustStock
         <DialogHeader>
           <DialogTitle>Adjust Stock for {item.name}</DialogTitle>
           <DialogDescription>
-            Add new stock or record consumed items. Current total: {item.itemCount} {item.quantity.unit}
+            Add new stock or record consumed items. Current total: {item.itemCount} {item.quantityUnit}
           </DialogDescription>
         </DialogHeader>
         

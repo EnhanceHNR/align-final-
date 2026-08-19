@@ -1,17 +1,60 @@
 import { PrismaClient } from "@prisma/client";
+import { getServerSession } from "next-auth";
 
-// singleton pattern za PrismaClient, da se ne kreira više instanci u developmentu (hot reload) i da se koristi jedna globalna instanca u produkciji
 
 const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
 };
 
-export const prisma =
-    globalForPrisma.prisma ??
-    new PrismaClient({
-        log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
-    });
+const basePrisma = globalForPrisma.prisma ?? new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+});
 
 if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = prisma;
+    globalForPrisma.prisma = basePrisma;
 }
+
+const tenantModels = [
+    "Patient", "Appointment", "Treatment", "VisitNote", "TreatmentPlan",
+    "Invoice", "PriceListItem", "Chair", "OdontogramSurface", "Lab", "LabSubmission",
+    "LabTransaction", "InstructionTemplate", "InventoryItem", "StockEntry", "PurchaseOrder",
+    "Delivery", "Dealer", "Statement", "ConsumptionRecord", "LearningCategory", 
+    "LearningMaterial", "EmployeeProfile", "Holiday"
+];
+
+// Helper to get organizationId dynamically
+async function getOrgId() {
+    try {
+        const { authOptions } = await import("@/lib/auth");
+        const session = await getServerSession(authOptions);
+        return (session?.user as any)?.organizationId || null;
+    } catch {
+        return null;
+    }
+}
+
+// Global extended client that automatically injects organizationId
+export const prisma = basePrisma.$extends({
+    query: {
+        $allModels: {
+            async $allOperations({ model, operation, args, query }) {
+                if (tenantModels.includes(model as string)) {
+                    const orgId = await getOrgId();
+                    if (orgId) {
+                        args = args || {};
+                        if (['findFirst', 'findMany', 'count', 'updateMany', 'deleteMany'].includes(operation)) {
+                            args.where = { ...args.where, organizationId: orgId };
+                        } else if (['create', 'createMany'].includes(operation)) {
+                            if (operation === 'create') {
+                                args.data = { ...args.data, organizationId: orgId };
+                            } else if (Array.isArray(args.data)) {
+                                args.data = args.data.map((d: any) => ({ ...d, organizationId: orgId }));
+                            }
+                        }
+                    }
+                }
+                return query(args);
+            }
+        }
+    }
+}) as unknown as PrismaClient;

@@ -1,3 +1,4 @@
+import { google } from "googleapis";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { prisma } from "~/lib/prisma";
@@ -287,7 +288,7 @@ export const appointmentRouter = router({
                 view: z.enum(["day", "week"]).default("day"),
             })
         )
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
             const start = new Date(input.date);
             start.setHours(0, 0, 0, 0);
 
@@ -306,15 +307,13 @@ export const appointmentRouter = router({
 
             end.setHours(23, 59, 59, 999);
 
-            return prisma.appointment.findMany({
+            // 1. Fetch Local Appointments
+            const localAppointments = await ctx.db.appointment.findMany({
                 where: {
                     startTime: {
                         gte: start,
                         lte: end,
                     },
-                },
-                orderBy: {
-                    startTime: "asc",
                 },
                 include: {
                     patient: {
@@ -326,7 +325,68 @@ export const appointmentRouter = router({
                     },
                     chair: true,
                 },
+                orderBy: {
+                    startTime: "asc",
+                },
             });
+
+            // 2. Fetch Google Calendar Events for connected Chairs
+            const chairs = await ctx.db.chair.findMany({
+                where: { googleSyncEnabled: true, googleRefreshToken: { not: null } }
+            });
+
+            const googleEvents: any[] = [];
+
+            for (const chair of chairs) {
+                try {
+                    const oauth2Client = new google.auth.OAuth2(
+                        process.env.GOOGLE_CALENDAR_CLIENT_ID,
+                        process.env.GOOGLE_CALENDAR_CLIENT_SECRET
+                    );
+                    oauth2Client.setCredentials({ refresh_token: chair.googleRefreshToken });
+                    
+                    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+                    
+                    const res = await calendar.events.list({
+                        calendarId: "primary",
+                        timeMin: start.toISOString(),
+                        timeMax: end.toISOString(),
+                        singleEvents: true,
+                        orderBy: "startTime",
+                    });
+
+                    const events = res.data.items || [];
+                    console.log("Fetched Google Events for chair", chair.id, "Count:", events.length);
+                    for (const ev of events) {
+                        if (ev.start?.dateTime && ev.end?.dateTime) {
+                            googleEvents.push({
+                                id: `google-${ev.id}`,
+                                patientId: "google-event",
+                                chairId: chair.id,
+                                startTime: new Date(ev.start.dateTime),
+                                endTime: new Date(ev.end.dateTime),
+                                status: "SCHEDULED",
+                                reason: `(Google) ${ev.summary || "Busy"}`,
+                                isGoogleEvent: true,
+                                patient: {
+                                    id: "google-event",
+                                    fullName: `(Google) ${ev.summary || "Busy"}`,
+                                    phone: ""
+                                },
+                                chair: chair
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch Google events for chair", chair.id, e.message);
+                }
+            }
+
+            const combined = [...localAppointments, ...googleEvents].sort(
+                (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+            );
+
+            return combined;
         }),
 
     /**

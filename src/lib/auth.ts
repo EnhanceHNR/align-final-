@@ -33,7 +33,7 @@ export const authOptions: NextAuthOptions = {
                         email: true,
                         role: true,
                         isActive: true,
-                        passwordHash: true,
+                        passwordHash: true, organizationId: true,
                     },
                 });
 
@@ -58,7 +58,7 @@ export const authOptions: NextAuthOptions = {
                 return {
                     id: user.id,
                     email: user.email,
-                    role: user.role,
+                    role: user.role, organizationId: user.organizationId,
                 };
             },
         }),
@@ -69,7 +69,7 @@ export const authOptions: NextAuthOptions = {
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id;
-                token.role = (user as { role: string }).role;
+                token.role = (user as { role: string }).role; token.organizationId = (user as any).organizationId;
             }
             return token;
         },
@@ -79,7 +79,7 @@ export const authOptions: NextAuthOptions = {
         async session({ session, token }) {
             if (session.user) {
                 session.user.id = token.id as string;
-                session.user.role = token.role as string;
+                session.user.role = token.role as string; (session.user as any).organizationId = token.organizationId as string;
             }
             return session;
         },

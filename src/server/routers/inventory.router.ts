@@ -12,6 +12,46 @@ export const inventoryRouter = router({
     });
   }),
   
+  createDealer: protectedProcedure
+    .input(z.object({
+      name: z.string(),
+      contactPerson: z.string().optional(),
+      email: z.string().optional(),
+      phone: z.string().optional(),
+      address: z.string().optional(),
+      website: z.string().optional(),
+      suppliedItems: z.array(z.object({
+          id: z.string(),
+          price: z.number().optional()
+      })).optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { suppliedItems, ...dealerData } = input;
+      const dealer = await ctx.db.dealer.create({
+        data: dealerData
+      });
+      
+      // Update the items with this new dealer and price
+      if (suppliedItems && suppliedItems.length > 0) {
+         for (const item of suppliedItems) {
+            await ctx.db.inventoryItem.update({
+               where: { id: item.id },
+               data: {
+                  dealerId: dealer.id,
+                  ...(item.price !== undefined ? { costPerUnit: item.price } : {})
+               }
+            });
+         }
+      }
+      return dealer;
+    }),
+
+  getDealers: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.db.dealer.findMany({
+      orderBy: { name: 'asc' },
+    });
+  }),
+  
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -25,6 +65,31 @@ export const inventoryRouter = router({
       });
     }),
     
+  createOrder: protectedProcedure
+    .input(z.object({
+      inventoryItemId: z.string(),
+      quantity: z.number(),
+      dealerId: z.string(),
+      price: z.number(),
+      estimatedArrival: z.string().optional(),
+      notes: z.string().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.purchaseOrder.create({
+        data: {
+          inventoryItemId: input.inventoryItemId,
+          quantity: input.quantity,
+          dealerId: input.dealerId,
+          price: input.price,
+          estimatedArrival: input.estimatedArrival ? new Date(input.estimatedArrival) : null,
+          notes: input.notes,
+          placedById: ctx.user?.id,
+          status: "Pending Approval",
+          paymentStatus: "Unpaid"
+        }
+      });
+    }),
+
   create: protectedProcedure
     .input(z.object({
       name: z.string(),

@@ -80,17 +80,12 @@ export default function SettingsPage() {
                                             <Unlink className="w-3.5 h-3.5" /> Disconnect
                                         </button>
                                     ) : (
-                                        <button 
-                                            onClick={() => {
-                                                const calId = prompt("Enter the Google Calendar ID to sync to (e.g. your-email@gmail.com):");
-                                                if (calId) {
-                                                    updateGoogle.mutate({ id: chair.id, googleSyncEnabled: true, googleCalendarId: calId });
-                                                }
-                                            }}
+                                        <a 
+                                            href={`/api/calendar/auth?chairId=${chair.id}`}
                                             className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-700 bg-white rounded-lg text-xs font-medium hover:bg-gray-50 transition"
                                         >
                                             <LinkIcon className="w-3.5 h-3.5" /> Connect Google
-                                        </button>
+                                        </a>
                                     )}
 
                                     <button 

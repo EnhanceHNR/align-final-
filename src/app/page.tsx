@@ -102,6 +102,21 @@ export default function LoginPage() {
                   onClick={() => setSelectedRole('STAFF')}
                 />
               </div>
+
+              <div className="mt-8 text-center animate-in fade-in zoom-in duration-300">
+                <p className="text-sm text-slate-500 font-medium">
+                  Don't have a workspace?{" "}
+                  <a href="/signup" className="text-blue-600 font-bold hover:underline">
+                    Create a new clinic
+                  </a>
+                </p>
+                <div className="mt-4">
+                  <a href="/pricing" className="text-xs text-slate-400 font-bold uppercase tracking-widest hover:text-blue-600 transition-colors">
+                    View Pricing Plans
+                  </a>
+                </div>
+              </div>
+
             </div>
           ) : (
             /* Login Form Screen */
@@ -134,6 +149,12 @@ export default function LoginPage() {
                         className="pl-12 h-14 bg-slate-50/50 border-slate-100 rounded-2xl focus-visible:ring-blue-600 font-medium"
                       />
                     </div>
+                  <div className="flex justify-end mt-1">
+                    <a href="/forgot-password" className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-widest">
+                      Forgot Password?
+                    </a>
+                  </div>
+
                   </div>
                   
                   <div className="space-y-2">
@@ -149,6 +170,12 @@ export default function LoginPage() {
                         className="pl-12 h-14 bg-slate-50/50 border-slate-100 rounded-2xl focus-visible:ring-blue-600 font-medium"
                       />
                     </div>
+                  <div className="flex justify-end mt-1">
+                    <a href="/forgot-password" className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-widest">
+                      Forgot Password?
+                    </a>
+                  </div>
+
                   </div>
 
                   {serverError && (

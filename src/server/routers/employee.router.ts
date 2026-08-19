@@ -6,12 +6,28 @@ export const employeeRouter = createTRPCRouter({
     .input(z.object({ userId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const targetUserId = input.userId ?? ctx.user.id;
-      return ctx.db.employeeProfile.findUnique({
+      let profile = await ctx.db.employeeProfile.findUnique({
         where: { userId: targetUserId },
         include: {
           shifts: true,
         },
       });
+      
+      // Auto-create EmployeeProfile for the SaaS organization owner if it doesn't exist
+      if (!profile && targetUserId === ctx.user.id) {
+         const user = await ctx.db.user.findUnique({ where: { id: targetUserId }});
+         if (user && user.role === "MASTER") {
+             profile = await ctx.db.employeeProfile.create({
+                 data: {
+                    userId: user.id,
+                    name: user.email.split('@')[0],
+                    employeeType: "Super Admin",
+                 },
+                 include: { shifts: true }
+             });
+         }
+      }
+      return profile;
     }),
 
   getAllEmployees: protectedProcedure.query(async ({ ctx }) => {

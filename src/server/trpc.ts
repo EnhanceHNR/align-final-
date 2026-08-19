@@ -4,25 +4,36 @@ import superjson from "superjson";
 import { authOptions } from "~/lib/auth";
 import { prisma as db } from "../lib/prisma";
 
-export type UserRole = "MASTER" | "STAFF";
+export type UserRole = "MASTER" | "STAFF" | "SUPERADMIN";
 
 export type Context = {
     user: {
         id: string;
         email: string;
         role: UserRole;
+        organizationId?: string;
     } | null;
-    db: typeof db;
+    db: any;
 };
+
+const tenantModels = [
+    "Patient", "Appointment", "Treatment", "VisitNote", "TreatmentPlan",
+    "Invoice", "PriceListItem", "Chair", "OdontogramSurface", "Lab", "LabSubmission",
+    "LabTransaction", "InstructionTemplate", "InventoryItem", "StockEntry", "PurchaseOrder",
+    "Delivery", "Dealer", "Statement", "ConsumptionRecord", "LearningCategory", 
+    "LearningMaterial", "EmployeeProfile", "Holiday"
+];
 
 export async function createTRPCContext(opts: { req: Request }): Promise<Context> {
     const session = await getServerSession(authOptions);
+    const orgId = (session?.user as any)?.organizationId;
 
     return {
         user: session?.user ? {
             id: session.user.id,
             email: session.user.email ?? "",
-            role: session.user.role,
+            role: session.user.role as UserRole,
+            organizationId: orgId,
         } : null,
         db,
     };
@@ -32,7 +43,6 @@ const t = initTRPC.context<Context>().create({
     transformer: superjson,
 });
 
-// Orta kısımda duran tüm mükerrer router ve procedure tanımlarını kaldırdık.
 const isAuthed = t.middleware(({ ctx, next }) => {
     if (!ctx.user) {
         throw new TRPCError({
@@ -47,7 +57,7 @@ const isMaster = t.middleware(({ ctx, next }) => {
     if (!ctx.user) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
     }
-    if (ctx.user.role !== "MASTER") {
+    if (ctx.user.role !== "MASTER" && ctx.user.role !== "SUPERADMIN") {
         throw new TRPCError({
             code: "FORBIDDEN",
             message: "Master access required",
@@ -56,9 +66,8 @@ const isMaster = t.middleware(({ ctx, next }) => {
     return next({ ctx });
 });
 
-// SADECE EN ALTTA TEK BİR SEFER TANIMLIYORUZ:
 export const router = t.router;
-export const createTRPCRouter = t.router; // Hem router hem createTRPCRouter kullanan dosyalar için ikisini de destekliyoruz
+export const createTRPCRouter = t.router;
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(isAuthed);
 export const masterOnlyProcedure = t.procedure.use(isMaster);
