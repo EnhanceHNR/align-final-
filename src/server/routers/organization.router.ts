@@ -11,6 +11,12 @@ export const organizationRouter = createTRPCRouter({
     const org = await ctx.db.organization.findUnique({
       where: { id: orgId },
     });
+    
+    // Fallback to the creator's account email if the organization email isn't set yet
+    if (org && !org.email && ctx.user.email) {
+      org.email = ctx.user.email;
+    }
+    
     return org;
   }),
 
