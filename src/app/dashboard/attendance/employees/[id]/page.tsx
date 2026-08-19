@@ -21,6 +21,16 @@ export default function EmployeeDetailsPage() {
   
   
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // --- REAL DATA CALCULATIONS ---
+  const currentMonthAttendances = employee?.attendances?.filter(a => isSameMonth(new Date(a.date), currentMonth)) || [];
+  const daysPresent = currentMonthAttendances.filter(a => ["Present", "Late", "Double Late", "PaidLeave"].includes(a.status)).length;
+  const daysAbsent = currentMonthAttendances.filter(a => ["Absent", "UnpaidLeave"].includes(a.status)).length;
+  
+  const dailyRate = (employee?.baseSalary || 0) / 30;
+  const estimatedPayout = Math.max(0, (employee?.baseSalary || 0) - (dailyRate * daysAbsent));
+  const absentPenalty = dailyRate * daysAbsent;
+
   
   // Custom Calendar Modal State
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
