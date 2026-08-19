@@ -21,7 +21,44 @@ export const attendanceRouter = createTRPCRouter({
         include: {
           sessions: true,
         },
+      
+  upsertAttendance: protectedProcedure
+    .input(z.object({
+      employeeProfileId: z.string(),
+      date: z.string(), // ISO date string
+      status: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const targetDate = new Date(input.date);
+      targetDate.setHours(0, 0, 0, 0);
+      const startOfDay = new Date(targetDate);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const existing = await ctx.db.attendance.findFirst({
+        where: {
+          employeeProfileId: input.employeeProfileId,
+          date: { gte: startOfDay, lte: endOfDay },
+        }
       });
+
+      if (existing) {
+        return ctx.db.attendance.update({
+          where: { id: existing.id },
+          data: { status: input.status }
+        });
+      } else {
+        return ctx.db.attendance.create({
+          data: {
+            employeeProfileId: input.employeeProfileId,
+            date: targetDate,
+            status: input.status,
+            organizationId: ctx.user.organizationId,
+          }
+        });
+      }
+    }),
+});
     }),
 
   clockIn: protectedProcedure
@@ -47,7 +84,44 @@ export const attendanceRouter = createTRPCRouter({
             lte: endOfDay,
           },
         },
+      
+  upsertAttendance: protectedProcedure
+    .input(z.object({
+      employeeProfileId: z.string(),
+      date: z.string(), // ISO date string
+      status: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const targetDate = new Date(input.date);
+      targetDate.setHours(0, 0, 0, 0);
+      const startOfDay = new Date(targetDate);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const existing = await ctx.db.attendance.findFirst({
+        where: {
+          employeeProfileId: input.employeeProfileId,
+          date: { gte: startOfDay, lte: endOfDay },
+        }
       });
+
+      if (existing) {
+        return ctx.db.attendance.update({
+          where: { id: existing.id },
+          data: { status: input.status }
+        });
+      } else {
+        return ctx.db.attendance.create({
+          data: {
+            employeeProfileId: input.employeeProfileId,
+            date: targetDate,
+            status: input.status,
+            organizationId: ctx.user.organizationId,
+          }
+        });
+      }
+    }),
+});
 
       if (!attendance) {
         attendance = await ctx.db.attendance.create({
@@ -55,7 +129,44 @@ export const attendanceRouter = createTRPCRouter({
             employeeProfileId: input.employeeProfileId,
             date: new Date(),
           },
+        
+  upsertAttendance: protectedProcedure
+    .input(z.object({
+      employeeProfileId: z.string(),
+      date: z.string(), // ISO date string
+      status: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const targetDate = new Date(input.date);
+      targetDate.setHours(0, 0, 0, 0);
+      const startOfDay = new Date(targetDate);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const existing = await ctx.db.attendance.findFirst({
+        where: {
+          employeeProfileId: input.employeeProfileId,
+          date: { gte: startOfDay, lte: endOfDay },
+        }
+      });
+
+      if (existing) {
+        return ctx.db.attendance.update({
+          where: { id: existing.id },
+          data: { status: input.status }
         });
+      } else {
+        return ctx.db.attendance.create({
+          data: {
+            employeeProfileId: input.employeeProfileId,
+            date: targetDate,
+            status: input.status,
+            organizationId: ctx.user.organizationId,
+          }
+        });
+      }
+    }),
+});
       }
 
       return ctx.db.attendanceSession.create({
@@ -66,7 +177,44 @@ export const attendanceRouter = createTRPCRouter({
           clockInLng: input.lng,
           clockInPhoto: input.photo,
         },
+      
+  upsertAttendance: protectedProcedure
+    .input(z.object({
+      employeeProfileId: z.string(),
+      date: z.string(), // ISO date string
+      status: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const targetDate = new Date(input.date);
+      targetDate.setHours(0, 0, 0, 0);
+      const startOfDay = new Date(targetDate);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const existing = await ctx.db.attendance.findFirst({
+        where: {
+          employeeProfileId: input.employeeProfileId,
+          date: { gte: startOfDay, lte: endOfDay },
+        }
       });
+
+      if (existing) {
+        return ctx.db.attendance.update({
+          where: { id: existing.id },
+          data: { status: input.status }
+        });
+      } else {
+        return ctx.db.attendance.create({
+          data: {
+            employeeProfileId: input.employeeProfileId,
+            date: targetDate,
+            status: input.status,
+            organizationId: ctx.user.organizationId,
+          }
+        });
+      }
+    }),
+});
     }),
 
   clockOut: protectedProcedure
@@ -81,7 +229,44 @@ export const attendanceRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const session = await ctx.db.attendanceSession.findUnique({
         where: { id: input.sessionId },
+      
+  upsertAttendance: protectedProcedure
+    .input(z.object({
+      employeeProfileId: z.string(),
+      date: z.string(), // ISO date string
+      status: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const targetDate = new Date(input.date);
+      targetDate.setHours(0, 0, 0, 0);
+      const startOfDay = new Date(targetDate);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const existing = await ctx.db.attendance.findFirst({
+        where: {
+          employeeProfileId: input.employeeProfileId,
+          date: { gte: startOfDay, lte: endOfDay },
+        }
       });
+
+      if (existing) {
+        return ctx.db.attendance.update({
+          where: { id: existing.id },
+          data: { status: input.status }
+        });
+      } else {
+        return ctx.db.attendance.create({
+          data: {
+            employeeProfileId: input.employeeProfileId,
+            date: targetDate,
+            status: input.status,
+            organizationId: ctx.user.organizationId,
+          }
+        });
+      }
+    }),
+});
 
       if (!session) {
         throw new Error("Session not found");
@@ -102,6 +287,80 @@ export const attendanceRouter = createTRPCRouter({
           clockOutPhoto: input.photo,
           duration,
         },
+      
+  upsertAttendance: protectedProcedure
+    .input(z.object({
+      employeeProfileId: z.string(),
+      date: z.string(), // ISO date string
+      status: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const targetDate = new Date(input.date);
+      targetDate.setHours(0, 0, 0, 0);
+      const startOfDay = new Date(targetDate);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const existing = await ctx.db.attendance.findFirst({
+        where: {
+          employeeProfileId: input.employeeProfileId,
+          date: { gte: startOfDay, lte: endOfDay },
+        }
       });
+
+      if (existing) {
+        return ctx.db.attendance.update({
+          where: { id: existing.id },
+          data: { status: input.status }
+        });
+      } else {
+        return ctx.db.attendance.create({
+          data: {
+            employeeProfileId: input.employeeProfileId,
+            date: targetDate,
+            status: input.status,
+            organizationId: ctx.user.organizationId,
+          }
+        });
+      }
+    }),
+});
+    }),
+
+  upsertAttendance: protectedProcedure
+    .input(z.object({
+      employeeProfileId: z.string(),
+      date: z.string(), // ISO date string
+      status: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const targetDate = new Date(input.date);
+      targetDate.setHours(0, 0, 0, 0);
+      const startOfDay = new Date(targetDate);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const existing = await ctx.db.attendance.findFirst({
+        where: {
+          employeeProfileId: input.employeeProfileId,
+          date: { gte: startOfDay, lte: endOfDay },
+        }
+      });
+
+      if (existing) {
+        return ctx.db.attendance.update({
+          where: { id: existing.id },
+          data: { status: input.status }
+        });
+      } else {
+        return ctx.db.attendance.create({
+          data: {
+            employeeProfileId: input.employeeProfileId,
+            date: targetDate,
+            status: input.status,
+            organizationId: ctx.user.organizationId,
+          }
+        });
+      }
     }),
 });

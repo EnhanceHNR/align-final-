@@ -19,7 +19,32 @@ export default function EmployeeDetailsPage() {
   const router = useRouter();
   const employeeId = params.id as string;
   
+  
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  
+  // Custom Calendar Modal State
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [attendanceStatus, setAttendanceStatus] = useState("Present");
+
+  const upsertAttendanceMutation = api.attendance.upsertAttendance.useMutation({
+    onSuccess: () => {
+      toast({ title: "Attendance updated successfully." });
+      refetch();
+      setIsAttendanceModalOpen(false);
+    },
+    onError: (error) => toast({ title: "Update failed", description: error.message, variant: "destructive" })
+  });
+
+  const handleSaveAttendance = () => {
+    if (!selectedDate || !employee) return;
+    upsertAttendanceMutation.mutate({
+      employeeProfileId: employee.id,
+      date: selectedDate.toISOString(),
+      status: attendanceStatus,
+    });
+  };
+
 
 
   const { toast } = useToast();
@@ -193,11 +218,11 @@ export default function EmployeeDetailsPage() {
                  <p className="text-xs font-semibold text-muted-foreground uppercase">Current Month Estimate</p>
                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Days Present:</span>
-                    <span className="font-medium">{employee.attendances?.length || 0} days</span>
+                    <span className="font-medium">{daysPresent} days</span>
                  </div>
                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Estimated Payout:</span>
-                    <span className="font-medium text-emerald-600">${((employee.baseSalary / 30) * (employee.attendances?.length || 0)).toFixed(2)}</span>
+                    <span className="font-medium text-emerald-600">${estimatedPayout.toFixed(2)}</span>
                  </div>
               </div>
               <div className="pt-4 space-y-2">
@@ -268,32 +293,41 @@ export default function EmployeeDetailsPage() {
                       <div key={`empty-${i}`} className="h-8 w-8"></div>
                     ))}
                     {daysInMonth.map(day => {
-                      // Logic to mock the screenshot's color coded attendance
-                      const dayOfMonth = day.getDate();
+                      // Real attendance logic
                       let bgColor = "bg-transparent hover:bg-slate-100";
                       let textColor = "text-slate-700";
                       
-                      // Example mocking to match screenshot colors (yellow for leave, red for absent, brown for late)
-                      if (dayOfMonth >= 27 && dayOfMonth <= 31) {
-                         bgColor = dayOfMonth === 27 ? "bg-amber-100" : dayOfMonth === 31 ? "bg-red-200" : "bg-red-200";
-                         textColor = dayOfMonth === 27 ? "text-amber-700" : "text-red-700";
+                      const attendanceRecord = currentMonthAttendances.find(a => isSameDay(new Date(a.date), day));
+                      
+                      if (attendanceRecord) {
+                          if (attendanceRecord.status === "Present") {
+                             bgColor = "bg-emerald-100";
+                             textColor = "text-emerald-700";
+                          } else if (attendanceRecord.status === "Absent") {
+                             bgColor = "bg-red-200";
+                             textColor = "text-red-700";
+                          } else if (attendanceRecord.status === "Late" || attendanceRecord.status === "Double Late") {
+                             bgColor = "bg-amber-700";
+                             textColor = "text-white";
+                          } else if (attendanceRecord.status.includes("Leave")) {
+                             bgColor = "bg-amber-100";
+                             textColor = "text-amber-700";
+                          } else if (attendanceRecord.status === "Holiday" || attendanceRecord.status === "Weekend") {
+                             bgColor = "bg-slate-100";
+                             textColor = "text-slate-400";
+                          }
                       }
-                      if (dayOfMonth >= 3 && dayOfMonth <= 8) {
-                         bgColor = dayOfMonth === 8 ? "bg-amber-100" : "bg-red-200";
-                         textColor = dayOfMonth === 8 ? "text-amber-700" : "text-red-700";
-                      }
-                      if (dayOfMonth >= 10 && dayOfMonth <= 15) {
-                         bgColor = dayOfMonth === 12 ? "bg-amber-700" : "bg-amber-100";
-                         textColor = dayOfMonth === 12 ? "text-white" : "text-amber-700";
-                      }
-                      if (dayOfMonth >= 16 && dayOfMonth <= 18) {
-                         bgColor = "bg-amber-100";
-                         textColor = "text-amber-700";
-                      }
+                      const dayOfMonth = day.getDate();
 
                       return (
                         <div key={day.toISOString()} className="flex justify-center items-center">
-                          <div className={`h-8 w-8 flex items-center justify-center rounded-sm text-sm cursor-pointer ${bgColor} ${textColor} ${isToday(day) ? 'ring-2 ring-slate-400' : ''}`}>
+                          <div 
+                             onClick={() => {
+                               setSelectedDate(day);
+                               setAttendanceStatus(attendanceRecord ? attendanceRecord.status : "Present");
+                               setIsAttendanceModalOpen(true);
+                             }}
+                             className={`h-8 w-8 flex items-center justify-center rounded-sm text-sm cursor-pointer hover:ring-2 hover:ring-slate-300 transition-all ${bgColor} ${textColor} ${isToday(day) ? 'ring-2 ring-slate-400' : ''}`}>
                             {dayOfMonth}
                           </div>
                         </div>
@@ -343,7 +377,7 @@ export default function EmployeeDetailsPage() {
                              <p className="font-medium">Absenteeism Penalty</p>
                              <p className="text-sm text-muted-foreground">Calculated from calendar</p>
                           </div>
-                          <div className="font-bold text-destructive">-${((employee.baseSalary / 30) * (30 - (employee.attendances?.length || 30))).toFixed(2)}</div>
+                          <div className="font-bold text-destructive">-${absentPenalty.toFixed(2)}</div>
                        </div>
                        <div className="flex justify-between items-center p-3 border rounded-lg bg-slate-50 opacity-60">
                           <div>
@@ -363,7 +397,7 @@ export default function EmployeeDetailsPage() {
                       <p className="text-sm text-muted-foreground">For the current billing cycle</p>
                    </div>
                    <div className="text-3xl font-bold text-emerald-600">
-                      ${((employee.baseSalary) - ((employee.baseSalary / 30) * (30 - (employee.attendances?.length || 30)))).toFixed(2)}
+                      ${estimatedPayout.toFixed(2)}
                    </div>
                 </CardContent>
               </Card>
