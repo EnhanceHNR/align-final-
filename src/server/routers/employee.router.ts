@@ -69,6 +69,10 @@ export const employeeRouter = createTRPCRouter({
       role: z.enum(["STAFF", "ADMIN", "MASTER"]),
       department: z.string().optional(),
       baseSalary: z.number().optional(),
+      mobileNumber: z.string().optional(),
+      jobTitle: z.string().optional(),
+      manager: z.string().optional(),
+      shifts: z.array(z.object({ startTime: z.string(), endTime: z.string() })).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       // 1. Check if email exists
@@ -101,7 +105,13 @@ export const employeeRouter = createTRPCRouter({
           name: input.name,
           department: input.department,
           baseSalary: input.baseSalary ?? 0,
-          employeeType: input.role === "ADMIN" ? "Admin" : "Employee"
+          employeeType: input.role === "ADMIN" ? "Admin" : "Employee",
+          mobileNumber: input.mobileNumber,
+          jobTitle: input.jobTitle,
+          manager: input.manager,
+          shifts: input.shifts ? {
+             create: input.shifts.map(s => ({ startTime: s.startTime, endTime: s.endTime }))
+          } : undefined
         }
       });
 
@@ -129,10 +139,14 @@ export const employeeRouter = createTRPCRouter({
         manager: z.string().optional(),
         employeeType: z.string().optional(),
         baseSalary: z.number().optional(),
+        mobileNumber: z.string().optional(),
+        jobTitle: z.string().optional(),
+        shifts: z.array(z.object({ id: z.string().optional(), startTime: z.string(), endTime: z.string() })).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.employeeProfile.upsert({
+      // First upsert the profile
+      const profile = await ctx.db.employeeProfile.upsert({
         where: { userId: input.userId },
         update: {
           name: input.name,
@@ -140,6 +154,8 @@ export const employeeRouter = createTRPCRouter({
           manager: input.manager,
           employeeType: input.employeeType,
           baseSalary: input.baseSalary,
+          mobileNumber: input.mobileNumber,
+          jobTitle: input.jobTitle,
         },
         create: {
           userId: input.userId,
@@ -148,7 +164,30 @@ export const employeeRouter = createTRPCRouter({
           manager: input.manager,
           employeeType: input.employeeType ?? "Employee",
           baseSalary: input.baseSalary ?? 0,
+          mobileNumber: input.mobileNumber,
+          jobTitle: input.jobTitle,
         },
       });
+
+      // Handle shifts
+      if (input.shifts) {
+         // Delete all existing shifts
+         await ctx.db.shiftSegment.deleteMany({
+            where: { employeeProfileId: profile.id }
+         });
+         // Create new ones
+         if (input.shifts.length > 0) {
+            await ctx.db.shiftSegment.createMany({
+               data: input.shifts.map(s => ({
+                  employeeProfileId: profile.id,
+                  startTime: s.startTime,
+                  endTime: s.endTime,
+                  organizationId: ctx.user.organizationId
+               }))
+            });
+         }
+      }
+
+      return profile;
     }),
 });

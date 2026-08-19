@@ -517,6 +517,7 @@ model EmployeeProfile {
   manager                    String?
   avatarUrl                  String?
   employeeType               String    @default("Employee") // Super Admin, Admin, Employee
+  jobTitle                   String?
   phoneNumber                String?
   mobileNumber               String?
   address                    String?
