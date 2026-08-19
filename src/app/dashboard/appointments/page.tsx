@@ -108,7 +108,7 @@ export default function AppointmentsCalendarPage() {
                         <CalendarIcon className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 flex-shrink-0" />
                         Calendar and Appointments
                     </h1>
-                    <p className="text-sm text-gray-500 mt-1">Working hours: 08:00 — 18:00</p>
+                    <p className="text-sm text-gray-500 mt-1">Working hours: {orgProfile?.workingHoursStart || "08:00"} — {orgProfile?.workingHoursEnd || "18:00"}</p>
                 </div>
  
                 <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">

@@ -749,7 +749,15 @@ model Organization {
   EmployeeDocument     EmployeeDocument[]
   LateRequest          LateRequest[]
   EarlyPunchOutRequest EarlyPunchOutRequest[]
+  phone                  String?
+  email                  String?
+  address                String?
+  orgType                String    @default("Clinic") // Clinic, Lab, Dealer
+  workingHoursStart      String    @default("08:00")
+  workingHoursEnd        String    @default("18:00")
+
 }
+
 
 model PasswordResetToken {
   id        String   @id @default(cuid())

@@ -149,11 +149,7 @@ export default function LoginPage() {
                         className="pl-12 h-14 bg-slate-50/50 border-slate-100 rounded-2xl focus-visible:ring-blue-600 font-medium"
                       />
                     </div>
-                  <div className="flex justify-end mt-1">
-                    <a href="/forgot-password" className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-widest">
-                      Forgot Password?
-                    </a>
-                  </div>
+
 
                   </div>
                   

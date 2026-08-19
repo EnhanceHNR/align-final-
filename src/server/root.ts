@@ -14,6 +14,7 @@ import { learningRouter } from "./routers/learning.router";
 import { employeeRouter } from "./routers/employee.router";
 import { attendanceRouter } from "./routers/attendance.router";
 import { hrRouter } from "./routers/hr.router";
+import { organizationRouter } from "./routers/organization.router";
 export const appRouter = router({
   patients: patientsRouter,
   odontogram: odontogramRouter,
@@ -30,6 +31,7 @@ export const appRouter = router({
   employee: employeeRouter,
   attendance: attendanceRouter,
   hr: hrRouter,
+  organization: organizationRouter,
 });
 
 export type AppRouter = typeof appRouter;
