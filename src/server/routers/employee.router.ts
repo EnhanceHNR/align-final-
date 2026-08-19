@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
@@ -59,6 +60,53 @@ export const employeeRouter = createTRPCRouter({
       });
     }),
 
+
+  createStaffUser: protectedProcedure
+    .input(z.object({
+      name: z.string(),
+      email: z.string().email(),
+      password: z.string().min(6),
+      role: z.enum(["STAFF", "ADMIN", "MASTER"]),
+      department: z.string().optional(),
+      baseSalary: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // 1. Check if email exists
+      const existingUser = await ctx.db.user.findUnique({ where: { email: input.email } });
+      if (existingUser) {
+        throw new Error("Email already in use");
+      }
+
+      // 2. Hash password
+      const passwordHash = await bcrypt.hash(input.password, 10);
+
+      // 3. Get organization from current user
+      const currentUser = await ctx.db.user.findUnique({ where: { id: ctx.user.id } });
+      const orgId = currentUser?.organizationId;
+
+      // 4. Create User
+      const newUser = await ctx.db.user.create({
+        data: {
+          email: input.email,
+          passwordHash,
+          role: input.role,
+          organizationId: orgId,
+        }
+      });
+
+      // 5. Create EmployeeProfile
+      const profile = await ctx.db.employeeProfile.create({
+        data: {
+          userId: newUser.id,
+          name: input.name,
+          department: input.department,
+          baseSalary: input.baseSalary ?? 0,
+          employeeType: input.role === "ADMIN" ? "Admin" : "Employee"
+        }
+      });
+
+      return profile;
+    }),
   getAllUsers: protectedProcedure.query(async ({ ctx }) => {
     return ctx.db.user.findMany({
       select: {

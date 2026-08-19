@@ -5,6 +5,10 @@ import { api } from "~/trpc/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Loader2, ArrowLeft, Mail, Phone, Building, Briefcase, Clock, User, Download, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "~/components/ui/dialog";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { useParams, useRouter } from "next/navigation";
@@ -16,6 +20,40 @@ export default function EmployeeDetailsPage() {
   const employeeId = params.id as string;
   
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+
+  const { toast } = useToast();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDepartment, setEditDepartment] = useState("");
+  const [editSalary, setEditSalary] = useState("0");
+
+  const utils = api.useUtils();
+  const updateProfile = api.employee.upsertProfile.useMutation({
+    onSuccess: () => {
+      toast({ title: "Profile updated successfully" });
+      utils.employee.getEmployeeDetails.invalidate();
+      setIsEditOpen(false);
+    }
+  });
+
+  const handleEditOpen = () => {
+    if (employee) {
+      setEditName(employee.name || "");
+      setEditDepartment(employee.department || "");
+      setEditSalary(employee.baseSalary?.toString() || "0");
+      setIsEditOpen(true);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    updateProfile.mutate({
+      userId: employee!.userId,
+      name: editName,
+      department: editDepartment,
+      baseSalary: parseFloat(editSalary) || 0,
+    });
+  };
 
   const { data: employee, isLoading } = api.employee.getEmployeeDetails.useQuery(
     { employeeProfileId: employeeId },
@@ -52,7 +90,38 @@ export default function EmployeeDetailsPage() {
         </Avatar>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{employee.name}</h1>
+          
           <p className="text-lg text-muted-foreground">{employee.employeeType}</p>
+          <div className="mt-2">
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleEditOpen}>Edit Profile & Salary</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Employee Details</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">Name</Label>
+                    <Input className="col-span-3" value={editName} onChange={e => setEditName(e.target.value)} />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">Department</Label>
+                    <Input className="col-span-3" value={editDepartment} onChange={e => setEditDepartment(e.target.value)} />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">Base Salary</Label>
+                    <Input className="col-span-3" type="number" value={editSalary} onChange={e => setEditSalary(e.target.value)} />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleSaveEdit} disabled={updateProfile.isPending}>Save Changes</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
         </div>
       </div>
 
