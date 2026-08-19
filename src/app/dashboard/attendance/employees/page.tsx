@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { api } from "~/trpc/react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { Loader2, Plus, Trash2, History, UserPlus } from "lucide-react";
+import { Loader2, Plus, Trash2, History, UserPlus, ChevronDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
 import { Badge } from "~/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
@@ -102,101 +102,169 @@ export default function EmployeesPage() {
     setShifts(shifts.map(s => s.id === id ? { ...s, [field]: val } : s));
   };
 
-  // Shared form fields to match the screenshot exactly
+  // Convert HH:MM to 12-hour format for the UI
+  const formatTime12 = (time24: string) => {
+     if(!time24) return { time: "09:00", period: "AM" };
+     const [h, m] = time24.split(":");
+     let hour = parseInt(h, 10);
+     const period = hour >= 12 ? "PM" : "AM";
+     hour = hour % 12 || 12;
+     return { time: `${hour.toString().padStart(2, '0')}:${m}`, period };
+  };
+
+  // Convert 12-hour format back to HH:MM 
+  const parseTime24 = (time12: string, period: string) => {
+     const [h, m] = time12.split(":");
+     let hour = parseInt(h, 10);
+     if (period === "PM" && hour < 12) hour += 12;
+     if (period === "AM" && hour === 12) hour = 0;
+     return `${hour.toString().padStart(2, '0')}:${m}`;
+  };
+
+  const handleTimeChange = (id: string, field: "startTime" | "endTime", newTime12: string, currentPeriod: string) => {
+      updateShift(id, field, parseTime24(newTime12, currentPeriod));
+  };
+
+  const handlePeriodChange = (id: string, field: "startTime" | "endTime", currentTime12: string, newPeriod: string) => {
+      updateShift(id, field, parseTime24(currentTime12, newPeriod));
+  };
+
+  const inputClass = "w-full bg-[#f0f1f1] border-0 rounded-xl px-4 py-3 h-12 text-[15px] outline-none focus:ring-2 focus:ring-slate-300 transition-all text-slate-800 placeholder:text-slate-400";
+  const labelClass = "text-[13px] font-medium text-slate-800 mb-1.5 block";
+  const selectWrapperClass = "relative";
+  const selectIconClass = "absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none";
+
   const renderFormFields = (isEdit: boolean) => (
-    <div className="space-y-4 pt-2">
+    <div className="space-y-5 pt-2">
       {!isEdit && (
         <>
           <div>
-            <label className="text-sm font-medium mb-1 block">Full Name</label>
-            <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-transparent border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100" />
+            <label className={labelClass}>Full Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="e.g. Jane Doe" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium mb-1 block">Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-transparent border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100" />
+              <label className={labelClass}>Email Address</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} placeholder="jane@example.com" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-transparent border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100" />
+              <label className={labelClass}>Temporary Password</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} className={inputClass} placeholder="Min. 6 characters" />
             </div>
           </div>
         </>
       )}
 
       <div>
-        <label className="text-sm font-medium mb-1 block">Mobile Number</label>
-        <input value={mobileNumber} onChange={e => setMobileNumber(e.target.value)} className="w-full bg-transparent border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100" />
+        <label className={labelClass}>Mobile Number</label>
+        <input value={mobileNumber} onChange={e => setMobileNumber(e.target.value)} className={inputClass} placeholder="e.g. 7499286968" />
       </div>
 
       <div>
-        <label className="text-sm font-medium mb-1 block">User Role</label>
-        <select value={role} onChange={e => setRole(e.target.value)} className="w-full bg-transparent border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 appearance-none">
-          <option value="STAFF">Employee</option>
-          <option value="ADMIN">Admin</option>
-          <option value="MASTER">Super Admin</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="text-sm font-medium mb-1 block">Job Title</label>
-        <input value={jobTitle} onChange={e => setJobTitle(e.target.value)} className="w-full bg-transparent border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100" placeholder="e.g. Associate doctor" />
-      </div>
-
-      <div>
-        <label className="text-sm font-medium mb-1 block">Department</label>
-        <select value={department} onChange={e => setDepartment(e.target.value)} className="w-full bg-transparent border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 appearance-none">
-          <option value="">Select department...</option>
-          <option value="Human Resources">Human Resources</option>
-          <option value="Medical">Medical</option>
-          <option value="Operations">Operations</option>
-          <option value="Management">Management</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="text-sm font-medium mb-1 block">Manager</label>
-        <select value={manager} onChange={e => setManager(e.target.value)} className="w-full bg-transparent border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 appearance-none">
-          <option value="">Select manager...</option>
-          {employees?.filter(e => e.id !== editingEmployeeId).map(e => (
-             <option key={e.id} value={e.name}>{e.name}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="pt-2 border-t mt-4">
-        <label className="text-sm font-medium block">Shift Timings</label>
-        <p className="text-xs text-gray-500 mb-3">Define one or more work periods for the day.</p>
-        <div className="space-y-3">
-          {shifts.map(shift => (
-            <div key={shift.id} className="flex items-center gap-3">
-              <input 
-                type="time" 
-                value={shift.startTime} 
-                onChange={e => updateShift(shift.id, "startTime", e.target.value)} 
-                className="flex-1 bg-transparent border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" 
-              />
-              <span className="text-gray-400 font-bold">-</span>
-              <input 
-                type="time" 
-                value={shift.endTime} 
-                onChange={e => updateShift(shift.id, "endTime", e.target.value)} 
-                className="flex-1 bg-transparent border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" 
-              />
-              <button onClick={() => removeShift(shift.id)} className="p-2 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+        <label className={labelClass}>User Role</label>
+        <div className={selectWrapperClass}>
+           <select value={role} onChange={e => setRole(e.target.value)} className={`${inputClass} appearance-none`}>
+             <option value="STAFF">Employee</option>
+             <option value="ADMIN">Admin</option>
+             <option value="MASTER">Super Admin</option>
+           </select>
+           <ChevronDown className={selectIconClass} />
         </div>
-        <Button variant="ghost" onClick={addShift} size="sm" className="mt-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 w-full border border-dashed border-blue-200">
+      </div>
+
+      <div>
+        <label className={labelClass}>Job Title</label>
+        <input value={jobTitle} onChange={e => setJobTitle(e.target.value)} className={inputClass} placeholder="e.g. Associate doctor" />
+      </div>
+
+      <div>
+        <label className={labelClass}>Department</label>
+        <div className={selectWrapperClass}>
+           <select value={department} onChange={e => setDepartment(e.target.value)} className={`${inputClass} appearance-none`}>
+             <option value="">Select department...</option>
+             <option value="Human Resources">Human Resources</option>
+             <option value="Medical">Medical</option>
+             <option value="Operations">Operations</option>
+             <option value="Management">Management</option>
+           </select>
+           <ChevronDown className={selectIconClass} />
+        </div>
+      </div>
+
+      <div>
+        <label className={labelClass}>Manager</label>
+        <div className={selectWrapperClass}>
+           <select value={manager} onChange={e => setManager(e.target.value)} className={`${inputClass} appearance-none`}>
+             <option value="">Select manager...</option>
+             {employees?.filter(e => e.id !== editingEmployeeId).map(e => (
+                <option key={e.id} value={e.name}>{e.name}</option>
+             ))}
+           </select>
+           <ChevronDown className={selectIconClass} />
+        </div>
+      </div>
+
+      <div className="pt-2">
+        <label className={labelClass}>Shift Timings</label>
+        <p className="text-[13px] text-slate-500 mb-3">Define one or more work periods for the day.</p>
+        <div className="space-y-3">
+          {shifts.map(shift => {
+             const startObj = formatTime12(shift.startTime);
+             const endObj = formatTime12(shift.endTime);
+             
+             return (
+               <div key={shift.id} className="flex items-center gap-2">
+                 <input 
+                   value={startObj.time} 
+                   onChange={e => handleTimeChange(shift.id, "startTime", e.target.value, startObj.period)} 
+                   className={`${inputClass} w-24 text-center px-2`} 
+                 />
+                 <div className={selectWrapperClass}>
+                   <select 
+                     value={startObj.period} 
+                     onChange={e => handlePeriodChange(shift.id, "startTime", startObj.time, e.target.value)} 
+                     className={`${inputClass} w-20 appearance-none px-3`}
+                   >
+                     <option value="AM">AM</option>
+                     <option value="PM">PM</option>
+                   </select>
+                   <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                 </div>
+                 
+                 <span className="text-slate-400 font-bold mx-1">-</span>
+                 
+                 <input 
+                   value={endObj.time} 
+                   onChange={e => handleTimeChange(shift.id, "endTime", e.target.value, endObj.period)} 
+                   className={`${inputClass} w-24 text-center px-2`} 
+                 />
+                 <div className={selectWrapperClass}>
+                   <select 
+                     value={endObj.period} 
+                     onChange={e => handlePeriodChange(shift.id, "endTime", endObj.time, e.target.value)} 
+                     className={`${inputClass} w-20 appearance-none px-3`}
+                   >
+                     <option value="AM">AM</option>
+                     <option value="PM">PM</option>
+                   </select>
+                   <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                 </div>
+                 
+                 <button onClick={() => removeShift(shift.id)} className="ml-1 p-2.5 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition">
+                   <Trash2 className="w-4 h-4" />
+                 </button>
+               </div>
+             );
+          })}
+        </div>
+        <Button variant="ghost" onClick={addShift} size="sm" className="mt-4 text-slate-600 hover:text-slate-900 hover:bg-slate-100 w-full border border-dashed border-slate-300 rounded-xl h-11">
           <Plus className="w-4 h-4 mr-2" /> Add Shift Period
         </Button>
       </div>
 
-      <div className="pt-2 border-t mt-4">
-        <label className="text-sm font-medium mb-1 block">Base Salary (₹)</label>
-        <input type="number" value={baseSalary} onChange={e => setBaseSalary(e.target.value)} className="w-full bg-transparent border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100" />
+      <div className="pt-2">
+        <label className={labelClass}>Base Salary (₹)</label>
+        <input type="number" value={baseSalary} onChange={e => setBaseSalary(e.target.value)} className={inputClass} />
       </div>
     </div>
   );
@@ -208,22 +276,22 @@ export default function EmployeesPage() {
          <div className="flex gap-3">
             <Button variant="outline" className="bg-white">Export</Button>
             <Button variant="outline" className="bg-white">Import</Button>
-            <Button onClick={() => { resetForm(); setIsAddOpen(true); }} className="bg-slate-900 hover:bg-slate-800 text-white">
-              <UserPlus className="h-4 w-4 mr-2" /> Add Employee
+            <Button onClick={() => { resetForm(); setIsAddOpen(true); }} className="bg-slate-900 hover:bg-slate-800 text-white shadow-md">
+              <Plus className="h-4 w-4 mr-2" /> Add
             </Button>
          </div>
       </div>
 
       {/* Add Modal */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-[450px] bg-[#f4f5f4] border-0 p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl">Add Employee</DialogTitle>
-            <DialogDescription>Create a new employee profile and system account.</DialogDescription>
+        <DialogContent className="sm:max-w-[480px] bg-[#f8f9f8] border-0 p-6 shadow-2xl max-h-[90vh] overflow-y-auto rounded-3xl">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-[20px] font-semibold text-slate-900">Add Employee</DialogTitle>
+            <DialogDescription className="text-[14px] text-slate-500">Create a new employee profile and system account.</DialogDescription>
           </DialogHeader>
           {renderFormFields(false)}
-          <div className="flex justify-end pt-4 mt-4 border-t">
-             <Button onClick={handleSaveAdd} disabled={createStaffMutation.isPending || !name || !email || !password} className="w-full bg-slate-900 hover:bg-slate-800">
+          <div className="flex justify-end pt-6 mt-2">
+             <Button onClick={handleSaveAdd} disabled={createStaffMutation.isPending || !name || !email || !password} className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-12 text-[15px] font-medium shadow-md">
                {createStaffMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                Create Employee
              </Button>
@@ -233,14 +301,14 @@ export default function EmployeesPage() {
 
       {/* Edit Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-[450px] bg-[#f4f5f4] border-0 p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl">Edit Employee</DialogTitle>
-            <DialogDescription>Update the details of the employee.</DialogDescription>
+        <DialogContent className="sm:max-w-[480px] bg-[#f8f9f8] border-0 p-6 shadow-2xl max-h-[90vh] overflow-y-auto rounded-3xl">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-[20px] font-semibold text-slate-900">Edit Employee</DialogTitle>
+            <DialogDescription className="text-[14px] text-slate-500">Update the details of the employee.</DialogDescription>
           </DialogHeader>
           {renderFormFields(true)}
-          <div className="flex justify-end pt-4 mt-4 border-t">
-             <Button onClick={handleSaveEdit} disabled={updateProfileMutation.isPending} className="w-full bg-slate-900 hover:bg-slate-800">
+          <div className="flex justify-end pt-6 mt-2">
+             <Button onClick={handleSaveEdit} disabled={updateProfileMutation.isPending} className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-12 text-[15px] font-medium shadow-md">
                {updateProfileMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                Save Changes
              </Button>
@@ -254,7 +322,7 @@ export default function EmployeesPage() {
         </div>
         <CardContent className="p-0">
           {isLoadingEmployees ? (
-            <div className="flex justify-center p-12"><Loader2 className="animate-spin text-muted-foreground" /></div>
+            <div className="flex justify-center p-12"><Loader2 className="animate-spin text-slate-400" /></div>
           ) : (
             <Table>
               <TableHeader className="bg-slate-50 border-b">
@@ -268,12 +336,12 @@ export default function EmployeesPage() {
                 {employees?.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center py-12 text-slate-500">
-                      No employees found. Click "Add Employee" to onboard new staff.
+                      No employees found. Click "Add" to onboard new staff.
                     </TableCell>
                   </TableRow>
                 )}
                 {employees?.map((employee) => (
-                  <TableRow key={employee.id} className="hover:bg-slate-50/50">
+                  <TableRow key={employee.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell>
                        <div className="flex items-center gap-3 py-2">
                           <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold uppercase shrink-0">
@@ -286,10 +354,10 @@ export default function EmployeesPage() {
                        </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200/50">Active</Badge>
+                      <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200/50 px-3 py-1 font-medium">Active</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(employee)} className="font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(employee)} className="font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors">
                         <History className="h-4 w-4 mr-2 text-slate-400" /> Manage Config
                       </Button>
                     </TableCell>
