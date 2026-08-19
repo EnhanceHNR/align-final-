@@ -8,6 +8,7 @@ import { Button } from "~/components/ui/button";
 import { Loader2, Plus, Trash2, History, UserPlus, ChevronDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
 import { Badge } from "~/components/ui/badge";
+import Link from "next/link";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -343,15 +344,17 @@ export default function EmployeesPage() {
                 {employees?.map((employee) => (
                   <TableRow key={employee.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell>
-                       <div className="flex items-center gap-3 py-2">
-                          <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold uppercase shrink-0">
-                             {employee.name.charAt(0)}
-                          </div>
-                          <div>
-                             <div className="font-medium text-slate-900">{employee.name}</div>
-                             <div className="text-xs text-slate-500">{employee.user?.email || "No email"}</div>
-                          </div>
-                       </div>
+                       <Link href={`/dashboard/attendance/employees/${employee.id}`}>
+                         <div className="flex items-center gap-3 py-2 cursor-pointer hover:bg-slate-50 rounded-lg p-2 transition-colors -ml-2">
+                            <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold uppercase shrink-0">
+                               {employee.name.charAt(0)}
+                            </div>
+                            <div>
+                               <div className="font-medium text-slate-900 hover:text-blue-600 transition-colors">{employee.name}</div>
+                               <div className="text-xs text-slate-500">{employee.user?.email || "No email"}</div>
+                            </div>
+                         </div>
+                       </Link>
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200/50 px-3 py-1 font-medium">Active</Badge>
