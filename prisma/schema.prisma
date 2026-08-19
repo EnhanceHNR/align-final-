@@ -20,8 +20,8 @@ model User {
   receivedDeliveries Delivery[]          @relation("ReceivedDeliveries")
   consumedItems      ConsumptionRecord[] @relation("ConsumedItems")
   employeeProfile    EmployeeProfile?
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId     String?
+  organization       Organization?       @relation(fields: [organizationId], references: [id])
 }
 
 model Patient {
@@ -46,89 +46,91 @@ model Patient {
   visitNotes         VisitNote[]
   odontogramSurfaces OdontogramSurface[]
   labSubmissions     LabSubmission[]
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId     String?
+  organization       Organization?       @relation(fields: [organizationId], references: [id])
+
   @@unique([jmb, organizationId])
 }
 
-
 model Anamnesis {
-  id                      String   @id @default(cuid())
-  patientId               String   @unique
-  allergiesFlag           Boolean  @default(false)
+  id                      String        @id @default(cuid())
+  patientId               String        @unique
+  allergiesFlag           Boolean       @default(false)
   allergiesDetails        String?
-  anesthesiaHistoryFlag   Boolean  @default(false)
+  anesthesiaHistoryFlag   Boolean       @default(false)
   anesthesiaComplications String?
-  medicationsFlag         Boolean  @default(false)
+  medicationsFlag         Boolean       @default(false)
   medicationsDetails      String?
   previousDiseases        String?
   currentDisease          String?
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-  patient                 Patient  @relation(fields: [patientId], references: [id])
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  patient                 Patient       @relation(fields: [patientId], references: [id])
+  organizationId          String?
+  organization            Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model Appointment {
-  id         String            @id @default(cuid())
-  patientId  String
-  chairId    String?           // Made optional initially to prevent migration errors on existing data
-  startTime  DateTime
-  endTime    DateTime
-  status     AppointmentStatus @default(SCHEDULED)
-  reason     String? // İŞTE BURAYA EKLEDİK (Opsiyonel alan)
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-  patient    Patient           @relation(fields: [patientId], references: [id])
-  chair      Chair?            @relation(fields: [chairId], references: [id])
-  visitNotes VisitNote[]
+  id             String            @id @default(cuid())
+  patientId      String
+  chairId        String? // Made optional initially to prevent migration errors on existing data
+  startTime      DateTime
+  endTime        DateTime
+  status         AppointmentStatus @default(SCHEDULED)
+  reason         String? // İŞTE BURAYA EKLEDİK (Opsiyonel alan)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  patient        Patient           @relation(fields: [patientId], references: [id])
+  chair          Chair?            @relation(fields: [chairId], references: [id])
+  visitNotes     VisitNote[]
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organization   Organization?     @relation(fields: [organizationId], references: [id])
 }
 
 model Treatment {
-  id            String          @id @default(cuid())
-  patientId     String
-  treatmentDate DateTime        @default(now())
-  toothNumber   Int?
-  diagnosis     String?
-  therapy       String
-  code          String
-  status        TreatmentStatus @default(PLANNED)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  invoiceItems  InvoiceItem[]
-  patient       Patient         @relation(fields: [patientId], references: [id])
+  id             String          @id @default(cuid())
+  patientId      String
+  treatmentDate  DateTime        @default(now())
+  toothNumber    Int?
+  diagnosis      String?
+  therapy        String
+  code           String
+  status         TreatmentStatus @default(PLANNED)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  invoiceItems   InvoiceItem[]
+  patient        Patient         @relation(fields: [patientId], references: [id])
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organization   Organization?   @relation(fields: [organizationId], references: [id])
 }
 
 model VisitNote {
-  id            String       @id @default(cuid())
-  patientId     String
-  content       String
-  noteDate      DateTime     @default(now())
-  createdAt     DateTime     @default(now())
-  appointmentId String?
-  userId        String
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-  patient       Patient      @relation(fields: [patientId], references: [id])
-  user          User         @relation(fields: [userId], references: [id])
+  id             String        @id @default(cuid())
+  patientId      String
+  content        String
+  noteDate       DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+  appointmentId  String?
+  userId         String
+  appointment    Appointment?  @relation(fields: [appointmentId], references: [id])
+  patient        Patient       @relation(fields: [patientId], references: [id])
+  user           User          @relation(fields: [userId], references: [id])
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model TreatmentPlan {
-  id          String              @id @default(cuid())
-  patientId   String
-  title       String
-  description String?
-  status      TreatmentPlanStatus @default(OPEN)
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  patient     Patient             @relation(fields: [patientId], references: [id])
-  items       TreatmentPlanItem[]
+  id             String              @id @default(cuid())
+  patientId      String
+  title          String
+  description    String?
+  status         TreatmentPlanStatus @default(OPEN)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  patient        Patient             @relation(fields: [patientId], references: [id])
+  items          TreatmentPlanItem[]
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organization   Organization?       @relation(fields: [organizationId], references: [id])
 }
 
 model TreatmentPlanItem {
@@ -139,43 +141,47 @@ model TreatmentPlanItem {
   plannedTherapy       String
   status               TreatmentPlanItemStatus @default(PLANNED)
   plan                 TreatmentPlan           @relation(fields: [planId], references: [id])
+  organizationId       String?
+  organization         Organization?           @relation(fields: [organizationId], references: [id])
 }
 
 model Invoice {
-  id            String        @id @default(cuid())
-  patientId     String
-  invoiceNumber String        @unique
-  subtotal      Float         @default(0)
-  taxAmount     Float         @default(0)
-  taxRate       Float         @default(0.17)
-  totalAmount   Float
-  status        InvoiceStatus @default(DRAFT)
-  createdAt     DateTime      @default(now())
-  patient       Patient       @relation(fields: [patientId], references: [id])
-  items         InvoiceItem[]
+  id             String        @id @default(cuid())
+  patientId      String
+  invoiceNumber  String        @unique
+  subtotal       Float         @default(0)
+  taxAmount      Float         @default(0)
+  taxRate        Float         @default(0.17)
+  totalAmount    Float
+  status         InvoiceStatus @default(DRAFT)
+  createdAt      DateTime      @default(now())
+  patient        Patient       @relation(fields: [patientId], references: [id])
+  items          InvoiceItem[]
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model InvoiceItem {
-  id          String     @id @default(cuid())
-  invoiceId   String
-  treatmentId String?
-  serviceCode String
-  serviceName String
-  quantity    Int        @default(1)
-  unitPrice   Float
-  totalPrice  Float
-  invoice     Invoice    @relation(fields: [invoiceId], references: [id])
-  treatment   Treatment? @relation(fields: [treatmentId], references: [id])
+  id             String        @id @default(cuid())
+  invoiceId      String
+  treatmentId    String?
+  serviceCode    String
+  serviceName    String
+  quantity       Int           @default(1)
+  unitPrice      Float
+  totalPrice     Float
+  invoice        Invoice       @relation(fields: [invoiceId], references: [id])
+  treatment      Treatment?    @relation(fields: [treatmentId], references: [id])
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model PriceListItem {
-  id        String   @id @default(cuid())
-  code      String   @unique
-  name      String
-  price     Float
-  createdAt DateTime @default(now())
+  id             String        @id @default(cuid())
+  code           String        @unique
+  name           String
+  price          Float
+  createdAt      DateTime      @default(now())
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 }
@@ -184,15 +190,15 @@ model Chair {
   id                 String        @id @default(cuid())
   name               String
   color              String        @default("#3b82f6")
-  googleCalendarId   String?       // ID of the connected Google Calendar
+  googleCalendarId   String? // ID of the connected Google Calendar
   googleAccessToken  String?       @db.Text
   googleRefreshToken String?       @db.Text
   googleSyncEnabled  Boolean       @default(false)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   appointments       Appointment[]
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId     String?
+  organization       Organization? @relation(fields: [organizationId], references: [id])
 }
 
 enum UserRole {
@@ -235,32 +241,32 @@ enum InvoiceStatus {
 }
 
 model OdontogramSurface {
-  id          String   @id @default(cuid())
-  patientId   String
-  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  toothNumber Int
-  surface     String
-  condition   String
-  notes       String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([patientId, toothNumber, surface])
+  id             String        @id @default(cuid())
+  patientId      String
+  patient        Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  toothNumber    Int
+  surface        String
+  condition      String
+  notes          String?       @db.Text
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  @@unique([patientId, toothNumber, surface])
 }
 
 model Lab {
-  id           String           @id @default(cuid())
-  name         String
-  phone        String?
-  services     Json?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  submissions  LabSubmission[]
-  transactions LabTransaction[]
+  id             String           @id @default(cuid())
+  name           String
+  phone          String?
+  services       Json?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  submissions    LabSubmission[]
+  transactions   LabTransaction[]
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organization   Organization?    @relation(fields: [organizationId], references: [id])
 }
 
 model LabSubmission {
@@ -306,33 +312,33 @@ model LabSubmission {
   isAlertResolved Boolean? @default(false)
   editLogs        Json?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model LabTransaction {
-  id           String   @id @default(cuid())
-  labId        String
-  lab          Lab      @relation(fields: [labId], references: [id])
-  amount       Float
-  type         String
-  description  String
-  photoUrl     String?
-  submissionId String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String        @id @default(cuid())
+  labId          String
+  lab            Lab           @relation(fields: [labId], references: [id])
+  amount         Float
+  type           String
+  description    String
+  photoUrl       String?
+  submissionId   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model InstructionTemplate {
-  id        String   @id @default(cuid())
-  name      String
-  text      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String        @id @default(cuid())
+  name           String
+  text           String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 }
@@ -343,7 +349,7 @@ model InventoryItem {
   description        String?
   company            String?
   brandName          String?
-  genericName        String?  // added
+  genericName        String? // added
   tags               String[] // added
   itemCount          Int      @default(0)
   quantityValue      Float    @default(1)
@@ -363,8 +369,8 @@ model InventoryItem {
   stockEntries       StockEntry[]
   purchaseOrders     PurchaseOrder[]
   consumptionRecords ConsumptionRecord[]
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId     String?
+  organization       Organization?       @relation(fields: [organizationId], references: [id])
 }
 
 model StockEntry {
@@ -375,8 +381,8 @@ model StockEntry {
   expiryDate      DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model PurchaseOrder {
@@ -397,7 +403,7 @@ model PurchaseOrder {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  deliveries Delivery[]
+  deliveries     Delivery[]
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 }
@@ -422,8 +428,8 @@ model Delivery {
   statement              Statement?    @relation(fields: [statementId], references: [id])
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId         String?
+  organization           Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model Dealer {
@@ -441,7 +447,7 @@ model Dealer {
   purchaseOrders PurchaseOrder[]
   statements     Statement[]
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organization   Organization?   @relation(fields: [organizationId], references: [id])
 }
 
 model Statement {
@@ -458,7 +464,7 @@ model Statement {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  deliveries Delivery[]
+  deliveries     Delivery[]
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 }
@@ -474,122 +480,128 @@ model ConsumptionRecord {
   consumptionDate  DateTime      @default(now())
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId   String?
+  organization     Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model LearningCategory {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  materials LearningMaterial[]
+  id             String             @id @default(cuid())
+  name           String
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  materials      LearningMaterial[]
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organization   Organization?      @relation(fields: [organizationId], references: [id])
 }
 
 model LearningMaterial {
-  id          String   @id @default(cuid())
-  categoryId  String
-  category    LearningCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  title       String
-  description String?
-  url         String   // URL of the image or video in Firebase Storage
-  type        String   @default("IMAGE") // "IMAGE" or "VIDEO"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String           @id @default(cuid())
+  categoryId     String
+  category       LearningCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  url            String // URL of the image or video in Firebase Storage
+  type           String           @default("IMAGE") // "IMAGE" or "VIDEO"
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organization   Organization?    @relation(fields: [organizationId], references: [id])
 }
 
 model EmployeeProfile {
-  id                         String   @id @default(cuid())
-  userId                     String   @unique
-  user                       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                         String    @id @default(cuid())
+  userId                     String    @unique
+  user                       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name                       String
   department                 String?
   manager                    String?
   avatarUrl                  String?
-  employeeType               String   @default("Employee") // Super Admin, Admin, Employee
+  employeeType               String    @default("Employee") // Super Admin, Admin, Employee
   phoneNumber                String?
   mobileNumber               String?
   address                    String?
   bloodGroup                 String?
   dateOfBirth                DateTime?
   emergencyContact           String?
-  baseSalary                 Float    @default(0)
-  weeklyOffs                 Json?    // e.g., ["Saturday", "Sunday"]
-  bufferTime                 Int      @default(0) // in minutes
+  baseSalary                 Float     @default(0)
+  weeklyOffs                 Json? // e.g., ["Saturday", "Sunday"]
+  bufferTime                 Int       @default(0) // in minutes
   joiningDate                DateTime?
-  paidLeaveBalance           Int      @default(0)
-  sickLeaveBalance           Int      @default(0)
-  doubleLateThresholdMinutes Int      @default(0)
-  organizationName               String?
-  createdAt                  DateTime @default(now())
-  updatedAt                  DateTime @updatedAt
+  paidLeaveBalance           Int       @default(0)
+  sickLeaveBalance           Int       @default(0)
+  doubleLateThresholdMinutes Int       @default(0)
+  organizationName           String?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
 
-  attendances                Attendance[]
-  leaves                     LeaveRequest[]
-  shifts                     ShiftSegment[]
-  payrolls                   PayrollRecord[]
-  resignations               ResignationRequest[]
-  rejoins                    RejoinRequest[]
-  documents                  EmployeeDocument[]
-  lateRequests               LateRequest[]
-  earlyRequests              EarlyPunchOutRequest[]
+  attendances    Attendance[]
+  leaves         LeaveRequest[]
+  shifts         ShiftSegment[]
+  payrolls       PayrollRecord[]
+  resignations   ResignationRequest[]
+  rejoins        RejoinRequest[]
+  documents      EmployeeDocument[]
+  lateRequests   LateRequest[]
+  earlyRequests  EarlyPunchOutRequest[]
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organization   Organization?          @relation(fields: [organizationId], references: [id])
 }
 
 model ShiftSegment {
   id                String          @id @default(cuid())
   employeeProfileId String
   employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
-  startTime         String          // "HH:mm"
-  endTime           String          // "HH:mm"
+  startTime         String // "HH:mm"
+  endTime           String // "HH:mm"
+  organizationId    String?
+  organization      Organization?   @relation(fields: [organizationId], references: [id])
 }
 
 model Attendance {
-  id                String          @id @default(cuid())
-  employeeProfileId String
-  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
-  date              DateTime        // Only Date part matters, can store as DateTime
-  status            String          @default("Present") // Present, Late, Double Late, Absent, Holiday, Weekend, PaidLeave, UnpaidLeave
-  lateMinutes       Int             @default(0)
-  lateExcused       Boolean         @default(false)
-  lateExcusedReason String?
-  isLateException   Boolean         @default(false)
+  id                  String          @id @default(cuid())
+  employeeProfileId   String
+  employeeProfile     EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  date                DateTime // Only Date part matters, can store as DateTime
+  status              String          @default("Present") // Present, Late, Double Late, Absent, Holiday, Weekend, PaidLeave, UnpaidLeave
+  lateMinutes         Int             @default(0)
+  lateExcused         Boolean         @default(false)
+  lateExcusedReason   String?
+  isLateException     Boolean         @default(false)
   lateExceptionReason String?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
-  sessions          AttendanceSession[]
+  sessions       AttendanceSession[]
+  organizationId String?
+  organization   Organization?       @relation(fields: [organizationId], references: [id])
 }
 
 model AttendanceSession {
   id           String     @id @default(cuid())
   attendanceId String
   attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  
+
   clockInTime  DateTime
   clockInPhoto String?
   clockInLat   Float?
   clockInLng   Float?
-  
-  clockOutTime DateTime?
-  clockOutPhoto String?
-  clockOutLat  Float?
-  clockOutLng  Float?
 
-  duration     String?
-  remarks      String?
+  clockOutTime  DateTime?
+  clockOutPhoto String?
+  clockOutLat   Float?
+  clockOutLng   Float?
+
+  duration       String?
+  remarks        String?
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model LeaveRequest {
   id                String          @id @default(cuid())
   employeeProfileId String
   employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
-  type              String          // Paid Leave, Unpaid Leave, Sick Leave, Casual Leave
+  type              String // Paid Leave, Unpaid Leave, Sick Leave, Casual Leave
   startDate         DateTime
   endDate           DateTime
   days              Int
@@ -599,6 +611,8 @@ model LeaveRequest {
   status            String          @default("Pending") // Pending, Approved, Rejected
   reviewedBy        String?
   reviewedDate      DateTime?
+  organizationId    String?
+  organization      Organization?   @relation(fields: [organizationId], references: [id])
 }
 
 model PayrollRecord {
@@ -612,6 +626,8 @@ model PayrollRecord {
   status            String          @default("Draft")
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+  organizationId    String?
+  organization      Organization?   @relation(fields: [organizationId], references: [id])
 }
 
 model ResignationRequest {
@@ -622,6 +638,8 @@ model ResignationRequest {
   lastWorkingDay    DateTime
   status            String          @default("Pending")
   createdAt         DateTime        @default(now())
+  organizationId    String?
+  organization      Organization?   @relation(fields: [organizationId], references: [id])
 }
 
 model RejoinRequest {
@@ -632,6 +650,8 @@ model RejoinRequest {
   requestedDate     DateTime
   status            String          @default("Pending")
   createdAt         DateTime        @default(now())
+  organizationId    String?
+  organization      Organization?   @relation(fields: [organizationId], references: [id])
 }
 
 model EmployeeDocument {
@@ -641,14 +661,16 @@ model EmployeeDocument {
   title             String
   fileUrl           String
   uploadedAt        DateTime        @default(now())
+  organizationId    String?
+  organization      Organization?   @relation(fields: [organizationId], references: [id])
 }
 
 model Holiday {
-  id          String   @id @default(cuid())
-  name        String
-  date        DateTime
-  type        String   @default("Public")
-  createdAt   DateTime @default(now())
+  id             String        @id @default(cuid())
+  name           String
+  date           DateTime
+  type           String        @default("Public")
+  createdAt      DateTime      @default(now())
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 }
@@ -661,6 +683,8 @@ model LateRequest {
   reason            String
   status            String          @default("Pending")
   createdAt         DateTime        @default(now())
+  organizationId    String?
+  organization      Organization?   @relation(fields: [organizationId], references: [id])
 }
 
 model EarlyPunchOutRequest {
@@ -671,8 +695,9 @@ model EarlyPunchOutRequest {
   reason            String
   status            String          @default("Pending")
   createdAt         DateTime        @default(now())
+  organizationId    String?
+  organization      Organization?   @relation(fields: [organizationId], references: [id])
 }
-
 
 model Organization {
   id                     String    @id @default(cuid())
@@ -686,31 +711,44 @@ model Organization {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
-  users                  User[]
-  patients               Patient[]
-  appointments           Appointment[]
-  treatments             Treatment[]
-  visitNotes             VisitNote[]
-  treatmentPlans         TreatmentPlan[]
-  invoices               Invoice[]
-  priceListItems         PriceListItem[]
-  chairs                 Chair[]
-  odontogramSurfaces     OdontogramSurface[]
-  labs                   Lab[]
-  labSubmissions         LabSubmission[]
-  labTransactions        LabTransaction[]
-  instructionTemplates   InstructionTemplate[]
-  inventoryItems         InventoryItem[]
-  stockEntries           StockEntry[]
-  purchaseOrders         PurchaseOrder[]
-  deliveries             Delivery[]
-  dealers                Dealer[]
-  statements             Statement[]
-  consumptionRecords     ConsumptionRecord[]
-  learningCategories     LearningCategory[]
-  learningMaterials      LearningMaterial[]
-  employeeProfiles       EmployeeProfile[]
-  holidays               Holiday[]
+  users                User[]
+  patients             Patient[]
+  appointments         Appointment[]
+  treatments           Treatment[]
+  visitNotes           VisitNote[]
+  treatmentPlans       TreatmentPlan[]
+  invoices             Invoice[]
+  priceListItems       PriceListItem[]
+  chairs               Chair[]
+  odontogramSurfaces   OdontogramSurface[]
+  labs                 Lab[]
+  labSubmissions       LabSubmission[]
+  labTransactions      LabTransaction[]
+  instructionTemplates InstructionTemplate[]
+  inventoryItems       InventoryItem[]
+  stockEntries         StockEntry[]
+  purchaseOrders       PurchaseOrder[]
+  deliveries           Delivery[]
+  dealers              Dealer[]
+  statements           Statement[]
+  consumptionRecords   ConsumptionRecord[]
+  learningCategories   LearningCategory[]
+  learningMaterials    LearningMaterial[]
+  employeeProfiles     EmployeeProfile[]
+  holidays             Holiday[]
+  Anamnesis            Anamnesis[]
+  TreatmentPlanItem    TreatmentPlanItem[]
+  InvoiceItem          InvoiceItem[]
+  ShiftSegment         ShiftSegment[]
+  Attendance           Attendance[]
+  AttendanceSession    AttendanceSession[]
+  LeaveRequest         LeaveRequest[]
+  PayrollRecord        PayrollRecord[]
+  ResignationRequest   ResignationRequest[]
+  RejoinRequest        RejoinRequest[]
+  EmployeeDocument     EmployeeDocument[]
+  LateRequest          LateRequest[]
+  EarlyPunchOutRequest EarlyPunchOutRequest[]
 }
 
 model PasswordResetToken {

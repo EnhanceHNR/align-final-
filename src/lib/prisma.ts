@@ -20,7 +20,8 @@ const tenantModels = [
     "LabTransaction", "InstructionTemplate", "InventoryItem", "StockEntry", "PurchaseOrder",
     "Delivery", "Dealer", "Statement", "ConsumptionRecord", "LearningCategory", 
     "LearningMaterial", "EmployeeProfile", "Holiday"
-];
+,
+    "Anamnesis", "TreatmentPlanItem", "InvoiceItem", "ShiftSegment", "Attendance", "AttendanceSession", "LeaveRequest", "PayrollRecord", "ResignationRequest", "RejoinRequest", "EmployeeDocument", "LateRequest", "EarlyPunchOutRequest"];
 
 // Helper to get organizationId dynamically
 async function getOrgId() {
