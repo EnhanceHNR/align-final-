@@ -481,13 +481,12 @@ const { data: visitNotes, refetch: refetchVisitNotes } =
 
                 <div className="rounded-3xl bg-white p-6 shadow-sm">
                     <h2 className="mb-4 text-xl font-semibold">Internal notes</h2>
-
-
                     <p className="text-gray-700">
                         {display(patient.notes) === "—" ? "No internal notes." : patient.notes}
                     </p>
                 </div>
-
+                </>
+                )}
             </div>
         </div>
     );
