@@ -9,7 +9,29 @@ export default function SettingsPage() {
     const { toast } = useToast();
     const [activeTab, setActiveTab] = useState("profile");
 
+    
+    // Doctors State
+    const { data: doctors, refetch: refetchDoctors } = api.doctors.list.useQuery();
+    const [newDoctorName, setNewDoctorName] = useState("");
+    const createDoctor = api.doctors.create.useMutation({
+        onSuccess: () => { setNewDoctorName(""); refetchDoctors(); toast({ title: "Doctor added successfully" }); },
+    });
+    const deleteDoctor = api.doctors.delete.useMutation({
+        onSuccess: () => { refetchDoctors(); toast({ title: "Doctor removed" }); }
+    });
+
+    // Procedures State
+    const { data: procedures, refetch: refetchProcedures } = api.procedures.list.useQuery();
+    const [newProcedureName, setNewProcedureName] = useState("");
+    const createProcedure = api.procedures.create.useMutation({
+        onSuccess: () => { setNewProcedureName(""); refetchProcedures(); toast({ title: "Procedure added successfully" }); },
+    });
+    const deleteProcedure = api.procedures.delete.useMutation({
+        onSuccess: () => { refetchProcedures(); toast({ title: "Procedure removed" }); }
+    });
+
     // Chairs State
+
     const { data: chairs, refetch: refetchChairs, isLoading: isChairsLoading } = api.chairs.list.useQuery();
     const [newChairName, setNewChairName] = useState("");
     
@@ -82,6 +104,12 @@ export default function SettingsPage() {
                     </button>
                     <button onClick={() => setActiveTab('security')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${activeTab === 'security' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
                         <Lock className="w-5 h-5" /> Security
+                    </button>
+                    <button onClick={() => setActiveTab('doctors')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${activeTab === 'doctors' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+                        <Plus className="w-4 h-4" /> Doctors
+                    </button>
+                    <button onClick={() => setActiveTab('procedures')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${activeTab === 'procedures' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+                        <Plus className="w-4 h-4" /> Procedures
                     </button>
                     <button onClick={() => setActiveTab('chairs')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${activeTab === 'chairs' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
                         <Laptop className="w-5 h-5" /> Chairs & Resources
@@ -186,6 +214,47 @@ export default function SettingsPage() {
                             </div>
                         </div>
                         <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50">Manage Subscription in Stripe</button>
+                    </div>
+                )}
+
+                
+                {activeTab === 'doctors' && (
+                    <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
+                        <h2 className="text-xl font-bold text-gray-900 mb-6">Manage Doctors</h2>
+                        <div className="flex gap-4 mb-8">
+                            <input type="text" value={newDoctorName} onChange={(e) => setNewDoctorName(e.target.value)} placeholder="Doctor Name" className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" />
+                            <button onClick={() => { if(newDoctorName) createDoctor.mutate({ name: newDoctorName })}} disabled={createDoctor.isPending} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors flex items-center gap-2">
+                                <Plus className="w-5 h-5" /> Add Doctor
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            {doctors?.map(doc => (
+                                <div key={doc.id} className="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-100">
+                                    <h3 className="font-medium text-gray-900">{doc.name}</h3>
+                                    <button onClick={() => deleteDoctor.mutate({ id: doc.id })} className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">Remove</button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'procedures' && (
+                    <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
+                        <h2 className="text-xl font-bold text-gray-900 mb-6">Manage Procedures</h2>
+                        <div className="flex gap-4 mb-8">
+                            <input type="text" value={newProcedureName} onChange={(e) => setNewProcedureName(e.target.value)} placeholder="Procedure Name (e.g. Root Canal)" className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" />
+                            <button onClick={() => { if(newProcedureName) createProcedure.mutate({ name: newProcedureName })}} disabled={createProcedure.isPending} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors flex items-center gap-2">
+                                <Plus className="w-5 h-5" /> Add Procedure
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            {procedures?.map(proc => (
+                                <div key={proc.id} className="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-100">
+                                    <h3 className="font-medium text-gray-900">{proc.name}</h3>
+                                    <button onClick={() => deleteProcedure.mutate({ id: proc.id })} className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">Remove</button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 

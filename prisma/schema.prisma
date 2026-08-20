@@ -77,7 +77,12 @@ model Appointment {
   startTime      DateTime
   endTime        DateTime
   status         AppointmentStatus @default(SCHEDULED)
-  reason         String? // İŞTE BURAYA EKLEDİK (Opsiyonel alan)
+  reason         String?
+  doctorId       String?
+  doctor         Doctor?           @relation(fields: [doctorId], references: [id])
+  procedureId    String?
+  procedure      Procedure?        @relation(fields: [procedureId], references: [id])
+  teeth          String?           // To store selected teeth JSON array // İŞTE BURAYA EKLEDİK (Opsiyonel alan)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
   patient        Patient           @relation(fields: [patientId], references: [id])
@@ -757,6 +762,8 @@ model Organization {
   workingHoursStart      String    @default("08:00")
   workingHoursEnd        String    @default("18:00")
 
+  doctors        Doctor[]
+  procedures     Procedure[]
 }
 
 
@@ -768,4 +775,27 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 
   @@unique([email, token])
+}
+
+model Doctor {
+  id             String        @id @default(cuid())
+  name           String
+  color          String        @default("#10b981")
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  appointments   Appointment[]
+}
+
+model Procedure {
+  id             String        @id @default(cuid())
+  name           String
+  duration       Int           @default(30)
+  color          String        @default("#6366f1")
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  appointments   Appointment[]
 }

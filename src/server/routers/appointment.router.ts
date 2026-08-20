@@ -51,6 +51,9 @@ export const appointmentRouter = router({
                 startTime: z.coerce.date(),
                 endTime: z.coerce.date().optional(),
                 reason: z.string().trim().optional(),
+                doctorId: z.string().optional().nullable(),
+                procedureId: z.string().optional().nullable(),
+                teeth: z.string().optional().nullable(),
             })
         )
         .mutation(async ({ input }) => {
@@ -89,6 +92,9 @@ export const appointmentRouter = router({
                     endTime,
                     reason: input.reason ?? null,
                     status: "SCHEDULED",
+                    doctorId: input.doctorId ?? null,
+                    procedureId: input.procedureId ?? null,
+                    teeth: input.teeth ?? null,
                 },
                 include: {
                     patient: {
@@ -147,6 +153,9 @@ export const appointmentRouter = router({
                 startTime: z.coerce.date().optional(),
                 endTime: z.coerce.date().optional(),
                 reason: z.string().trim().optional(),
+                doctorId: z.string().optional().nullable(),
+                procedureId: z.string().optional().nullable(),
+                teeth: z.string().optional().nullable(),
                 status: appointmentStatusInput.optional(),
             })
         )

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 
 import { api } from "~/trpc/react";
+import ToothChart from "./ToothChart";
 
 type AppointmentFormProps = {
     patientId?: string; // CHANGED: optional now
@@ -68,6 +69,9 @@ export default function AppointmentFormSheet({
     });
 
     const { data: chairs } = api.chairs.list.useQuery();
+    const { data: doctors } = api.doctors.list.useQuery();
+    const { data: procedures } = api.procedures.list.useQuery();
+
 
     useEffect(() => {
         if (isOpen) {
@@ -88,6 +92,9 @@ export default function AppointmentFormSheet({
                 setTime("");
                 setEndTime("");
                 setReason("");
+            setDoctorId("");
+            setProcedureId("");
+            setSelectedTeeth([]);
                 setSelectedChairId("unassigned");
                 setAvailabilityError(null);
             }
@@ -120,6 +127,9 @@ export default function AppointmentFormSheet({
             setDate(undefined);
             setTime("");
             setReason("");
+            setDoctorId("");
+            setProcedureId("");
+            setSelectedTeeth([]);
         },
         onError: (error) => setAvailabilityError(parseError(error.message)),
     });
@@ -136,6 +146,14 @@ export default function AppointmentFormSheet({
         },
         onError: (error) => setAvailabilityError(parseError(error.message)),
     });
+
+    const handleToggleTooth = (toothId: string) => {
+        setSelectedTeeth(prev => 
+            prev.includes(toothId) 
+                ? prev.filter(id => id !== toothId)
+                : [...prev, toothId]
+        );
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -175,7 +193,10 @@ export default function AppointmentFormSheet({
                 endTime: endDateTime,
                 chairId: selectedChairId === "unassigned" ? null : selectedChairId,
                 reason,
-            });
+                    doctorId: doctorId || null,
+                    procedureId: procedureId || null,
+                    teeth: selectedTeeth.length > 0 ? JSON.stringify(selectedTeeth) : null,
+                });
         } else {
             createAppointment.mutate({
                 patientId: selectedPatientId,
@@ -183,7 +204,10 @@ export default function AppointmentFormSheet({
                 startTime: startDateTime,
                 endTime: endDateTime,
                 reason,
-            });
+                    doctorId: doctorId || null,
+                    procedureId: procedureId || null,
+                    teeth: selectedTeeth.length > 0 ? JSON.stringify(selectedTeeth) : null,
+                });
         }
     };
 
@@ -237,7 +261,7 @@ export default function AppointmentFormSheet({
 
                     {/* CHAIR SELECT */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Chair / Doctor</label>
+                        <label className="text-sm font-medium">Chair</label>
                         <Select
                             value={selectedChairId}
                             onValueChange={setSelectedChairId}
@@ -254,6 +278,54 @@ export default function AppointmentFormSheet({
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    {/* DOCTOR SELECT */}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Doctor</label>
+                        <Select
+                            value={doctorId || "none"}
+                            onValueChange={(v) => setDoctorId(v === "none" ? "" : v)}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Unassigned" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Unassigned</SelectItem>
+                                {doctors?.map((doc) => (
+                                    <SelectItem key={doc.id} value={doc.id}>
+                                        {doc.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* PROCEDURE SELECT */}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Procedure</label>
+                        <Select
+                            value={procedureId || "none"}
+                            onValueChange={(v) => setProcedureId(v === "none" ? "" : v)}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="None selected" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                {procedures?.map((proc) => (
+                                    <SelectItem key={proc.id} value={proc.id}>
+                                        {proc.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* TOOTH CHART */}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Selected Teeth</label>
+                        <ToothChart selectedTeeth={selectedTeeth} onToggleTooth={handleToggleTooth} />
                     </div>
 
                     {/* DATE + TIME (FIXED ALIGNMENT) */}
