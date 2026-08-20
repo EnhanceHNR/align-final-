@@ -84,6 +84,7 @@ export default function AppointmentFormSheet({
     const { data: chairs } = api.chairs.list.useQuery();
     const { data: doctors } = api.doctors.list.useQuery();
     const { data: procedures } = api.procedures.list.useQuery();
+    const { data: staffData } = api.employee.listStaff.useQuery();
 
 
     useEffect(() => {
