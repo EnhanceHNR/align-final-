@@ -29,6 +29,9 @@ type AppointmentFormProps = {
         startTime: Date;
         endTime?: Date;
         reason?: string | null;
+        doctorId?: string | null;
+        procedureId?: string | null;
+        teeth?: string | null;
         patientId?: string;
         chairId?: string | null;
     };
@@ -46,6 +49,10 @@ export default function AppointmentFormSheet({
     const [time, setTime] = useState("");
     const [endTime, setEndTime] = useState("");
     const [reason, setReason] = useState("");
+    const [doctorId, setDoctorId] = useState("");
+    const [procedureId, setProcedureId] = useState("");
+    const [selectedTeeth, setSelectedTeeth] = useState<string[]>([]);
+
 
     const [selectedPatientId, setSelectedPatientId] = useState(
         patientId ?? ""
@@ -92,6 +99,9 @@ export default function AppointmentFormSheet({
                 setTime("");
                 setEndTime("");
                 setReason("");
+                setDoctorId("");
+                setProcedureId("");
+                setSelectedTeeth([]);
             setDoctorId("");
             setProcedureId("");
             setSelectedTeeth([]);
@@ -127,6 +137,9 @@ export default function AppointmentFormSheet({
             setDate(undefined);
             setTime("");
             setReason("");
+                setDoctorId("");
+                setProcedureId("");
+                setSelectedTeeth([]);
             setDoctorId("");
             setProcedureId("");
             setSelectedTeeth([]);
