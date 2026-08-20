@@ -53,6 +53,14 @@ export const inventoryRouter = router({
       orderBy: { name: 'asc' },
     });
   }),
+
+  deleteDealer: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.dealer.deleteMany({
+        where: { id: input.id, organizationId: ctx.user.organizationId }
+      });
+    }),
   
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
