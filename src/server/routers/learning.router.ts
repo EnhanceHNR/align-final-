@@ -6,6 +6,7 @@ export const learningRouter = router({
   // CATEGORIES
   listCategories: publicProcedure.query(async ({ ctx }) => {
     return ctx.db.learningCategory.findMany({
+      where: { organizationId: ctx.user.organizationId },
       orderBy: { name: "asc" },
       include: {
         _count: {
@@ -24,8 +25,8 @@ export const learningRouter = router({
   deleteCategory: masterOnlyProcedure
     .input(z.object({ id: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.learningCategory.delete({
-        where: { id: input.id },
+      return ctx.db.learningCategory.deleteMany({
+        where: { id: input.id, organizationId: ctx.user.organizationId },
       });
     }),
 
@@ -34,7 +35,7 @@ export const learningRouter = router({
     .input(z.object({ categoryId: z.string().cuid().optional() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.learningMaterial.findMany({
-        where: input.categoryId ? { categoryId: input.categoryId } : undefined,
+        where: { organizationId: ctx.user.organizationId, ...(input.categoryId ? { categoryId: input.categoryId } : {}) },
         orderBy: { createdAt: "desc" },
       });
     }),
@@ -62,8 +63,8 @@ export const learningRouter = router({
   deleteMaterial: masterOnlyProcedure
     .input(z.object({ id: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.learningMaterial.delete({
-        where: { id: input.id },
+      return ctx.db.learningMaterial.deleteMany({
+        where: { id: input.id, organizationId: ctx.user.organizationId },
       });
     }),
 });

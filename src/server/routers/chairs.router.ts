@@ -4,6 +4,7 @@ import { router, publicProcedure } from "../trpc";
 export const chairRouter = router({
   list: publicProcedure.query(async ({ ctx }) => {
     return ctx.db.chair.findMany({
+      where: { organizationId: ctx.user.organizationId },
       orderBy: { createdAt: "asc" },
     });
   }),
@@ -20,8 +21,8 @@ export const chairRouter = router({
   delete: publicProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.chair.delete({
-        where: { id: input.id },
+      return ctx.db.chair.deleteMany({
+        where: { id: input.id, organizationId: ctx.user.organizationId },
       });
     }),
   updateGoogleCalendar: publicProcedure

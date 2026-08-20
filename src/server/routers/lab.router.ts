@@ -4,8 +4,9 @@ import { prisma } from "~/lib/prisma";
 import { protectedProcedure, router } from "../trpc";
 
 export const labRouter = router({
-  listLabs: protectedProcedure.query(async () => {
-    return prisma.lab.findMany({
+  listLabs: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.db.lab.findMany({
+      where: { organizationId: ctx.user.organizationId },
       orderBy: { createdAt: "desc" },
     });
   }),
@@ -18,9 +19,9 @@ export const labRouter = router({
         services: z.any().optional(), // Json array of services
       })
     )
-    .mutation(async ({ input }) => {
-      const lab = await prisma.lab.create({
-        data: input,
+    .mutation(async ({ ctx, input }) => {
+      const lab = await ctx.db.lab.create({
+        data: { ...input, organizationId: ctx.user.organizationId },
       });
       return { success: true, lab };
     }),
@@ -34,10 +35,10 @@ export const labRouter = router({
         services: z.any().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const lab = await prisma.lab.update({
-        where: { id },
+      const lab = await ctx.db.lab.updateMany({
+        where: { id, organizationId: ctx.user.organizationId },
         data,
       });
       return { success: true, lab };
@@ -45,15 +46,16 @@ export const labRouter = router({
 
   deleteLab: protectedProcedure
     .input(z.object({ id: z.string().cuid() }))
-    .mutation(async ({ input }) => {
-      await prisma.lab.delete({
-        where: { id: input.id },
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.lab.deleteMany({
+        where: { id: input.id, organizationId: ctx.user.organizationId },
       });
       return { success: true };
     }),
 
-  listTemplates: protectedProcedure.query(async () => {
-    return prisma.instructionTemplate.findMany({
+  listTemplates: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.db.instructionTemplate.findMany({
+      where: { organizationId: ctx.user.organizationId },
       orderBy: { createdAt: "desc" },
     });
   }),
@@ -65,9 +67,9 @@ export const labRouter = router({
         text: z.string().min(1),
       })
     )
-    .mutation(async ({ input }) => {
-      const template = await prisma.instructionTemplate.create({
-        data: input,
+    .mutation(async ({ ctx, input }) => {
+      const template = await ctx.db.instructionTemplate.create({
+        data: { ...input, organizationId: ctx.user.organizationId },
       });
       return { success: true, template };
     }),
@@ -80,10 +82,10 @@ export const labRouter = router({
         text: z.string().min(1).optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const template = await prisma.instructionTemplate.update({
-        where: { id },
+      const template = await ctx.db.instructionTemplate.updateMany({
+        where: { id, organizationId: ctx.user.organizationId },
         data,
       });
       return { success: true, template };
@@ -91,9 +93,9 @@ export const labRouter = router({
 
   deleteTemplate: protectedProcedure
     .input(z.object({ id: z.string().cuid() }))
-    .mutation(async ({ input }) => {
-      await prisma.instructionTemplate.delete({
-        where: { id: input.id },
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.instructionTemplate.deleteMany({
+        where: { id: input.id, organizationId: ctx.user.organizationId },
       });
       return { success: true };
     }),

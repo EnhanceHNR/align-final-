@@ -14,10 +14,10 @@ export const odontogramRouter = router({
     /** odontogram.get - dohvaća odontogram pacijenta **/
     get: protectedProcedure
         .input(z.object({ patientId: z.string().cuid() }))
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
 
-            const patient = await prisma.patient.findUnique({
-                where: { id: input.patientId },
+            const patient = await prisma.patient.findFirst({
+                where: { id: input.patientId, organizationId: ctx.user.organizationId },
                 select: { id: true },
             });
 
@@ -52,10 +52,10 @@ export const odontogramRouter = router({
                     .optional(),
             })
         )
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
 
-            const patient = await prisma.patient.findUnique({
-                where: { id: input.patientId },
+            const patient = await prisma.patient.findFirst({
+                where: { id: input.patientId, organizationId: ctx.user.organizationId },
                 select: { id: true },
             });
 
@@ -107,6 +107,7 @@ export const odontogramRouter = router({
                 },
 
                 create: {
+                    organizationId: ctx.user.organizationId,
                     patientId: input.patientId,
                     toothNumber: input.toothNumber,
                     surface: input.surface,

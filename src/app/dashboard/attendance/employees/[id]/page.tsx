@@ -19,6 +19,11 @@ export default function EmployeeDetailsPage() {
   const router = useRouter();
   const employeeId = params.id as string;
   
+  const utils = api.useUtils();
+  const { data: employee, isLoading } = api.employee.getEmployeeDetails.useQuery(
+    { employeeProfileId: employeeId },
+    { enabled: !!employeeId }
+  );
   
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
@@ -63,7 +68,6 @@ export default function EmployeeDetailsPage() {
   const [editDepartment, setEditDepartment] = useState("");
   const [editSalary, setEditSalary] = useState("0");
 
-  const utils = api.useUtils();
   const updateProfile = api.employee.upsertProfile.useMutation({
     onSuccess: () => {
       toast({ title: "Profile updated successfully" });
@@ -90,10 +94,6 @@ export default function EmployeeDetailsPage() {
     });
   };
 
-  const { data: employee, isLoading } = api.employee.getEmployeeDetails.useQuery(
-    { employeeProfileId: employeeId },
-    { enabled: !!employeeId }
-  );
 
   if (isLoading) {
     return <div className="flex h-full items-center justify-center p-8"><Loader2 className="animate-spin text-muted-foreground h-8 w-8" /></div>;

@@ -6,9 +6,9 @@ import { protectedProcedure, router } from "../trpc";
 export const labTransactionRouter = router({
   list: protectedProcedure
     .input(z.object({ labId: z.string().cuid().optional() }).optional())
-    .query(async ({ input }) => {
-      return prisma.labTransaction.findMany({
-        where: input?.labId ? { labId: input.labId } : undefined,
+    .query(async ({ ctx, input }) => {
+      return ctx.db.labTransaction.findMany({
+        where: { organizationId: ctx.user.organizationId, ...(input?.labId ? { labId: input.labId } : {}) },
         orderBy: { createdAt: "desc" },
         include: {
           lab: true,
@@ -27,9 +27,9 @@ export const labTransactionRouter = router({
         submissionId: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      const transaction = await prisma.labTransaction.create({
-        data: input,
+    .mutation(async ({ ctx, input }) => {
+      const transaction = await ctx.db.labTransaction.create({
+        data: { ...input, organizationId: ctx.user.organizationId },
         include: { lab: true },
       });
       return { success: true, transaction };
@@ -37,9 +37,9 @@ export const labTransactionRouter = router({
 
   delete: protectedProcedure
     .input(z.object({ id: z.string().cuid() }))
-    .mutation(async ({ input }) => {
-      await prisma.labTransaction.delete({
-        where: { id: input.id },
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.labTransaction.deleteMany({
+        where: { id: input.id, organizationId: ctx.user.organizationId },
       });
       return { success: true };
     }),

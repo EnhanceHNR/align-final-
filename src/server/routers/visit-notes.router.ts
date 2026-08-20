@@ -34,6 +34,7 @@ getByPatientId: protectedProcedure
     .query(async ({ input }) => {
         return prisma.visitNote.findMany({
             where: {
+                organizationId: ctx.user.organizationId,
                 patientId: input.patientId,
             },
             orderBy: {

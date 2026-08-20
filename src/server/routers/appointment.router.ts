@@ -354,6 +354,7 @@ export const appointmentRouter = router({
             // 1. Fetch Local Appointments
             const localAppointments = await ctx.db.appointment.findMany({
                 where: {
+                    organizationId: ctx.user.organizationId,
                     startTime: {
                         gte: start,
                         lte: end,
@@ -376,7 +377,8 @@ export const appointmentRouter = router({
 
             // 2. Fetch Google Calendar Events for connected Chairs
             const chairs = await ctx.db.chair.findMany({
-                where: { googleSyncEnabled: true, googleRefreshToken: { not: null } }
+                where: {
+                    organizationId: ctx.user.organizationId, googleSyncEnabled: true, googleRefreshToken: { not: null } }
             });
 
             const googleEvents: any[] = [];
@@ -495,6 +497,7 @@ export const appointmentRouter = router({
 
             prisma.appointment.findMany({
                 where: {
+                    organizationId: ctx.user.organizationId,
                     startTime: {
                         gte: today,
                         lte: todayEnd,

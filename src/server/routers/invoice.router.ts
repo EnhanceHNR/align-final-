@@ -33,11 +33,12 @@ const listInvoicesInput = z.object({
   status: z.enum(["DRAFT", "PAID", "UNPAID"]).optional(),
 });
 
-async function generateInvoiceNumber(): Promise<string> {
+async function generateInvoiceNumber(organizationId: string): Promise<string> {
   const currentYear = new Date().getFullYear();
 
   const lastInvoice = await prisma.invoice.findFirst({
     where: {
+      organizationId,
       invoiceNumber: {
         startsWith: `INV-${currentYear}-`,
       },
@@ -93,7 +94,7 @@ export const invoiceRouter = router({
       const taxAmount = subtotal * taxRate;
       const totalAmount = subtotal + taxAmount;
 
-      const invoiceNumber = await generateInvoiceNumber();
+      const invoiceNumber = await generateInvoiceNumber(ctx.user.organizationId as string);
 
       const invoice = await prisma.invoice.create({
         data: {
@@ -173,7 +174,7 @@ export const invoiceRouter = router({
       const { search, page, perPage, sortBy, sortDir, status } = input;
       const skip = (page - 1) * perPage;
 
-      const where: any = {};
+      const where: any = { organizationId: ctx.user.organizationId };
 
       if (search) {
         where.OR = [

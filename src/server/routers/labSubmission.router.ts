@@ -10,9 +10,9 @@ export const labSubmissionRouter = router({
         type: z.enum(["send", "receive"]).optional(),
       }).optional()
     )
-    .query(async ({ input }) => {
-      return prisma.labSubmission.findMany({
-        where: input?.type ? { type: input.type } : undefined,
+    .query(async ({ ctx, input }) => {
+      return ctx.db.labSubmission.findMany({
+        where: { organizationId: ctx.user.organizationId, ...(input?.type ? { type: input.type } : {}) },
         orderBy: { createdAt: "desc" },
         include: {
           lab: true,
@@ -23,9 +23,9 @@ export const labSubmissionRouter = router({
 
   getById: protectedProcedure
     .input(z.object({ id: z.string().cuid() }))
-    .query(async ({ input }) => {
-      const submission = await prisma.labSubmission.findUnique({
-        where: { id: input.id },
+    .query(async ({ ctx, input }) => {
+      const submission = await ctx.db.labSubmission.findFirst({
+        where: { id: input.id, organizationId: ctx.user.organizationId },
         include: {
           lab: true,
           patient: true,
@@ -64,9 +64,9 @@ export const labSubmissionRouter = router({
         documents: z.any().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      const submission = await prisma.labSubmission.create({
-        data: input,
+    .mutation(async ({ ctx, input }) => {
+      const submission = await ctx.db.labSubmission.create({
+        data: { ...input, organizationId: ctx.user.organizationId },
         include: {
           lab: true,
           patient: true,
@@ -86,10 +86,10 @@ export const labSubmissionRouter = router({
         // other fields can be added here if needed
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const submission = await prisma.labSubmission.update({
-        where: { id },
+      const submission = await ctx.db.labSubmission.updateMany({
+        where: { id, organizationId: ctx.user.organizationId },
         data,
       });
       return { success: true, submission };
@@ -97,9 +97,9 @@ export const labSubmissionRouter = router({
 
   delete: protectedProcedure
     .input(z.object({ id: z.string().cuid() }))
-    .mutation(async ({ input }) => {
-      await prisma.labSubmission.delete({
-        where: { id: input.id },
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.labSubmission.deleteMany({
+        where: { id: input.id, organizationId: ctx.user.organizationId },
       });
       return { success: true };
     }),

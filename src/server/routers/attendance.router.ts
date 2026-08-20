@@ -12,6 +12,7 @@ export const attendanceRouter = createTRPCRouter({
 
       return ctx.db.attendance.findFirst({
         where: {
+          organizationId: ctx.user.organizationId,
           employeeProfileId: input.employeeProfileId,
           date: {
             gte: startOfDay,
@@ -37,6 +38,7 @@ export const attendanceRouter = createTRPCRouter({
 
       const existing = await ctx.db.attendance.findFirst({
         where: {
+          organizationId: ctx.user.organizationId,
           employeeProfileId: input.employeeProfileId,
           date: { gte: startOfDay, lte: endOfDay },
         }
@@ -50,6 +52,7 @@ export const attendanceRouter = createTRPCRouter({
       } else {
         return ctx.db.attendance.create({
           data: {
+            organizationId: ctx.user.organizationId,
             employeeProfileId: input.employeeProfileId,
             date: targetDate,
             status: input.status,
@@ -78,6 +81,7 @@ export const attendanceRouter = createTRPCRouter({
 
       let attendance = await ctx.db.attendance.findFirst({
         where: {
+          organizationId: ctx.user.organizationId,
           employeeProfileId: input.employeeProfileId,
           date: {
             gte: startOfDay,
@@ -100,6 +104,7 @@ export const attendanceRouter = createTRPCRouter({
 
       const existing = await ctx.db.attendance.findFirst({
         where: {
+          organizationId: ctx.user.organizationId,
           employeeProfileId: input.employeeProfileId,
           date: { gte: startOfDay, lte: endOfDay },
         }
@@ -113,6 +118,7 @@ export const attendanceRouter = createTRPCRouter({
       } else {
         return ctx.db.attendance.create({
           data: {
+            organizationId: ctx.user.organizationId,
             employeeProfileId: input.employeeProfileId,
             date: targetDate,
             status: input.status,
@@ -126,6 +132,7 @@ export const attendanceRouter = createTRPCRouter({
       if (!attendance) {
         attendance = await ctx.db.attendance.create({
           data: {
+            organizationId: ctx.user.organizationId,
             employeeProfileId: input.employeeProfileId,
             date: new Date(),
           },
@@ -145,6 +152,7 @@ export const attendanceRouter = createTRPCRouter({
 
       const existing = await ctx.db.attendance.findFirst({
         where: {
+          organizationId: ctx.user.organizationId,
           employeeProfileId: input.employeeProfileId,
           date: { gte: startOfDay, lte: endOfDay },
         }
@@ -158,6 +166,7 @@ export const attendanceRouter = createTRPCRouter({
       } else {
         return ctx.db.attendance.create({
           data: {
+            organizationId: ctx.user.organizationId,
             employeeProfileId: input.employeeProfileId,
             date: targetDate,
             status: input.status,
@@ -193,6 +202,7 @@ export const attendanceRouter = createTRPCRouter({
 
       const existing = await ctx.db.attendance.findFirst({
         where: {
+          organizationId: ctx.user.organizationId,
           employeeProfileId: input.employeeProfileId,
           date: { gte: startOfDay, lte: endOfDay },
         }
@@ -206,6 +216,7 @@ export const attendanceRouter = createTRPCRouter({
       } else {
         return ctx.db.attendance.create({
           data: {
+            organizationId: ctx.user.organizationId,
             employeeProfileId: input.employeeProfileId,
             date: targetDate,
             status: input.status,
@@ -227,8 +238,8 @@ export const attendanceRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const session = await ctx.db.attendanceSession.findUnique({
-        where: { id: input.sessionId },
+      const session = await ctx.db.attendanceSession.findFirst({
+        where: { id: input.sessionId, organizationId: ctx.user.organizationId },
       
   upsertAttendance: protectedProcedure
     .input(z.object({
@@ -245,6 +256,7 @@ export const attendanceRouter = createTRPCRouter({
 
       const existing = await ctx.db.attendance.findFirst({
         where: {
+          organizationId: ctx.user.organizationId,
           employeeProfileId: input.employeeProfileId,
           date: { gte: startOfDay, lte: endOfDay },
         }
@@ -258,6 +270,7 @@ export const attendanceRouter = createTRPCRouter({
       } else {
         return ctx.db.attendance.create({
           data: {
+            organizationId: ctx.user.organizationId,
             employeeProfileId: input.employeeProfileId,
             date: targetDate,
             status: input.status,
@@ -279,7 +292,7 @@ export const attendanceRouter = createTRPCRouter({
       const duration = `${diffHrs}h ${diffMins}m`;
 
       return ctx.db.attendanceSession.update({
-        where: { id: input.sessionId },
+        where: { id: input.sessionId, organizationId: ctx.user.organizationId },
         data: {
           clockOutTime,
           clockOutLat: input.lat,
@@ -303,6 +316,7 @@ export const attendanceRouter = createTRPCRouter({
 
       const existing = await ctx.db.attendance.findFirst({
         where: {
+          organizationId: ctx.user.organizationId,
           employeeProfileId: input.employeeProfileId,
           date: { gte: startOfDay, lte: endOfDay },
         }
@@ -316,6 +330,7 @@ export const attendanceRouter = createTRPCRouter({
       } else {
         return ctx.db.attendance.create({
           data: {
+            organizationId: ctx.user.organizationId,
             employeeProfileId: input.employeeProfileId,
             date: targetDate,
             status: input.status,
@@ -342,6 +357,7 @@ export const attendanceRouter = createTRPCRouter({
 
       const existing = await ctx.db.attendance.findFirst({
         where: {
+          organizationId: ctx.user.organizationId,
           employeeProfileId: input.employeeProfileId,
           date: { gte: startOfDay, lte: endOfDay },
         }
@@ -355,6 +371,7 @@ export const attendanceRouter = createTRPCRouter({
       } else {
         return ctx.db.attendance.create({
           data: {
+            organizationId: ctx.user.organizationId,
             employeeProfileId: input.employeeProfileId,
             date: targetDate,
             status: input.status,
