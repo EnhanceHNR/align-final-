@@ -17,8 +17,8 @@ export default function ToothChart({ selectedTeeth, onToggleTooth }: ToothChartP
   return (
     <div className="w-full overflow-x-auto flex justify-center py-4 bg-slate-50 rounded-xl border">
       <svg
-        width={width }
-        height={height}
+        width="100%"
+        height="auto"
         viewBox="25 10 390 1000"
         preserveAspectRatio="xMidYMid meet"
         style={{ marginTop: 50 }}
