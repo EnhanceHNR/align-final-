@@ -5,6 +5,8 @@ import { api } from "~/trpc/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Loader2, ArrowLeft, Mail, Phone, Building, Briefcase, Clock, User, Download, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
+import { Calendar } from "~/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -26,6 +28,7 @@ export default function EmployeeDetailsPage() {
   );
   
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [activeTab, setActiveTab] = useState("attendance");
   const [selectedDocument, setSelectedDocument] = useState<{title: string, url: string} | null>(null);
 
   // --- REAL DATA CALCULATIONS ---
@@ -240,12 +243,30 @@ export default function EmployeeDetailsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">Select Payroll Period</Label>
-                <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-slate-50 text-sm">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>Aug 01, 2026 - Aug 31, 2026</span>
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal bg-slate-50 border shadow-sm h-10">
+                      <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+                      {format(startOfMonth(currentMonth), "MMM dd, yyyy")} - {format(endOfMonth(currentMonth), "MMM dd, yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={currentMonth}
+                      onSelect={(date) => date && setCurrentMonth(date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+              <Button 
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                onClick={() => {
+                  setActiveTab("salary");
+                  toast({ title: "Salary calculated for " + format(currentMonth, "MMMM yyyy") });
+                }}
+              >
                 <FileText className="mr-2 h-4 w-4" /> Calculate Salary
               </Button>
             </CardContent>
@@ -265,7 +286,7 @@ export default function EmployeeDetailsPage() {
 
         {/* Right Column */}
         <div className="lg:col-span-2">
-          <Tabs defaultValue="attendance" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full justify-start rounded-md bg-white border border-slate-200 p-1 mb-6">
               <TabsTrigger value="attendance" className="flex-1 data-[state=active]:bg-slate-100 data-[state=active]:shadow-none">Attendance History</TabsTrigger>
               <TabsTrigger value="salary" className="flex-1 data-[state=active]:bg-slate-100 data-[state=active]:shadow-none">Salary Configuration</TabsTrigger>
