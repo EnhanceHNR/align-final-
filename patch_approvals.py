@@ -1,4 +1,6 @@
-"use client";
+import re
+
+content = """"use client";
 
 import React, { useState } from "react";
 import { api } from "~/trpc/react";
@@ -125,3 +127,8 @@ export default function ApprovalsPage() {
     </div>
   );
 }
+"""
+
+with open("src/app/dashboard/attendance/approvals/page.tsx", "w") as f:
+    f.write(content)
+print("Approvals page completely rebuilt!")
