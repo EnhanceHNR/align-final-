@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Webcam from "react-webcam";
 import { Camera, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,10 @@ export default function AppointmentFormSheet({
     const [doctorId, setDoctorId] = useState("");
     const [procedureId, setProcedureId] = useState("");
     const [selectedTeeth, setSelectedTeeth] = useState<string[]>([]);
+    const [staffId, setStaffId] = useState<string>("");
+    const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
+    const webcamRef = useRef<Webcam>(null);
+    const [isCameraActive, setIsCameraActive] = useState(false);
 
 
     const [selectedPatientId, setSelectedPatientId] = useState(
