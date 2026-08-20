@@ -377,6 +377,27 @@ export default function AppointmentFormSheet({
                         </div>
                     </div>
 
+                    {/* STAFF DROPDOWN */}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Booked By (Staff)</label>
+                        <Select
+                            value={staffId || "none"}
+                            onValueChange={(v) => setStaffId(v === "none" ? "" : v)}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select staff member" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Unassigned</SelectItem>
+                                {staffData?.map((staff) => (
+                                    <SelectItem key={staff.id} value={staff.id}>
+                                        {staff.employeeProfile?.name || staff.email}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     {/* WEBCAM SELFIE */}
                     <div className="space-y-2 border border-gray-200 rounded-xl p-4 bg-slate-50/50">
                         <div className="flex items-center justify-between">
