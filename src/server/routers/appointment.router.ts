@@ -54,6 +54,7 @@ export const appointmentRouter = router({
                 doctorId: z.string().optional().nullable(),
                 procedureId: z.string().optional().nullable(),
                 teeth: z.string().optional().nullable(),
+                cancelReason: z.string().optional().nullable(),
             })
         )
         .mutation(async ({ input }) => {
@@ -156,6 +157,7 @@ export const appointmentRouter = router({
                 doctorId: z.string().optional().nullable(),
                 procedureId: z.string().optional().nullable(),
                 teeth: z.string().optional().nullable(),
+                cancelReason: z.string().optional().nullable(),
                 status: appointmentStatusInput.optional(),
             })
         )

@@ -78,6 +78,7 @@ model Appointment {
   endTime        DateTime
   status         AppointmentStatus @default(SCHEDULED)
   reason         String?
+  cancelReason   String?
   doctorId       String?
   doctor         Doctor?           @relation(fields: [doctorId], references: [id])
   procedureId    String?

@@ -44,6 +44,7 @@ export default function PatientProfilePage() {
 
 
     const [visitNote, setVisitNote] = useState("");
+    const [activeTab, setActiveTab] = useState("overview");
 
     const createVisitNote = api.visitNotes.create.useMutation({
         onSuccess: async () => {
@@ -150,8 +151,31 @@ const { data: visitNotes, refetch: refetchVisitNotes } =
                     ← Back
                 </button>
 
-                <div className="rounded-3xl bg-white p-6 shadow-sm">
-                    <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+
+                {/* Tabs */}
+                <div className="flex gap-4 border-b border-gray-200">
+                    <button
+                        onClick={() => setActiveTab("overview")}
+                        className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors ${
+                            activeTab === "overview" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"
+                        }`}
+                    >
+                        Overview
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("history")}
+                        className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors ${
+                            activeTab === "history" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"
+                        }`}
+                    >
+                        History
+                    </button>
+                </div>
+
+                {activeTab === "overview" && (
+                    <>
+                        <div className="rounded-3xl bg-white p-6 shadow-sm">
+                            <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
                         <div className="flex items-center gap-4">
                             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-2xl font-semibold text-blue-600">
                                 {patient.fullName

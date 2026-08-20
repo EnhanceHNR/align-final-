@@ -297,7 +297,7 @@ function AppointmentCard({
     onStatusChange,
 }: {
     event: AppointmentEvent;
-    onStatusChange: (status: "SCHEDULED" | "WAITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED") => void;
+    onStatusChange: (status: "SCHEDULED" | "WAITING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED", cancelReason?: string) => void;
 }) {
     return (
         <div className={`p-4 rounded-xl border transition hover:shadow-md ${STATUS_STYLES[event.status] ?? ""}`}>
@@ -350,7 +350,7 @@ function AppointmentCard({
                         </button>
                     )}
                     <button
-                        onClick={() => onStatusChange("CANCELLED")}
+                        onClick={() => { const reason = window.prompt("Reason for cancellation?"); if(reason !== null) onStatusChange("CANCELLED", reason); }}
                         className="text-xs px-3 py-1 rounded-lg bg-white/60 hover:bg-red-100 text-red-600 font-medium transition"
                     >
                         × Cancel
