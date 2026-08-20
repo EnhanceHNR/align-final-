@@ -32,6 +32,7 @@ import {
     LogOut,
     Undo2,
     CheckCircle,
+    History,
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
