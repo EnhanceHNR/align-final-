@@ -4,12 +4,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from "@/components/ui/sheet";
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 
 import {
     Select,
@@ -230,19 +230,19 @@ export default function AppointmentFormSheet({
         checkAvailability.isPending;
 
     return (
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
                 <Button className="bg-orange-600 text-white rounded-xl">
                     📅 {isUpdateMode ? "Edit appointment" : "Add appointment"}
                 </Button>
-            </SheetTrigger>
+            </DialogTrigger>
 
-            <SheetContent className="w-[650px]">
-                <SheetHeader>
-                    <SheetTitle>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>
                         {isUpdateMode ? "Update appointment" : "New appointment"}
-                    </SheetTitle>
-                </SheetHeader>
+                    </DialogTitle>
+                </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
 
@@ -387,7 +387,7 @@ export default function AppointmentFormSheet({
                         {isPending ? "Processing..." : "Save"}
                     </Button>
                 </form>
-            </SheetContent>
-        </Sheet>
+            </DialogContent>
+        </Dialog>
     );
 }
