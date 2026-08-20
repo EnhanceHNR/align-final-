@@ -88,12 +88,12 @@ export const authOptions: NextAuthOptions = {
     // -> Session strategija
     session: {
         strategy: "jwt",
-        maxAge: 10 * 60,
+        maxAge: 30 * 24 * 60 * 60,
     },
 
     // -> JWT opcije
     jwt: {
-        maxAge: 10 * 60,
+        maxAge: 30 * 24 * 60 * 60,
     },
 
     // -> Cookie konfiguracija

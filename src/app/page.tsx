@@ -24,7 +24,10 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedRole || !email || !password) return;
+    if (!selectedRole || !email || !password) {
+        setServerError("Please select a role and fill out all fields.");
+        return;
+    }
 
     setLoading(true);
     setServerError("");
@@ -37,8 +40,10 @@ export default function LoginPage() {
       });
 
       if (result?.ok) {
+          // Do NOT setLoading(false) here, because we want the spinner to stay while the page transitions
           router.push("/dashboard");
       } else {
+          setLoading(false); // Only stop loading if we failed
           if (result?.error === "ACCOUNT_INACTIVE") {
               setServerError("Your account is deactivated. Contact the administrator.");
           } else {
@@ -46,9 +51,8 @@ export default function LoginPage() {
           }
       }
     } catch (error) {
-        setServerError("An error occurred during login.");
-    } finally {
         setLoading(false);
+        setServerError("An error occurred during login.");
     }
   };
 
