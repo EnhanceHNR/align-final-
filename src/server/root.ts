@@ -15,6 +15,8 @@ import { employeeRouter } from "./routers/employee.router";
 import { attendanceRouter } from "./routers/attendance.router";
 import { hrRouter } from "./routers/hr.router";
 import { organizationRouter } from "./routers/organization.router";
+import { historyRouter } from "./routers/history.router";
+
 import { doctorsRouter } from "./routers/doctors.router";
 import { proceduresRouter } from "./routers/procedures.router";
 
@@ -35,6 +37,8 @@ export const appRouter = router({
   attendance: attendanceRouter,
   hr: hrRouter,
   organization: organizationRouter,
+  history: historyRouter,
+
   doctors: doctorsRouter,
   procedures: proceduresRouter,
 });

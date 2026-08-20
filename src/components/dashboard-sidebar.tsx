@@ -123,6 +123,14 @@ export function DashboardSidebar({
                           />
                       </Link>
 
+                      <Link href="/dashboard/history">
+                          <NavItem
+                              icon={<History size={18} />}
+                              label="Patient History"
+                              active={pathname.startsWith("/dashboard/history")}
+                          />
+                      </Link>
+
                       <Link href="/dashboard/invoices">
                         <NavItem
                           icon={<Receipt size={18} />}
