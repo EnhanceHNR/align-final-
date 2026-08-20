@@ -81,7 +81,7 @@ export const appointmentRouter = router({
                 });
             }
 
-            return prisma.appointment.create({
+            const appointment = await prisma.appointment.create({
                 data: {
                     patientId: input.patientId,
                     chairId: input.chairId,
@@ -93,12 +93,45 @@ export const appointmentRouter = router({
                 include: {
                     patient: {
                         select: {
-                            fullName: true,
-                        },
-                    },
-                    chair: true,
-                },
+                            firstName: true,
+                            lastName: true,
+                            phone: true,
+                        }
+                    }
+                }
             });
+
+            // Sync to Google Calendar
+            if (input.chairId) {
+                const chair = await prisma.chair.findUnique({ where: { id: input.chairId } });
+                if (chair && chair.googleSyncEnabled && chair.googleRefreshToken) {
+                    try {
+                        const oauth2Client = new google.auth.OAuth2(
+                            process.env.GOOGLE_CALENDAR_CLIENT_ID,
+                            process.env.GOOGLE_CALENDAR_CLIENT_SECRET
+                        );
+                        oauth2Client.setCredentials({ refresh_token: chair.googleRefreshToken });
+                        const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+                        
+                        const title = appointment.patient ? `Appointment: ${appointment.patient.firstName} ${appointment.patient.lastName}` : "Patient Appointment";
+
+                        await calendar.events.insert({
+                            calendarId: chair.googleCalendarId || "primary",
+                            requestBody: {
+                                summary: title,
+                                description: input.reason || "Scheduled via Align.io",
+                                start: { dateTime: startTime.toISOString() },
+                                end: { dateTime: endTime.toISOString() },
+                            }
+                        });
+                        console.log("Successfully synced appointment to Google Calendar.");
+                    } catch (error) {
+                        console.error("Failed to sync to Google Calendar:", error);
+                    }
+                }
+            }
+
+            return appointment;
         }),
 
     /**
