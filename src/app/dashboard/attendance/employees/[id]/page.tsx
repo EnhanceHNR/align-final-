@@ -26,6 +26,7 @@ export default function EmployeeDetailsPage() {
   );
   
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDocument, setSelectedDocument] = useState<{title: string, url: string} | null>(null);
 
   // --- REAL DATA CALCULATIONS ---
   const currentMonthAttendances = employee?.attendances?.filter(a => isSameMonth(new Date(a.date), currentMonth)) || [];
@@ -194,10 +195,26 @@ export default function EmployeeDetailsPage() {
               <CardTitle className="text-lg font-semibold">Documents</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="secondary" className="w-full justify-start text-muted-foreground font-normal">
+              <Button 
+                variant="secondary" 
+                className="w-full justify-start text-muted-foreground font-normal"
+                onClick={() => {
+                  const doc = employee?.documents?.find((d: any) => d.title.toLowerCase().includes('national id'));
+                  if (doc) setSelectedDocument({ title: 'National ID', url: doc.fileUrl });
+                  else alert("National ID not uploaded yet.");
+                }}
+              >
                 <FileText className="mr-2 h-4 w-4" /> View National ID
               </Button>
-              <Button variant="secondary" className="w-full justify-start text-muted-foreground font-normal">
+              <Button 
+                variant="secondary" 
+                className="w-full justify-start text-muted-foreground font-normal"
+                onClick={() => {
+                  const doc = employee?.documents?.find((d: any) => d.title.toLowerCase().includes('acceptance'));
+                  if (doc) setSelectedDocument({ title: 'Signed Acceptance', url: doc.fileUrl });
+                  else alert("Signed Acceptance not uploaded yet.");
+                }}
+              >
                 <FileText className="mr-2 h-4 w-4" /> View Signed Acceptance
               </Button>
               
@@ -426,6 +443,37 @@ export default function EmployeeDetailsPage() {
           </Tabs>
         </div>
       </div>
+{/* DOCUMENT VIEWER DIALOG */}
+      <Dialog open={!!selectedDocument} onOpenChange={(open) => !open && setSelectedDocument(null)}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+          <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
+            <DialogTitle>{selectedDocument?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 bg-slate-100 rounded-md overflow-hidden relative">
+            {selectedDocument?.url ? (
+              <iframe 
+                src={selectedDocument.url} 
+                className="w-full h-full border-0"
+                title={selectedDocument.title}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Document not found or invalid URL
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end pt-4 gap-2">
+            <Button variant="outline" onClick={() => setSelectedDocument(null)}>Close</Button>
+            {selectedDocument?.url && (
+              <Button asChild>
+                <a href={selectedDocument.url} target="_blank" rel="noreferrer" download>
+                  Download
+                </a>
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
