@@ -93,8 +93,8 @@ export const appointmentRouter = router({
                 include: {
                     patient: {
                         select: {
-                            firstName: true,
-                            lastName: true,
+                            fullName: true,
+                            
                             phone: true,
                         }
                     }
@@ -113,7 +113,7 @@ export const appointmentRouter = router({
                         oauth2Client.setCredentials({ refresh_token: chair.googleRefreshToken });
                         const calendar = google.calendar({ version: "v3", auth: oauth2Client });
                         
-                        const title = appointment.patient ? `Appointment: ${appointment.patient.firstName} ${appointment.patient.lastName}` : "Patient Appointment";
+                        const title = appointment.patient ? `Appointment: ${appointment.patient.fullName}` : "Patient Appointment";
 
                         await calendar.events.insert({
                             calendarId: chair.googleCalendarId || "primary",

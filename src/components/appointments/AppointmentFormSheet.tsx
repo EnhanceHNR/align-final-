@@ -96,16 +96,37 @@ export default function AppointmentFormSheet({
 
     const checkAvailability = api.appointment.checkAvailability.useMutation();
 
+    const parseError = (errMessage: string) => {
+        if (errMessage.includes("already booked")) {
+            return "This time slot is already booked for the selected chair. Please choose another time.";
+        }
+        if (errMessage.includes("overlaps with another")) {
+            return "This appointment overlaps with another appointment on this chair.";
+        }
+        if (errMessage.includes("after start time")) {
+            return "End time must be after start time.";
+        }
+        return errMessage.split('__TURBOPACK')[0] || "An error occurred while saving the appointment.";
+    };
+
     const createAppointment = api.appointment.create.useMutation({
         onSuccess: async () => {
             setIsOpen(false);
             await utils.appointment.getCalendarEvents.invalidate();
             await utils.appointment.getDashboardStats.invalidate();
             onSuccess?.();
+            setPatientId("");
+            setChairId("");
+            setDate(undefined);
+            setTime("");
+            setReason("");
         },
-        onError: (error) => setAvailabilityError(error.message),
+        onError: (error) => setAvailabilityError(parseError(error.message)),
     });
 
+
+
+    
     const updateAppointment = api.appointment.update.useMutation({
         onSuccess: async () => {
             setIsOpen(false);
@@ -113,7 +134,7 @@ export default function AppointmentFormSheet({
             await utils.appointment.getDashboardStats.invalidate();
             onSuccess?.();
         },
-        onError: (error) => setAvailabilityError(error.message),
+        onError: (error) => setAvailabilityError(parseError(error.message)),
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
