@@ -295,11 +295,7 @@ export function DashboardSidebar({
                       </Link>
 
                       <Link href="/dashboard/attendance/payroll">
-                          <NavItem
-                              icon={<Banknote size={18} />}
-                              label="Payroll"
-                              active={pathname.startsWith("/dashboard/attendance/payroll")}
-                          />
+
                       </Link>
 
                       <Link href="/dashboard/attendance/resignations">

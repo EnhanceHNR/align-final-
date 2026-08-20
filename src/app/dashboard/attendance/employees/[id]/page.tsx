@@ -232,31 +232,33 @@ export default function EmployeeDetailsPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm border-0 bg-white">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-semibold">Salary & Payroll</CardTitle>
+                    <Card className="shadow-sm border-0 bg-white">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold">Salary Calculation</CardTitle>
+              <CardDescription>Calculate salary based on a selected date range with detailed breakdown.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                  <div className="text-2xl font-bold">${employee.baseSalary.toFixed(2)}</div>
-                  <p className="text-sm text-muted-foreground mt-1">Base Monthly Salary</p>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Select Payroll Period</Label>
+                <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-slate-50 text-sm">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span>Aug 01, 2026 - Aug 31, 2026</span>
+                </div>
               </div>
-              <div className="pt-4 border-t space-y-2">
-                 <p className="text-xs font-semibold text-muted-foreground uppercase">Current Month Estimate</p>
-                 <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Days Present:</span>
-                    <span className="font-medium">{daysPresent} days</span>
-                 </div>
-                 <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Estimated Payout:</span>
-                    <span className="font-medium text-emerald-600">${estimatedPayout.toFixed(2)}</span>
-                 </div>
-              </div>
-              <div className="pt-4 space-y-2">
-                 <Button variant="outline" className="w-full text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => router.push('/dashboard/attendance/payroll')}>
-                    Process Payroll
-                 </Button>
-              </div>
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                <FileText className="mr-2 h-4 w-4" /> Calculate Salary
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border-0 bg-white">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold">Admin Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button variant="secondary" className="w-full justify-start text-muted-foreground font-normal bg-slate-100 hover:bg-slate-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg> Change Password
+              </Button>
             </CardContent>
           </Card>
         </div>
