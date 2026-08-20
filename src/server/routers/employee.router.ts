@@ -3,6 +3,12 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const employeeRouter = createTRPCRouter({
+  listStaff: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.db.user.findMany({
+      where: { organizationId: ctx.user.organizationId, isActive: true },
+      select: { id: true, email: true, employeeProfile: { select: { name: true } } }
+    });
+  }),
   getProfile: protectedProcedure
     .input(z.object({ userId: z.string().optional() }))
     .query(async ({ ctx, input }) => {

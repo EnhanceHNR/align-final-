@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Webcam from "react-webcam";
+import { Camera, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -369,6 +371,48 @@ export default function AppointmentFormSheet({
                             <Input value={reason}
                                    onChange={(e) => setReason(e.target.value)} />
                         </div>
+                    </div>
+
+                    {/* WEBCAM SELFIE */}
+                    <div className="space-y-2 border border-gray-200 rounded-xl p-4 bg-slate-50/50">
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium">Staff Verification Selfie</label>
+                            {selfieUrl && (
+                                <button type="button" onClick={() => setSelfieUrl(null)} className="text-xs text-blue-600 font-bold flex items-center gap-1">
+                                    <RefreshCw size={12} /> Retake
+                                </button>
+                            )}
+                        </div>
+                        
+                        {!selfieUrl ? (
+                            <div className="w-full bg-black rounded-xl overflow-hidden relative flex flex-col items-center justify-center min-h-[160px]">
+                                {!isCameraActive ? (
+                                    <Button type="button" variant="secondary" onClick={() => setIsCameraActive(true)} className="flex items-center gap-2">
+                                        <Camera size={16} /> Open Camera
+                                    </Button>
+                                ) : (
+                                    <>
+                                        <Webcam
+                                            audio={false}
+                                            ref={webcamRef}
+                                            screenshotFormat="image/jpeg"
+                                            className="w-full object-cover"
+                                        />
+                                        <Button 
+                                            type="button" 
+                                            onClick={() => setSelfieUrl(webcamRef.current?.getScreenshot() || null)}
+                                            className="absolute bottom-3 bg-white text-black hover:bg-gray-100 rounded-full px-6 shadow-lg shadow-black/50"
+                                        >
+                                            Capture Photo
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="w-full rounded-xl overflow-hidden border-2 border-green-500">
+                                <img src={selfieUrl} alt="Staff Selfie" className="w-full h-auto object-cover" />
+                            </div>
+                        )}
                     </div>
 
                     {availabilityError && (

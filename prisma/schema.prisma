@@ -18,6 +18,7 @@ model User {
   visitNotes         VisitNote[]
   placedOrders       PurchaseOrder[]     @relation("PlacedOrders")
   receivedDeliveries Delivery[]          @relation("ReceivedDeliveries")
+  staffAppointments  Appointment[]       @relation("StaffAppointments")
   consumedItems      ConsumptionRecord[] @relation("ConsumedItems")
   employeeProfile    EmployeeProfile?
   organizationId     String?
@@ -83,7 +84,10 @@ model Appointment {
   doctor         Doctor?           @relation(fields: [doctorId], references: [id])
   procedureId    String?
   procedure      Procedure?        @relation(fields: [procedureId], references: [id])
-  teeth          String?           // To store selected teeth JSON array // İŞTE BURAYA EKLEDİK (Opsiyonel alan)
+  teeth          String?           // To store selected teeth JSON array
+  staffId        String?
+  staff          User?             @relation(fields: [staffId], references: [id], name: "StaffAppointments")
+  selfieUrl      String?           @db.Text
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
   patient        Patient           @relation(fields: [patientId], references: [id])
