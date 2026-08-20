@@ -237,14 +237,17 @@ export default function AppointmentFormSheet({
                 </Button>
             </DialogTrigger>
 
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>
                         {isUpdateMode ? "Update appointment" : "New appointment"}
                     </DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
+                <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* LEFT COLUMN: Details */}
+                        <div className="flex flex-col gap-5">
 
                     {/* PATIENT SELECT */}
                     {showPatientSelect && (
@@ -335,12 +338,6 @@ export default function AppointmentFormSheet({
                         </Select>
                     </div>
 
-                    {/* TOOTH CHART */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Selected Teeth</label>
-                        <ToothChart selectedTeeth={selectedTeeth} onToggleTooth={handleToggleTooth} />
-                    </div>
-
                     {/* DATE + TIME (FIXED ALIGNMENT) */}
                     <div className="flex gap-4">
                         <div className="flex-1 space-y-2">
@@ -379,6 +376,20 @@ export default function AppointmentFormSheet({
                             {availabilityError}
                         </p>
                     )}
+                        </div>
+
+                        {/* RIGHT COLUMN: Tooth Chart */}
+                        <div className="flex flex-col gap-2 h-[600px] overflow-y-auto border border-gray-200 rounded-2xl bg-slate-50 p-4 relative">
+                            <div className="sticky top-0 bg-slate-50/90 backdrop-blur z-10 pb-2 mb-2 border-b border-gray-200">
+                                <label className="text-sm font-bold text-slate-700 uppercase tracking-widest">Selected Teeth</label>
+                                <p className="text-xs text-slate-500">Click on any tooth to select it for the procedure.</p>
+                            </div>
+                            <div className="flex-1">
+                                <ToothChart selectedTeeth={selectedTeeth} onToggleTooth={handleToggleTooth} />
+                            </div>
+                        </div>
+                    </div>
+
 
                     <Button
                         disabled={isPending}
