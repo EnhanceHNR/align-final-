@@ -51,6 +51,7 @@ function getWeekStart(date: Date) {
 const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
  
 export default function AppointmentsCalendarPage() {
+    const { data: orgProfile } = api.organization.getProfile.useQuery();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [view, setView]               = useState<"day" | "week">("day");
  
