@@ -20,15 +20,15 @@ async function getActionOrgId() {
             headers: { cookie: cookies().getAll().map(c => `${c.name}=${c.value}`).join('; ') }
         };
         const token = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET || "", cookieName: "align_token" });
-        return (token as any)?.organizationId || null;
-    } catch (e) {
+        return { orgId: (token as any)?.organizationId || null, error: null, reqKeys: Object.keys(req.cookies) };
+    } catch (e: any) {
         console.error("Token error:", e);
-        return null;
+        return { orgId: null, error: e.message, reqKeys: [] };
     }
 }
 
 async function upsertEntityPrisma(type: 'labs' | 'patients', name: string) {
-  const orgId = await getActionOrgId();
+  const { orgId } = await getActionOrgId();
   if (!orgId) throw new Error('Unauthorized');
   if (!name || typeof name !== 'string') return null;
   const safeName = name.trim();
@@ -52,8 +52,8 @@ async function handleSubmission(
   schema: typeof sendSchema | typeof receiveSchema,
   formData: FormData
 ) {
-  const orgId = await getActionOrgId();
-  if (!orgId) throw new Error('Unauthorized');
+  const { orgId, error, reqKeys } = await getActionOrgId();
+  if (!orgId) return { success: false, message: 'Debug: Unauthorized. Error: ' + error + ' Cookies: ' + JSON.stringify(reqKeys) + ' SecretExists: ' + !!process.env.NEXTAUTH_SECRET };
   const submissionType = formData.get('type') as 'send' | 'receive';
   
   const rawFormData: any = {};
