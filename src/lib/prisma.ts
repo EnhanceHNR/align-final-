@@ -28,7 +28,7 @@ async function getOrgId() {
     try {
         const req = {
             cookies: Object.fromEntries(cookies().getAll().map(c => [c.name, c.value])),
-            headers: { cookie: cookies().toString() }
+            headers: { cookie: cookies().getAll().map(c => `${c.name}=${c.value}`).join('; ') }
         };
         const token = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET || "", cookieName: "align_token" });
         return (token as any)?.organizationId || null;

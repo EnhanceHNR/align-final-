@@ -8,7 +8,7 @@ import { cookies } from "next/headers";
 export async function uploadLearningMaterial(formData: FormData) {
     const req = {
         cookies: Object.fromEntries(cookies().getAll().map(c => [c.name, c.value])),
-        headers: { cookie: cookies().toString() }
+        headers: { cookie: cookies().getAll().map(c => `${c.name}=${c.value}`).join('; ') }
     };
     const decodedUser = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET || "", cookieName: "align_token" });
 

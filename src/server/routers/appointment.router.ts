@@ -468,7 +468,7 @@ export const appointmentRouter = router({
     /**
      * appointment.getDashboardStats - statistika za dashboard
      */
-    getDashboardStats: protectedProcedure.query(async () => {
+    getDashboardStats: protectedProcedure.query(async ({ ctx }) => {
         const today = new Date();
 
         today.setHours(0, 0, 0, 0);
@@ -490,6 +490,7 @@ export const appointmentRouter = router({
         ] = await Promise.all([
             prisma.appointment.groupBy({
                 by: ["status"],
+                where: { organizationId: ctx.user.organizationId },
                 _count: {
                     status: true,
                 },
@@ -521,6 +522,7 @@ export const appointmentRouter = router({
 
             prisma.patient.count({
                 where: {
+                    organizationId: ctx.user.organizationId,
                     createdAt: {
                         gte: thisMonthStart,
                     },
