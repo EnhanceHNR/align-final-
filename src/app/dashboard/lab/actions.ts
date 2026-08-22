@@ -10,25 +10,21 @@ export async function createInternalUserAction(adminUid: string, userData: { ema
   return { success: true, message: `Successfully created ${userData.role} account for ${userData.fullName}.` };
 }
 
-import { getToken } from "next-auth/jwt";
-import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 
 async function getActionOrgId() {
     try {
-        const req = {
-            cookies: Object.fromEntries(cookies().getAll().map(c => [c.name, c.value])),
-            headers: { cookie: cookies().getAll().map(c => `${c.name}=${c.value}`).join('; ') }
-        };
-        const token = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET || "", cookieName: "align_token" });
-        return { orgId: (token as any)?.organizationId || null, error: null, reqKeys: Object.keys(req.cookies) };
+        const session = await getServerSession(authOptions);
+        return (session?.user as any)?.organizationId || null;
     } catch (e: any) {
-        console.error("Token error:", e);
-        return { orgId: null, error: e.message, reqKeys: [] };
+        console.error("Session error:", e);
+        return null;
     }
 }
 
 async function upsertEntityPrisma(type: 'labs' | 'patients', name: string) {
-  const { orgId } = await getActionOrgId();
+  const orgId = await getActionOrgId();
   if (!orgId) throw new Error('Unauthorized');
   if (!name || typeof name !== 'string') return null;
   const safeName = name.trim();
@@ -52,8 +48,8 @@ async function handleSubmission(
   schema: typeof sendSchema | typeof receiveSchema,
   formData: FormData
 ) {
-  const { orgId, error, reqKeys } = await getActionOrgId();
-  if (!orgId) return { success: false, message: 'Debug: Unauthorized. Error: ' + error + ' Cookies: ' + JSON.stringify(reqKeys) + ' SecretExists: ' + !!process.env.NEXTAUTH_SECRET };
+  const orgId = await getActionOrgId();
+  if (!orgId) return { success: false, message: 'Unauthorized (orgId missing)' };
   const submissionType = formData.get('type') as 'send' | 'receive';
   
   const rawFormData: any = {};

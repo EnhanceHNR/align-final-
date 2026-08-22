@@ -2,15 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
-import { getToken } from "next-auth/jwt";
-import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 
 export async function uploadLearningMaterial(formData: FormData) {
-    const req = {
-        cookies: Object.fromEntries(cookies().getAll().map(c => [c.name, c.value])),
-        headers: { cookie: cookies().getAll().map(c => `${c.name}=${c.value}`).join('; ') }
-    };
-    const decodedUser = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET || "", cookieName: "align_token" });
+    const session = await getServerSession(authOptions);
+    const decodedUser = session?.user as any;
 
     if (!decodedUser || decodedUser.role !== "MASTER") {
         throw new Error("Unauthorized. Only MASTER can upload learning materials.");
