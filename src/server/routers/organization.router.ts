@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { hash } from "bcryptjs";
+import { hashPassword } from "~/lib/password";
 
 export const organizationRouter = createTRPCRouter({
   getProfile: protectedProcedure.query(async ({ ctx }) => {
@@ -53,7 +53,7 @@ export const organizationRouter = createTRPCRouter({
       newPassword: z.string().min(6)
     }))
     .mutation(async ({ ctx, input }) => {
-      const hashedPassword = await hash(input.newPassword, 10);
+      const hashedPassword = await hashPassword(input.newPassword);
       await ctx.db.user.update({
         where: { id: ctx.user.id },
         data: { passwordHash: hashedPassword }
