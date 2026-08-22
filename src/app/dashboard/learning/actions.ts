@@ -32,6 +32,7 @@ export async function uploadLearningMaterial(formData: FormData) {
     const material = await prisma.learningMaterial.create({
         data: {
             categoryId,
+            organizationId: (session.user as any).organizationId,
             title,
             description: description || null,
             url,

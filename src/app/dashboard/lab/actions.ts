@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { sendSchema, receiveSchema } from '@/lib/schemas';
+import { getServerSession } from 'next-auth';
+const { authOptions } = require('@/lib/auth');
 
 // User Management Actions
 export async function createInternalUserAction(adminUid: string, userData: { email: string; password: string; fullName: string; role: 'admin' | 'staff' }) {
@@ -12,20 +14,28 @@ export async function createInternalUserAction(adminUid: string, userData: { ema
 }
 
 // Ensure entities like Labs and Patients exist
+async function getActionOrgId() {
+  const { authOptions } = require('@/lib/auth');
+  const session = await getServerSession(authOptions);
+  return session?.user?.organizationId || null;
+}
+
 async function upsertEntityPrisma(type: 'labs' | 'patients', name: string) {
+  const orgId = await getActionOrgId();
+  if (!orgId) throw new Error('Unauthorized');
   if (!name || typeof name !== 'string') return null;
   const safeName = name.trim();
   
   if (type === 'labs') {
-    let lab = await prisma.lab.findFirst({ where: { name: safeName } });
+    let lab = await prisma.lab.findFirst({ where: { name: safeName, organizationId: orgId } });
     if (!lab) {
-      lab = await prisma.lab.create({ data: { name: safeName } });
+      lab = await prisma.lab.create({ data: { name: safeName, organizationId: orgId } });
     }
     return lab;
   } else if (type === 'patients') {
-    let patient = await prisma.patient.findFirst({ where: { fullName: safeName } });
+    let patient = await prisma.patient.findFirst({ where: { fullName: safeName, organizationId: orgId } });
     if (!patient) {
-      patient = await prisma.patient.create({ data: { fullName: safeName } });
+      patient = await prisma.patient.create({ data: { fullName: safeName, organizationId: orgId } });
     }
     return patient;
   }
@@ -35,6 +45,8 @@ async function handleSubmission(
   schema: typeof sendSchema | typeof receiveSchema,
   formData: FormData
 ) {
+  const orgId = await getActionOrgId();
+  if (!orgId) throw new Error('Unauthorized');
   const submissionType = formData.get('type') as 'send' | 'receive';
   
   const rawFormData: any = {};
@@ -114,6 +126,7 @@ async function handleSubmission(
         senderName: rawFormData.senderName || null,
         receiverName: rawFormData.receiverName || null,
         photoUrl: photoUrl || null,
+        organizationId: orgId,
         photoUrls: photoUrls.length ? photoUrls : null,
         deliveryPersonPhotoUrl: deliveryPersonPhotoUrl || null,
         senderSelfieUrl: senderSelfieUrl || null,
@@ -130,6 +143,7 @@ async function handleSubmission(
         tat: rawFormData.tat || null,
         linkedRecordId: rawFormData.linkedRecordId || null,
         approvalStatus: rawFormData.approvalStatus || "Pending",
+        organizationId: orgId,
     };
 
     const submission = await prisma.labSubmission.create({ data: submissionData });
@@ -143,7 +157,8 @@ async function handleSubmission(
                 type: 'bill',
                 description: `Bill for ${rawFormData.item} (${rawFormData.patientName})`,
                 photoUrl: billPhotoUrl || null,
-                submissionId: submission.id
+                submissionId: submission.id,
+                organizationId: orgId
             }
         });
     }
@@ -174,6 +189,9 @@ export async function addLabTransactionAction(prevState: any, formData: FormData
     const type = formData.get('type') as 'payment' | 'bill';
     const description = formData.get('description') as string;
     const photo = formData.get('photo') as File;
+
+    const orgId = await getActionOrgId();
+    if (!orgId) throw new Error('Unauthorized');
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -207,16 +225,17 @@ export async function addLabTransactionAction(prevState: any, formData: FormData
 
 export async function fetchEntitiesAction(collectionName: 'labs' | 'patients' | 'templates' | 'items') {
     try {
+        const orgId = await getActionOrgId();
         if (collectionName === 'labs') {
-            return await prisma.lab.findMany({ orderBy: { createdAt: 'desc' } });
+            return await prisma.lab.findMany({ where: { organizationId: orgId }, orderBy: { createdAt: 'desc' } });
         } else if (collectionName === 'patients') {
-            const patients = await prisma.patient.findMany({ orderBy: { createdAt: 'desc' } });
+            const patients = await prisma.patient.findMany({ where: { organizationId: orgId }, orderBy: { createdAt: 'desc' } });
             return patients.map(p => ({ ...p, name: p.fullName }));
         } else if (collectionName === 'templates') {
-            return await prisma.instructionTemplate.findMany({ orderBy: { createdAt: 'desc' } });
+            return await prisma.instructionTemplate.findMany({ where: { organizationId: orgId }, orderBy: { createdAt: 'desc' } });
         } else if (collectionName === 'items') {
             // Just return unique items from submissions
-            const items = await prisma.labSubmission.findMany({ select: { item: true }, distinct: ['item'] });
+            const items = await prisma.labSubmission.findMany({ where: { organizationId: orgId }, select: { item: true }, distinct: ['item'] });
             return items.map(i => ({ name: i.item }));
         }
         return [];
@@ -227,7 +246,9 @@ export async function fetchEntitiesAction(collectionName: 'labs' | 'patients' | 
 }
 
 export async function fetchSubmissions() {
+    const orgId = await getActionOrgId();
     return await prisma.labSubmission.findMany({
+        where: { organizationId: orgId },
         orderBy: { createdAt: 'desc' },
         include: { lab: true, patient: true }
     }).then(submissions => submissions.map(sub => ({
@@ -239,7 +260,7 @@ export async function fetchSubmissions() {
 
 export async function fetchUsersAction() {
     const users = await prisma.user.findMany({
-        where: { isActive: true },
+        where: { isActive: true, organizationId: await getActionOrgId() },
         select: { id: true, email: true }
     });
     
@@ -251,7 +272,9 @@ export async function fetchUsersAction() {
 }
 
 export async function fetchLabTransactions() {
+    const orgId = await getActionOrgId();
     return await prisma.labTransaction.findMany({
+        where: { organizationId: orgId },
         orderBy: { createdAt: "desc" },
         include: { lab: true }
     }).then(transactions => transactions.map(tx => ({
@@ -262,8 +285,11 @@ export async function fetchLabTransactions() {
 
 export async function updateSubmissionRemarksAction(id: string, newRemarks: string) {
     try {
-        await prisma.labSubmission.update({
-            where: { id },
+        const orgId = await getActionOrgId();
+        await prisma.labSubmission.updateMany({
+            where: { id, organizationId: orgId },
+            // @ts-ignore
+            organizationId: await getActionOrgId(),
             data: { remarks: newRemarks }
         });
         return { success: true };
@@ -274,7 +300,8 @@ export async function updateSubmissionRemarksAction(id: string, newRemarks: stri
 
 export async function deleteSubmissionAction(id: string) {
     try {
-        await prisma.labSubmission.delete({ where: { id } });
+        const orgId = await getActionOrgId();
+        await prisma.labSubmission.deleteMany({ where: { id, organizationId: orgId } });
         return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message };
@@ -290,8 +317,9 @@ export async function updatePaymentStatusAction(formData: FormData) {
         const submissionId = formData.get('submissionId') as string;
         const status = formData.get('status') as string;
         
-        await prisma.labSubmission.update({
-            where: { id: submissionId },
+        const orgId = await getActionOrgId();
+        await prisma.labSubmission.updateMany({
+            where: { id: submissionId, organizationId: orgId },
             data: { paymentStatus: status }
         });
         return { success: true };
@@ -303,7 +331,8 @@ export async function updatePaymentStatusAction(formData: FormData) {
 export async function updateEntityAction(collectionName: string, oldName: string, newName: string, additionalData?: any) {
     try {
         if (collectionName === 'labs') {
-            const lab = await prisma.lab.findFirst({ where: { name: oldName } });
+            const orgId = await getActionOrgId();
+            const lab = await prisma.lab.findFirst({ where: { name: oldName, organizationId: orgId } });
             if (!lab) throw new Error("Lab not found");
             
             await prisma.lab.update({
@@ -324,9 +353,11 @@ export async function updateEntityAction(collectionName: string, oldName: string
 export async function addEntityAction(collectionName: string, name: string, additionalData?: any) {
     try {
         if (collectionName === 'labs') {
+            const orgId = await getActionOrgId();
             await prisma.lab.create({
                 data: {
                     name,
+                    organizationId: orgId,
                     phone: additionalData?.phone,
                     services: additionalData?.services,
                 }
@@ -341,7 +372,8 @@ export async function addEntityAction(collectionName: string, name: string, addi
 export async function deleteEntityAction(collectionName: string, name: string) {
     try {
         if (collectionName === 'labs') {
-            const lab = await prisma.lab.findFirst({ where: { name } });
+            const orgId = await getActionOrgId();
+            const lab = await prisma.lab.findFirst({ where: { name, organizationId: orgId } });
             if (!lab) throw new Error("Lab not found");
             await prisma.lab.delete({ where: { id: lab.id } });
         }

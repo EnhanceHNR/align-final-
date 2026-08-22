@@ -42,16 +42,31 @@ export const prisma = basePrisma.$extends({
             async $allOperations({ model, operation, args, query }) {
                 if (tenantModels.includes(model as string)) {
                     const orgId = await getOrgId();
-                    if (orgId) {
+                    
+                    if (['findFirst', 'findMany', 'count', 'updateMany', 'deleteMany'].includes(operation)) {
                         args = args || {};
-                        if (['findFirst', 'findMany', 'count', 'updateMany', 'deleteMany'].includes(operation)) {
-                            args.where = { ...args.where, organizationId: orgId };
-                        } else if (['create', 'createMany'].includes(operation)) {
-                            if (operation === 'create') {
-                                args.data = { ...args.data, organizationId: orgId };
-                            } else if (Array.isArray(args.data)) {
-                                args.data = args.data.map((d: any) => ({ ...d, organizationId: orgId }));
+                        // Only inject if not explicitly provided
+                        if (!args.where || !('organizationId' in args.where)) {
+                            if (orgId) {
+                                args.where = { ...args.where, organizationId: orgId };
+                            } else {
+                                // If orgId is not found, force a mismatch to prevent data breach
+                                args.where = { ...args.where, organizationId: 'UNAUTHORIZED_ACCESS' };
                             }
+                        }
+                    } else if (['create', 'createMany'].includes(operation)) {
+                        args = args || {};
+                        if (operation === 'create') {
+                            if (!args.data || !('organizationId' in args.data)) {
+                                args.data = { ...args.data, organizationId: orgId || 'UNAUTHORIZED_ACCESS' };
+                            }
+                        } else if (Array.isArray(args.data)) {
+                            args.data = args.data.map((d: any) => {
+                                if (!d.organizationId) {
+                                    return { ...d, organizationId: orgId || 'UNAUTHORIZED_ACCESS' };
+                                }
+                                return d;
+                            });
                         }
                     }
                 }
