@@ -2,12 +2,18 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from "next-auth";
-import { authOptions } from "~/lib/auth";
+import { cookies } from "next/headers";
+import { decode } from "next-auth/jwt";
 
 export async function uploadLearningMaterial(formData: FormData) {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "MASTER") {
+    const cookieStore = cookies();
+    const token = cookieStore.get("align_token")?.value || cookieStore.get("__Secure-align_token")?.value;
+    let decodedUser: any = null;
+    if (token) {
+        decodedUser = await decode({ token, secret: process.env.NEXTAUTH_SECRET || "" });
+    }
+
+    if (!decodedUser || decodedUser.role !== "MASTER") {
         throw new Error("Unauthorized. Only MASTER can upload learning materials.");
     }
 
@@ -32,7 +38,7 @@ export async function uploadLearningMaterial(formData: FormData) {
     const material = await prisma.learningMaterial.create({
         data: {
             categoryId,
-            organizationId: (session.user as any).organizationId,
+            organizationId: decodedUser.organizationId,
             title,
             description: description || null,
             url,

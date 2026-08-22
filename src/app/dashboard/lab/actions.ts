@@ -4,20 +4,29 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { sendSchema, receiveSchema } from '@/lib/schemas';
-import { getServerSession } from 'next-auth';
-const { authOptions } = require('@/lib/auth');
-
 // User Management Actions
 export async function createInternalUserAction(adminUid: string, userData: { email: string; password: string; fullName: string; role: 'admin' | 'staff' }) {
   // Mocked for now, Align.io handles users differently
   return { success: true, message: `Successfully created ${userData.role} account for ${userData.fullName}.` };
 }
 
+import { cookies } from "next/headers";
+import { decode } from "next-auth/jwt";
+
 // Ensure entities like Labs and Patients exist
 async function getActionOrgId() {
-  const { authOptions } = require('@/lib/auth');
-  const session = await getServerSession(authOptions);
-  return session?.user?.organizationId || null;
+  try {
+    const cookieStore = cookies();
+    const token = cookieStore.get("align_token")?.value || cookieStore.get("__Secure-align_token")?.value;
+    if (token) {
+        const decoded = await decode({ token, secret: process.env.NEXTAUTH_SECRET || "" });
+        return (decoded as any)?.organizationId || null;
+    }
+    return null;
+  } catch (e) {
+    console.error("Failed to decode token", e);
+    return null;
+  }
 }
 
 async function upsertEntityPrisma(type: 'labs' | 'patients', name: string) {

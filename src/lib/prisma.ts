@@ -23,12 +23,19 @@ const tenantModels = [
 ,
     "Anamnesis", "TreatmentPlanItem", "InvoiceItem", "ShiftSegment", "Attendance", "AttendanceSession", "LeaveRequest", "PayrollRecord", "ResignationRequest", "RejoinRequest", "EmployeeDocument", "LateRequest", "EarlyPunchOutRequest"];
 
+import { cookies } from "next/headers";
+import { decode } from "next-auth/jwt";
+
 // Helper to get organizationId dynamically
 async function getOrgId() {
     try {
-        const { authOptions } = require("@/lib/auth");
-        const session = await getServerSession(authOptions);
-        return (session?.user as any)?.organizationId || null;
+        const cookieStore = cookies();
+        const token = cookieStore.get("align_token")?.value || cookieStore.get("__Secure-align_token")?.value;
+        if (token) {
+            const decoded = await decode({ token, secret: process.env.NEXTAUTH_SECRET || "" });
+            return (decoded as any)?.organizationId || null;
+        }
+        return null;
     } catch (e) {
         console.error("Error in getOrgId:", e);
         return null;
