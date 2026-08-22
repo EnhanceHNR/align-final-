@@ -2,6 +2,28 @@ import { PrismaClient } from "@prisma/client";
 import { getToken } from "next-auth/jwt";
 import { cookies } from "next/headers";
 
+const globalForPrisma = globalThis as unknown as {
+    prisma: PrismaClient | undefined;
+};
+
+const basePrisma = globalForPrisma.prisma ?? new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+});
+
+if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = basePrisma;
+}
+
+const tenantModels = [
+    "Patient", "Appointment", "Treatment", "VisitNote", "TreatmentPlan",
+    "Invoice", "PriceListItem", "Chair", "OdontogramSurface", "Lab", "LabSubmission",
+    "LabTransaction", "InstructionTemplate", "InventoryItem", "StockEntry", "PurchaseOrder",
+    "Delivery", "Dealer", "Statement", "ConsumptionRecord", "LearningCategory", 
+    "LearningMaterial", "EmployeeProfile", "Holiday",
+    "Anamnesis", "TreatmentPlanItem", "InvoiceItem", "ShiftSegment", "Attendance", "AttendanceSession", "LeaveRequest", "PayrollRecord", "ResignationRequest", "RejoinRequest", "EmployeeDocument", "LateRequest", "EarlyPunchOutRequest"
+];
+
+
 async function getOrgId() {
     try {
         const req = {
