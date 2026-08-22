@@ -122,8 +122,8 @@ export const columns = (options: GetColumnsOptions): ColumnDef<InventoryItem>[] 
     header: "Next Expiry",
     cell: ({row}) => {
         const item = row.original;
-        if (!item.stock || item.stock.length === 0) return "N/A";
-        const soonestExpiry = [...item.stock].sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime())[0]?.expiryDate;
+        if (!item.stockEntries || item.stockEntries.length === 0) return "N/A";
+        const soonestExpiry = [...item.stockEntries].sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime())[0]?.expiryDate;
         if (!soonestExpiry) return "N/A";
         return new Date(soonestExpiry).toLocaleDateString()
     }
