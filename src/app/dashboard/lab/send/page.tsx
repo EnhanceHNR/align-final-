@@ -8,13 +8,17 @@ import { fetchUsersAction, fetchSubmissions } from "../actions";
 
 export default async function SendPage() {
     try {
-        const [users, submissions] = await Promise.all([
+        const [rawUsers, rawSubmissions] = await Promise.all([
             fetchUsersAction(),
             fetchSubmissions()
         ]);
         
+        // Deep clone to remove any non-serializable objects (like undefined, Dates on some runtimes)
+        const users = JSON.parse(JSON.stringify(rawUsers || []));
+        const submissions = JSON.parse(JSON.stringify(rawSubmissions || []));
+        
         // Only get 'receive' records to show history of what patients have previously sent/received
-        const receivedRecords = (submissions || []).filter(s => s.type === 'receive');
+        const receivedRecords = submissions.filter((s: any) => s.type === 'receive');
 
         return (
             <div className="container mx-auto p-4 md:p-8 max-w-2xl animate-in">

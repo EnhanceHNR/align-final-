@@ -8,16 +8,20 @@ import { fetchUsersAction, fetchSubmissions } from "../actions";
 
 export default async function ReceivePage() {
   try {
-    const [users, submissions] = await Promise.all([
+    const [rawUsers, rawSubmissions] = await Promise.all([
       fetchUsersAction(),
       fetchSubmissions()
     ]);
 
-    // Identify which records have already been received
-    const receivedIds = new Set((submissions || []).filter(s => s.type === 'receive').map(s => s.linkedRecordId));
+    // Deep clone to prevent RSC serialization errors
+    const users = JSON.parse(JSON.stringify(rawUsers || []));
+    const submissions = JSON.parse(JSON.stringify(rawSubmissions || []));
+
+    // Find records that are already received to filter them out
+    const receivedIds = new Set(submissions.filter((s: any) => s.type === 'receive' && s.linkedRecordId).map((s: any) => s.linkedRecordId));
     
-    // Only show 'send' records that haven't been received yet
-    const sentRecords = (submissions || []).filter(s => s.type === 'send' && !receivedIds.has(s.id));
+    // Only show sent records that haven't been received yet
+    const sentRecords = submissions.filter((s: any) => s.type === 'send' && !receivedIds.has(s.id));
 
     return (
     <div className="container mx-auto p-4 md:p-8 max-w-2xl animate-in">
