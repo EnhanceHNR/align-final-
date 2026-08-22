@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { SendForm } from "@/components/lab/forms/SendForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Send, ChevronLeft } from "lucide-react";
