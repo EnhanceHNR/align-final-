@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && npx prisma db push --accept-data-loss && next build",
+    "build": "next build",
+    "postinstall": "prisma generate && npx prisma db push --accept-data-loss",
     "start": "next start",
     "lint": "next lint",
     "test": "npm run test:unit && npm run test:e2e",
