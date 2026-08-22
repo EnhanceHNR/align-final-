@@ -178,11 +178,19 @@ async function handleSubmission(
 }
 
 export async function sendSubmissionAction(prevState: any, formData: FormData) {
-  return handleSubmission(sendSchema, formData);
+  try {
+    return await handleSubmission(sendSchema, formData);
+  } catch (e: any) {
+    return { success: false, message: "FATAL ERROR IN SEND: " + (e.stack || e.message) };
+  }
 }
 
 export async function receiveSubmissionAction(prevState: any, formData: FormData) {
-  return handleSubmission(receiveSchema, formData);
+  try {
+    return await handleSubmission(receiveSchema, formData);
+  } catch (e: any) {
+    return { success: false, message: "FATAL ERROR IN RECEIVE: " + (e.stack || e.message) };
+  }
 }
 
 export async function addLabTransactionAction(prevState: any, formData: FormData) {
