@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 
 import { ReceiveForm } from "@/components/lab/forms/ReceiveForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
