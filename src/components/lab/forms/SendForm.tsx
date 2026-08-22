@@ -45,9 +45,9 @@ export function SendForm({ users = [], receivedRecords = [] }: SendFormProps) {
   const [labs, setLabs] = useState<Lab[]>([]);
   const [isLoadingLabs, setIsLoadingLabs] = useState(true);
 
-  const { data: trpcLabs, isLoading: isLoadingLabsQuery } = api.labs.listLabs.useQuery();
-  const { data: trpcPatientsData, isLoading: isLoadingPatientsQuery } = api.patients.list.useQuery({ perPage: 1000 });
-  const { data: trpcTemplates, isLoading: isLoadingTemplatesQuery } = api.labs.listTemplates.useQuery();
+  const { data: trpcLabs, isLoading: isLoadingLabsQuery } = api.lab.listLabs.useQuery();
+  const { data: trpcPatientsData, isLoading: isLoadingPatientsQuery } = api.patients.list.useQuery({ perPage: 100 });
+  const { data: trpcTemplates, isLoading: isLoadingTemplatesQuery } = api.lab.listTemplates.useQuery();
   
   // Camera Modal States
   const [isCameraOpen, setIsCameraOpen] = useState(false);

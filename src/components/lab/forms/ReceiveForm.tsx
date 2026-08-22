@@ -84,9 +84,9 @@ export function ReceiveForm({ users = [], sentRecords = [] }: ReceiveFormProps) 
 
   const [patients, setPatients] = useState<any[]>([]);
 
-  const { data: trpcLabs, isLoading: isLoadingLabsQuery } = api.labs.listLabs.useQuery();
-  const { data: trpcPatientsData, isLoading: isLoadingPatientsQuery } = api.patients.list.useQuery({ perPage: 1000 });
-  const { data: trpcTemplates, isLoading: isLoadingTemplatesQuery } = api.labs.listTemplates.useQuery();
+  const { data: trpcLabs, isLoading: isLoadingLabsQuery } = api.lab.listLabs.useQuery();
+  const { data: trpcPatientsData, isLoading: isLoadingPatientsQuery } = api.patients.list.useQuery({ perPage: 100 });
+  const { data: trpcTemplates, isLoading: isLoadingTemplatesQuery } = api.lab.listTemplates.useQuery();
 
   const selectedPatientId = useMemo(() => patients.find(p => p.fullName === patientName)?.id, [patients, patientName]);
   
