@@ -26,10 +26,11 @@ const tenantModels = [
 // Helper to get organizationId dynamically
 async function getOrgId() {
     try {
-        const { authOptions } = await import("@/lib/auth");
+        const { authOptions } = require("@/lib/auth");
         const session = await getServerSession(authOptions);
         return (session?.user as any)?.organizationId || null;
-    } catch {
+    } catch (e) {
+        console.error("Error in getOrgId:", e);
         return null;
     }
 }

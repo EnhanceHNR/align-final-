@@ -83,6 +83,11 @@ export function ReceiveForm({ users = [], sentRecords = [] }: ReceiveFormProps) 
   const [labs, setLabs] = useState<any[]>([]);
 
   const [patients, setPatients] = useState<any[]>([]);
+
+  const { data: trpcLabs, isLoading: isLoadingLabsQuery } = api.labs.listLabs.useQuery();
+  const { data: trpcPatientsData, isLoading: isLoadingPatientsQuery } = api.patients.list.useQuery({ perPage: 1000 });
+  const { data: trpcTemplates, isLoading: isLoadingTemplatesQuery } = api.labs.listTemplates.useQuery();
+
   const selectedPatientId = useMemo(() => patients.find(p => p.fullName === patientName)?.id, [patients, patientName]);
   
   const { data: patientAppointments } = api.appointment.list.useQuery(
@@ -219,26 +224,14 @@ export function ReceiveForm({ users = [], sentRecords = [] }: ReceiveFormProps) 
   useEffect(() => {
     setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    
-    async function loadEntities() {
-        try {
-            const { fetchEntitiesAction } = await import('@/app/dashboard/lab/actions');
-            const [labsData, patientsData, templatesData] = await Promise.all([
-                fetchEntitiesAction('labs'),
-                fetchEntitiesAction('patients'),
-                fetchEntitiesAction('templates')
-            ]);
-            setLabs(labsData as any[]);
-            setPatients(patientsData as any[]);
-            setTemplates(templatesData as any[]);
-        } catch (error) {
-            console.error("Failed to load entities:", error);
-        }
-    }
-    loadEntities();
-
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (trpcLabs) setLabs(trpcLabs as any);
+    if (trpcPatientsData?.patients) setPatients(trpcPatientsData.patients.map(p => ({ ...p, name: p.fullName })));
+    if (trpcTemplates) setTemplates(trpcTemplates as any[]);
+  }, [trpcLabs, trpcPatientsData, trpcTemplates]);
 
   const allServices = useMemo(() => {
     const services = new Set<string>();

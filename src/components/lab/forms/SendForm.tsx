@@ -4,9 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { sendSchemaClient } from "@/lib/schemas";
-import { sendSubmissionAction, fetchEntitiesAction } from "@/app/dashboard/lab/actions";
+import { sendSubmissionAction } from "@/app/dashboard/lab/actions";
 import { useEffect, useState, useMemo, useRef } from "react";
-
+import { api } from "@/trpc/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,6 +44,10 @@ export function SendForm({ users = [], receivedRecords = [] }: SendFormProps) {
   const [step, setStep] = useState(1);
   const [labs, setLabs] = useState<Lab[]>([]);
   const [isLoadingLabs, setIsLoadingLabs] = useState(true);
+
+  const { data: trpcLabs, isLoading: isLoadingLabsQuery } = api.labs.listLabs.useQuery();
+  const { data: trpcPatientsData, isLoading: isLoadingPatientsQuery } = api.patients.list.useQuery({ perPage: 1000 });
+  const { data: trpcTemplates, isLoading: isLoadingTemplatesQuery } = api.labs.listTemplates.useQuery();
   
   // Camera Modal States
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -224,27 +228,15 @@ export function SendForm({ users = [], receivedRecords = [] }: SendFormProps) {
   useEffect(() => {
     setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    
-    async function loadEntities() {
-        try {
-            const [labsData, patientsData, templatesData] = await Promise.all([
-                fetchEntitiesAction('labs'),
-                fetchEntitiesAction('patients'),
-                fetchEntitiesAction('templates')
-            ]);
-            setLabs(labsData as Lab[]);
-            setPatients(patientsData as any[]);
-            setTemplates(templatesData as any[]);
-        } catch (error) {
-            console.error("Failed to load entities:", error);
-        } finally {
-            setIsLoadingLabs(false);
-        }
-    }
-    loadEntities();
-    
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (trpcLabs) setLabs(trpcLabs as any);
+    if (trpcPatientsData?.patients) setPatients(trpcPatientsData.patients.map(p => ({ ...p, name: p.fullName })));
+    if (trpcTemplates) setTemplates(trpcTemplates as any[]);
+    setIsLoadingLabs(isLoadingLabsQuery || isLoadingPatientsQuery || isLoadingTemplatesQuery);
+  }, [trpcLabs, trpcPatientsData, trpcTemplates, isLoadingLabsQuery, isLoadingPatientsQuery, isLoadingTemplatesQuery]);
 
   // Derived data
   const allServices = useMemo(() => {
