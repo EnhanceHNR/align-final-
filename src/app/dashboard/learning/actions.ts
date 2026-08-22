@@ -1,7 +1,7 @@
 'use server';
 
-import { uploadFile } from '@/lib/firebase/storage';
-import { prisma } from '~/lib/prisma';
+import { revalidatePath } from 'next/cache';
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from "next-auth";
 import { authOptions } from "~/lib/auth";
 
@@ -26,7 +26,7 @@ export async function uploadLearningMaterial(formData: FormData) {
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
     const path = `learning/${categoryId}/${timestampPrefix}-${cleanFileName}`;
     
-    const url = await uploadFile(file, path);
+    const url = await (await import('@/lib/firebase/storage')).uploadFile(file, path);
 
     // Save to Database
     const material = await prisma.learningMaterial.create({

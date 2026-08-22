@@ -2,7 +2,6 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { uploadFile } from '@/lib/firebase/storage';
 import { prisma } from '@/lib/prisma';
 import { sendSchema, receiveSchema } from '@/lib/schemas';
 
@@ -71,12 +70,12 @@ async function handleSubmission(
         const data = validatedFields.data as z.infer<typeof sendSchema>;
         
         if (data.senderSelfie && data.senderSelfie instanceof File && data.senderSelfie.size > 0) {
-            senderSelfieUrl = await uploadFile(data.senderSelfie, `submissions/${timestampPrefix}-selfie-${data.senderSelfie.name}`);
+            senderSelfieUrl = await (await import('@/lib/firebase/storage')).uploadFile(data.senderSelfie, `submissions/${timestampPrefix}-selfie-${data.senderSelfie.name}`);
         }
 
         if (data.productPhotos && Array.isArray(data.productPhotos)) {
             const uploadPromises = data.productPhotos.map(async (file: File, index: number) => {
-                if (file.size > 0) return await uploadFile(file, `submissions/${timestampPrefix}-product-${index}-${file.name}`);
+                if (file.size > 0) return await (await import('@/lib/firebase/storage')).uploadFile(file, `submissions/${timestampPrefix}-product-${index}-${file.name}`);
                 return null;
             });
             const results = await Promise.all(uploadPromises);
@@ -85,14 +84,14 @@ async function handleSubmission(
         }
 
         if (data.deliveryPersonPhoto && data.deliveryPersonPhoto instanceof File && data.deliveryPersonPhoto.size > 0) {
-            deliveryPersonPhotoUrl = await uploadFile(data.deliveryPersonPhoto, `submissions/${timestampPrefix}-delivery-${data.deliveryPersonPhoto.name}`);
+            deliveryPersonPhotoUrl = await (await import('@/lib/firebase/storage')).uploadFile(data.deliveryPersonPhoto, `submissions/${timestampPrefix}-delivery-${data.deliveryPersonPhoto.name}`);
         }
     } else {
         const data = validatedFields.data as z.infer<typeof receiveSchema>;
         
         if (data.photo && Array.isArray(data.photo)) {
             const uploadPromises = data.photo.map(async (file: File, index: number) => {
-                if (file.size > 0) return await uploadFile(file, `submissions/${timestampPrefix}-received-${index}-${file.name}`);
+                if (file.size > 0) return await (await import('@/lib/firebase/storage')).uploadFile(file, `submissions/${timestampPrefix}-received-${index}-${file.name}`);
                 return null;
             });
             const results = await Promise.all(uploadPromises);
@@ -101,7 +100,7 @@ async function handleSubmission(
         }
         
         if (data.billPhoto && data.billPhoto instanceof File && data.billPhoto.size > 0) {
-            billPhotoUrl = await uploadFile(data.billPhoto, `submissions/${timestampPrefix}-bill-${data.billPhoto.name}`);
+            billPhotoUrl = await (await import('@/lib/firebase/storage')).uploadFile(data.billPhoto, `submissions/${timestampPrefix}-bill-${data.billPhoto.name}`);
         }
     }
 
@@ -186,7 +185,7 @@ export async function addLabTransactionAction(prevState: any, formData: FormData
 
     let photoUrl = '';
     if (photo && photo.size > 0) {
-      photoUrl = await uploadFile(photo, `transactions/${Date.now()}-${photo.name}`);
+      photoUrl = await (await import('@/lib/firebase/storage')).uploadFile(photo, `transactions/${Date.now()}-${photo.name}`);
     }
 
     const transaction = await prisma.labTransaction.create({
