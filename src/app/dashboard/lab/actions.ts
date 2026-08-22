@@ -10,23 +10,21 @@ export async function createInternalUserAction(adminUid: string, userData: { ema
   return { success: true, message: `Successfully created ${userData.role} account for ${userData.fullName}.` };
 }
 
+import { getToken } from "next-auth/jwt";
 import { cookies } from "next/headers";
-import { decode } from "next-auth/jwt";
 
-// Ensure entities like Labs and Patients exist
 async function getActionOrgId() {
-  try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("align_token")?.value || cookieStore.get("__Secure-align_token")?.value;
-    if (token) {
-        const decoded = await decode({ token, secret: process.env.NEXTAUTH_SECRET || "" });
-        return (decoded as any)?.organizationId || null;
+    try {
+        const req = {
+            cookies: Object.fromEntries(cookies().getAll().map(c => [c.name, c.value])),
+            headers: { cookie: cookies().toString() }
+        };
+        const token = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET || "", cookieName: "align_token" });
+        return (token as any)?.organizationId || null;
+    } catch (e) {
+        console.error("Token error:", e);
+        return null;
     }
-    return null;
-  } catch (e) {
-    console.error("Failed to decode token", e);
-    return null;
-  }
 }
 
 async function upsertEntityPrisma(type: 'labs' | 'patients', name: string) {

@@ -1,43 +1,16 @@
 import { PrismaClient } from "@prisma/client";
-import { getServerSession } from "next-auth";
-
-
-const globalForPrisma = globalThis as unknown as {
-    prisma: PrismaClient | undefined;
-};
-
-const basePrisma = globalForPrisma.prisma ?? new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
-});
-
-if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = basePrisma;
-}
-
-const tenantModels = [
-    "Patient", "Appointment", "Treatment", "VisitNote", "TreatmentPlan",
-    "Invoice", "PriceListItem", "Chair", "OdontogramSurface", "Lab", "LabSubmission",
-    "LabTransaction", "InstructionTemplate", "InventoryItem", "StockEntry", "PurchaseOrder",
-    "Delivery", "Dealer", "Statement", "ConsumptionRecord", "LearningCategory", 
-    "LearningMaterial", "EmployeeProfile", "Holiday"
-,
-    "Anamnesis", "TreatmentPlanItem", "InvoiceItem", "ShiftSegment", "Attendance", "AttendanceSession", "LeaveRequest", "PayrollRecord", "ResignationRequest", "RejoinRequest", "EmployeeDocument", "LateRequest", "EarlyPunchOutRequest"];
-
+import { getToken } from "next-auth/jwt";
 import { cookies } from "next/headers";
-import { decode } from "next-auth/jwt";
 
-// Helper to get organizationId dynamically
 async function getOrgId() {
     try {
-        const cookieStore = cookies();
-        const token = cookieStore.get("align_token")?.value || cookieStore.get("__Secure-align_token")?.value;
-        if (token) {
-            const decoded = await decode({ token, secret: process.env.NEXTAUTH_SECRET || "" });
-            return (decoded as any)?.organizationId || null;
-        }
-        return null;
+        const req = {
+            cookies: Object.fromEntries(cookies().getAll().map(c => [c.name, c.value])),
+            headers: { cookie: cookies().toString() }
+        };
+        const token = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET || "", cookieName: "align_token" });
+        return (token as any)?.organizationId || null;
     } catch (e) {
-        console.error("Error in getOrgId:", e);
         return null;
     }
 }
