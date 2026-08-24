@@ -8,13 +8,12 @@ import {
 import { getStorage } from 'firebase/storage';
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyAO24wkvq0CcupNxwHanrTa8tbWWVQW0Is",
-  authDomain: "inventory-and-labtrk-957-b97b0.firebaseapp.com",
-  databaseURL: "https://inventory-and-labtrk-957-b97b0-default-rtdb.firebaseio.com",
-  projectId: "inventory-and-labtrk-957-b97b0",
-  storageBucket: "inventory-and-labtrk-957-b97b0.firebasestorage.app",
-  messagingSenderId: "312066085011",
-  appId: "1:312066085011:web:8381920b8d49a150287d66"
+  apiKey: "AIzaSyDpp9VLSPjpvFhv8PcrjfoQUDZE_mckVvU",
+  authDomain: "studio-3524371045-b11af.firebaseapp.com",
+  projectId: "studio-3524371045-b11af",
+  storageBucket: "studio-3524371045-b11af.firebasestorage.app",
+  messagingSenderId: "1065356021023",
+  appId: "1:1065356021023:web:b4b4584d5b4bfa4b1a342a"
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
