@@ -1,14 +1,17 @@
+const path = require("path");
+
 /** @type {import("next").NextConfig} */
 const nextConfig = {
-  /* Env validation satırını tamamen sildik */
   eslint: {
-    // Build sırasında ESLint hatalarını tamamen yok sayar
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Build sırasında TypeScript hatalarını tamamen yok sayar
     ignoreBuildErrors: true,
+  },
+  outputFileTracingRoot: path.join(__dirname),
+  outputFileTracingIncludes: {
+    "/**": ["./node_modules/**/*.node", "./node_modules/**/*.wasm"],
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

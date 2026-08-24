@@ -2,7 +2,6 @@
   "name": "aligne",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -49,7 +48,7 @@
     "date-fns": "^4.4.0",
     "embla-carousel-react": "^8.6.0",
     "firebase": "^12.17.1",
-    "firebase-admin": "^14.2.0",
+    "firebase-admin": "^13.10.0",
     "googleapis": "^176.0.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
