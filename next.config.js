@@ -10,7 +10,7 @@ const nextConfig = {
   },
   outputFileTracingRoot: path.join(__dirname),
   outputFileTracingIncludes: {
-    "/**": ["./node_modules/**/*.node", "./node_modules/**/*.wasm"],
+    "/**": ["./prisma/generated/client/*.node", "./prisma/generated/client/*.wasm"],
   },
 };
 

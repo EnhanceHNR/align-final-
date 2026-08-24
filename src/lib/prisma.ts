@@ -1,6 +1,13 @@
 import { PrismaClient } from "@prisma/client";
 import { getToken } from "next-auth/jwt";
 import { cookies } from "next/headers";
+import path from "path";
+
+// Force Next.js to trace the Prisma query engines
+const _engine1 = path.join(process.cwd(), "prisma", "generated", "client", "libquery_engine-debian-openssl-1.1.x.so.node");
+const _engine2 = path.join(process.cwd(), "prisma", "generated", "client", "libquery_engine-debian-openssl-3.0.x.so.node");
+const _engine3 = path.join(process.cwd(), "prisma", "generated", "client", "libquery_engine-linux-musl-openssl-3.0.x.so.node");
+const _engine4 = path.join(process.cwd(), "prisma", "generated", "client", "libquery_engine-darwin-arm64.dylib.node");
 
 const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
@@ -22,7 +29,6 @@ const tenantModels = [
     "LearningMaterial", "EmployeeProfile", "Holiday",
     "Anamnesis", "TreatmentPlanItem", "InvoiceItem", "ShiftSegment", "Attendance", "AttendanceSession", "LeaveRequest", "PayrollRecord", "ResignationRequest", "RejoinRequest", "EmployeeDocument", "LateRequest", "EarlyPunchOutRequest"
 ];
-
 
 async function getOrgId() {
     try {

@@ -27,7 +27,7 @@
 
     /* Path Aliases */
     
-    /* Path Aliases */ "baseUrl": ".", "paths": { "~/*": ["./src/*"], "@/*": ["./src/*"] }
+    /* Path Aliases */ "baseUrl": ".", "paths": { "@prisma/client": ["./prisma/generated/client"], "~/*": ["./src/*"], "@/*": ["./src/*"] }
   },
   "include": [
     "next-env.d.ts",
