@@ -399,7 +399,7 @@ export default function EmployeeDetailsPage() {
                              <p className="font-medium">Base Salary</p>
                              <p className="text-sm text-muted-foreground">Fixed monthly</p>
                           </div>
-                          <div className="font-bold">${employee.baseSalary.toFixed(2)}</div>
+                          <div className="font-bold">${(employee.baseSalary || 0).toFixed(2)}</div>
                        </div>
                        <div className="flex justify-between items-center p-3 border rounded-lg bg-slate-50 opacity-60">
                           <div>
