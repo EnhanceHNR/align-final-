@@ -1,8 +1,8 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { getServerSession } from "next-auth";
 import superjson from "superjson";
-import { authOptions } from "~/lib/auth";
-import { prisma as db } from "../lib/prisma";
+import { authOptions } from "@/lib/authOptions";
+import { adminDb } from "@/lib/firebaseAdmin";
 
 export type UserRole = "MASTER" | "STAFF" | "SUPERADMIN";
 
@@ -16,17 +16,23 @@ export type Context = {
     db: any;
 };
 
-const tenantModels = [
-    "Patient", "Appointment", "Treatment", "VisitNote", "TreatmentPlan",
-    "Invoice", "PriceListItem", "Chair", "OdontogramSurface", "Lab", "LabSubmission",
-    "LabTransaction", "InstructionTemplate", "InventoryItem", "StockEntry", "PurchaseOrder",
-    "Delivery", "Dealer", "Statement", "ConsumptionRecord", "LearningCategory", 
-    "LearningMaterial", "EmployeeProfile", "Holiday"
-];
-
 export async function createTRPCContext(opts: { req: Request }): Promise<Context> {
-    const session = await getServerSession(authOptions);
-    const orgId = (session?.user as any)?.organizationId;
+    let session = null;
+    try {
+        session = await getServerSession(authOptions);
+    } catch (err) {
+        console.error("GET_SERVER_SESSION ERROR:", err);
+    }
+    
+    let orgId = (session?.user as any)?.organizationId;
+    
+    // Auto-heal old sessions that lack organizationId
+    if (session?.user?.id && !orgId) {
+        const userDoc = await adminDb.collection("users").doc(session.user.id).get();
+        if (userDoc.exists) {
+            orgId = userDoc.data()?.organizationId;
+        }
+    }
 
     return {
         user: session?.user ? {
@@ -35,7 +41,7 @@ export async function createTRPCContext(opts: { req: Request }): Promise<Context
             role: session.user.role as UserRole,
             organizationId: orgId,
         } : null,
-        db,
+        db: adminDb,
     };
 }
 

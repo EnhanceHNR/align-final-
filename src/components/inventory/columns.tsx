@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { type InventoryItem } from "@prisma/client"
+import { type InventoryItem } from "@/types/models"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 
 const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {

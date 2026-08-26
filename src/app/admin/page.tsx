@@ -1,17 +1,27 @@
+export const dynamic = "force-dynamic";
+
 import React from "react";
-import { PrismaClient } from "@prisma/client";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Users, Activity } from "lucide-react";
 
 // Server Component for Super Admin
 export default async function SuperAdminDashboard() {
-  const prisma = new PrismaClient();
   
   // Note: Add NextAuth session check here to verify SUPERADMIN role
-  const orgs = await prisma.organization.findMany({
-    include: { _count: { select: { users: true } } },
-    orderBy: { createdAt: 'desc' }
-  });
+  const orgsSnap = await adminDb.collection("organizations").orderBy("createdAt", "desc").get();
+  
+  const orgs = await Promise.all(orgsSnap.docs.map(async (doc) => {
+      const data = doc.data();
+      const usersSnap = await adminDb.collection("users").where("organizationId", "==", doc.id).get();
+      return {
+          id: doc.id,
+          name: data.name,
+          slug: data.slug,
+          isActive: data.isActive,
+          _count: { users: usersSnap.size }
+      };
+  }));
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 min-h-screen">

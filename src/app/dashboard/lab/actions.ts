@@ -2,21 +2,44 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { prisma } from '@/lib/prisma';
+import { adminDb } from '@/lib/firebaseAdmin';
+
+function serializeData(data: any) {
+    if (!data) return data;
+    const result = { ...data };
+    for (const key in result) {
+        if (result[key] && typeof result[key].toDate === 'function') {
+            result[key] = result[key].toDate().toISOString();
+        } else if (result[key] && result[key].constructor && result[key].constructor.name === 'Timestamp') {
+            result[key] = new Date(result[key]._seconds * 1000).toISOString();
+        }
+    }
+    return result;
+}
+
 import { sendSchema, receiveSchema } from '@/lib/schemas';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
+
 // User Management Actions
 export async function createInternalUserAction(adminUid: string, userData: { email: string; password: string; fullName: string; role: 'admin' | 'staff' }) {
   // Mocked for now, Align.io handles users differently
   return { success: true, message: `Successfully created ${userData.role} account for ${userData.fullName}.` };
 }
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
-
 async function getActionOrgId() {
     try {
         const session = await getServerSession(authOptions);
-        return (session?.user as any)?.organizationId || null;
+        let orgId = (session?.user as any)?.organizationId;
+        
+        if (session?.user?.id && !orgId) {
+            const userDoc = await adminDb.collection("users").doc(session.user.id).get();
+            if (userDoc.exists) {
+                orgId = userDoc.data()?.organizationId;
+            }
+        }
+        
+        return orgId || null;
     } catch (e: any) {
         console.error("Session error:", e);
         return null;
@@ -30,17 +53,21 @@ async function upsertEntityPrisma(type: 'labs' | 'patients', name: string) {
   const safeName = name.trim();
   
   if (type === 'labs') {
-    let lab = await prisma.lab.findFirst({ where: { name: safeName, organizationId: orgId } });
-    if (!lab) {
-      lab = await prisma.lab.create({ data: { name: safeName, organizationId: orgId } });
+    const snapshot = await adminDb.collection('labs').where('name', '==', safeName).where('organizationId', '==', orgId).limit(1).get();
+    if (snapshot.empty) {
+      const docRef = await adminDb.collection('labs').add({ name: safeName, organizationId: orgId, createdAt: new Date() });
+      return { id: docRef.id, name: safeName, organizationId: orgId };
     }
-    return lab;
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() };
   } else if (type === 'patients') {
-    let patient = await prisma.patient.findFirst({ where: { fullName: safeName, organizationId: orgId } });
-    if (!patient) {
-      patient = await prisma.patient.create({ data: { fullName: safeName, organizationId: orgId } });
+    const snapshot = await adminDb.collection('patients').where('fullName', '==', safeName).where('organizationId', '==', orgId).limit(1).get();
+    if (snapshot.empty) {
+      const docRef = await adminDb.collection('patients').add({ fullName: safeName, organizationId: orgId, createdAt: new Date() });
+      return { id: docRef.id, fullName: safeName, organizationId: orgId };
     }
-    return patient;
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() };
   }
 }
 
@@ -146,23 +173,23 @@ async function handleSubmission(
         tat: rawFormData.tat || null,
         linkedRecordId: rawFormData.linkedRecordId || null,
         approvalStatus: rawFormData.approvalStatus || "Pending",
-        organizationId: orgId,
+        createdAt: new Date(),
     };
 
-    const submission = await prisma.labSubmission.create({ data: submissionData });
+    const submissionRef = await adminDb.collection('labSubmissions').add(submissionData);
+    const submissionId = submissionRef.id;
 
     // Handle bill transaction for receives
     if (submissionType === 'receive' && rawFormData.hasBill && rawFormData.billAmount) {
-        await prisma.labTransaction.create({
-            data: {
-                labId: lab.id,
-                amount: parseFloat(rawFormData.billAmount),
-                type: 'bill',
-                description: `Bill for ${rawFormData.item} (${rawFormData.patientName})`,
-                photoUrl: billPhotoUrl || null,
-                submissionId: submission.id,
-                organizationId: orgId
-            }
+        await adminDb.collection('labTransactions').add({
+            labId: lab.id,
+            amount: parseFloat(rawFormData.billAmount),
+            type: 'bill',
+            description: `Bill for ${rawFormData.item} (${rawFormData.patientName})`,
+            photoUrl: billPhotoUrl || null,
+            submissionId: submissionId,
+            organizationId: orgId,
+            createdAt: new Date()
         });
     }
 
@@ -217,18 +244,18 @@ export async function addLabTransactionAction(prevState: any, formData: FormData
       photoUrl = await (await import('@/lib/firebase/storage')).uploadFile(photo, `transactions/${Date.now()}-${photo.name}`);
     }
 
-    const transaction = await prisma.labTransaction.create({
-      data: {
+    const transactionRef = await adminDb.collection('labTransactions').add({
         labId: lab.id,
         amount: parsedAmount,
         type,
         description,
         photoUrl: photoUrl || null,
-      }
+        organizationId: orgId,
+        createdAt: new Date()
     });
 
     revalidatePath('/dashboard/lab/bills');
-    return { success: true, id: transaction.id };
+    return { success: true, id: transactionRef.id };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -238,16 +265,22 @@ export async function fetchEntitiesAction(collectionName: 'labs' | 'patients' | 
     try {
         const orgId = await getActionOrgId();
         if (collectionName === 'labs') {
-            return await prisma.lab.findMany({ where: { organizationId: orgId }, orderBy: { createdAt: 'desc' } });
+            const snapshot = await adminDb.collection('labs').where('organizationId', '==', orgId).orderBy('createdAt', 'desc').get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...serializeData(doc.data()) }));
         } else if (collectionName === 'patients') {
-            const patients = await prisma.patient.findMany({ where: { organizationId: orgId }, orderBy: { createdAt: 'desc' } });
-            return patients.map(p => ({ ...p, name: p.fullName }));
+            const snapshot = await adminDb.collection('patients').where('organizationId', '==', orgId).orderBy('createdAt', 'desc').get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...serializeData(doc.data()), name: doc.data().fullName }));
         } else if (collectionName === 'templates') {
-            return await prisma.instructionTemplate.findMany({ where: { organizationId: orgId }, orderBy: { createdAt: 'desc' } });
+            const snapshot = await adminDb.collection('instructionTemplates').where('organizationId', '==', orgId).orderBy('createdAt', 'desc').get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...serializeData(doc.data()) }));
         } else if (collectionName === 'items') {
-            // Just return unique items from submissions
-            const items = await prisma.labSubmission.findMany({ where: { organizationId: orgId }, select: { item: true }, distinct: ['item'] });
-            return items.map(i => ({ name: i.item }));
+            const snapshot = await adminDb.collection('labSubmissions').where('organizationId', '==', orgId).get();
+            const items = new Set();
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.item) items.add(data.item);
+            });
+            return Array.from(items).map(i => ({ name: i }));
         }
         return [];
     } catch (error: any) {
@@ -258,51 +291,75 @@ export async function fetchEntitiesAction(collectionName: 'labs' | 'patients' | 
 
 export async function fetchSubmissions() {
     const orgId = await getActionOrgId();
-    return await prisma.labSubmission.findMany({
-        where: { organizationId: orgId },
-        orderBy: { createdAt: 'desc' },
-        include: { lab: true, patient: true }
-    }).then(submissions => submissions.map(sub => ({
+    const snapshot = await adminDb.collection('labSubmissions')
+        .where('organizationId', '==', orgId)
+        .orderBy('createdAt', 'desc')
+        .get();
+        
+    const submissions = snapshot.docs.map(doc => ({ id: doc.id, ...serializeData(doc.data()) }));
+    
+    const [labsSnap, patientsSnap] = await Promise.all([
+        adminDb.collection('labs').where('organizationId', '==', orgId).get(),
+        adminDb.collection('patients').where('organizationId', '==', orgId).get()
+    ]);
+    
+    const labsMap = new Map();
+    labsSnap.forEach(d => labsMap.set(d.id, serializeData(d.data())));
+    
+    const patientsMap = new Map();
+    patientsSnap.forEach(d => patientsMap.set(d.id, serializeData(d.data())));
+    
+    return submissions.map(sub => ({
         ...sub,
-        labName: sub.lab?.name || 'Unknown Lab',
-        patientName: sub.patient?.fullName || sub.patientName
-    })));
+        labName: labsMap.get(sub.labId)?.name || 'Unknown Lab',
+        patientName: patientsMap.get(sub.patientId)?.fullName || sub.patientName
+    }));
 }
 
 export async function fetchUsersAction() {
-    const users = await prisma.user.findMany({
-        where: { isActive: true, organizationId: await getActionOrgId() },
-        select: { id: true, email: true }
-    });
+    const orgId = await getActionOrgId();
+    const snapshot = await adminDb.collection('users')
+        .where('organizationId', '==', orgId)
+        .where('isActive', '==', true)
+        .get();
     
-    return users.map(u => ({
-        id: u.id,
-        email: u.email,
-        fullName: u.email.split('@')[0] // Use email prefix as name
-    }));
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            email: data.email,
+            fullName: data.email ? data.email.split('@')[0] : 'Unknown'
+        };
+    });
 }
 
 export async function fetchLabTransactions() {
     const orgId = await getActionOrgId();
-    return await prisma.labTransaction.findMany({
-        where: { organizationId: orgId },
-        orderBy: { createdAt: "desc" },
-        include: { lab: true }
-    }).then(transactions => transactions.map(tx => ({
+    const snapshot = await adminDb.collection('labTransactions')
+        .where('organizationId', '==', orgId)
+        .orderBy('createdAt', 'desc')
+        .get();
+    
+    const transactions = snapshot.docs.map(doc => ({ id: doc.id, ...serializeData(doc.data()) }));
+    
+    const labsSnap = await adminDb.collection('labs').where('organizationId', '==', orgId).get();
+    const labsMap = new Map();
+    labsSnap.forEach(d => labsMap.set(d.id, d.data()));
+    
+    return transactions.map(tx => ({
         ...tx,
-        labName: tx.lab.name
-    })));
+        labName: labsMap.get(tx.labId)?.name || 'Unknown Lab'
+    }));
 }
 
 export async function updateSubmissionRemarksAction(id: string, newRemarks: string) {
     try {
         const orgId = await getActionOrgId();
-        await prisma.labSubmission.updateMany({
-            where: { id, organizationId: orgId },
-            // @ts-ignore
-            organizationId: await getActionOrgId(),
-            data: { remarks: newRemarks }
-        });
+        const docRef = adminDb.collection('labSubmissions').doc(id);
+        const doc = await docRef.get();
+        if (doc.exists && doc.data()?.organizationId === orgId) {
+            await docRef.update({ remarks: newRemarks });
+        }
         return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message };
@@ -312,7 +369,11 @@ export async function updateSubmissionRemarksAction(id: string, newRemarks: stri
 export async function deleteSubmissionAction(id: string) {
     try {
         const orgId = await getActionOrgId();
-        await prisma.labSubmission.deleteMany({ where: { id, organizationId: orgId } });
+        const docRef = adminDb.collection('labSubmissions').doc(id);
+        const doc = await docRef.get();
+        if (doc.exists && doc.data()?.organizationId === orgId) {
+            await docRef.delete();
+        }
         return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message };
@@ -329,10 +390,11 @@ export async function updatePaymentStatusAction(formData: FormData) {
         const status = formData.get('status') as string;
         
         const orgId = await getActionOrgId();
-        await prisma.labSubmission.updateMany({
-            where: { id: submissionId, organizationId: orgId },
-            data: { paymentStatus: status }
-        });
+        const docRef = adminDb.collection('labSubmissions').doc(submissionId);
+        const doc = await docRef.get();
+        if (doc.exists && doc.data()?.organizationId === orgId) {
+            await docRef.update({ paymentStatus: status });
+        }
         return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message };
@@ -343,17 +405,16 @@ export async function updateEntityAction(collectionName: string, oldName: string
     try {
         if (collectionName === 'labs') {
             const orgId = await getActionOrgId();
-            const lab = await prisma.lab.findFirst({ where: { name: oldName, organizationId: orgId } });
-            if (!lab) throw new Error("Lab not found");
-            
-            await prisma.lab.update({
-                where: { id: lab.id },
-                data: {
+            const snapshot = await adminDb.collection('labs').where('name', '==', oldName).where('organizationId', '==', orgId).limit(1).get();
+            if (!snapshot.empty) {
+                await snapshot.docs[0].ref.update({
                     name: newName,
-                    phone: additionalData?.phone,
-                    services: additionalData?.services,
-                }
-            });
+                    phone: additionalData?.phone || null,
+                    services: additionalData?.services || null
+                });
+            } else {
+                throw new Error("Lab not found");
+            }
         }
         return { success: true };
     } catch (e: any) {
@@ -365,13 +426,12 @@ export async function addEntityAction(collectionName: string, name: string, addi
     try {
         if (collectionName === 'labs') {
             const orgId = await getActionOrgId();
-            await prisma.lab.create({
-                data: {
-                    name,
-                    organizationId: orgId,
-                    phone: additionalData?.phone,
-                    services: additionalData?.services,
-                }
+            await adminDb.collection('labs').add({
+                name,
+                organizationId: orgId,
+                phone: additionalData?.phone || null,
+                services: additionalData?.services || null,
+                createdAt: new Date()
             });
         }
         return { success: true };
@@ -384,13 +444,15 @@ export async function deleteEntityAction(collectionName: string, name: string) {
     try {
         if (collectionName === 'labs') {
             const orgId = await getActionOrgId();
-            const lab = await prisma.lab.findFirst({ where: { name, organizationId: orgId } });
-            if (!lab) throw new Error("Lab not found");
-            await prisma.lab.delete({ where: { id: lab.id } });
+            const snapshot = await adminDb.collection('labs').where('name', '==', name).where('organizationId', '==', orgId).limit(1).get();
+            if (!snapshot.empty) {
+                await snapshot.docs[0].ref.delete();
+            } else {
+                throw new Error("Lab not found");
+            }
         }
         return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message };
     }
 }
-

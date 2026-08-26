@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { adminDb } from "@/lib/firebaseAdmin";
 
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
@@ -23,14 +21,12 @@ export async function GET(req: Request) {
         const { tokens } = await oauth2Client.getToken(code);
         
         // Update chair with tokens
-        await prisma.chair.update({
-            where: { id: chairId },
-            data: {
-                googleAccessToken: tokens.access_token,
-                googleRefreshToken: tokens.refresh_token,
-                googleSyncEnabled: true,
-                googleCalendarId: "primary", // Usually we sync to primary calendar or let them pick
-            }
+        await adminDb.collection("chairs").doc(chairId).update({
+            googleAccessToken: tokens.access_token,
+            googleRefreshToken: tokens.refresh_token,
+            googleSyncEnabled: true,
+            googleCalendarId: "primary", // Usually we sync to primary calendar or let them pick
+            updatedAt: new Date()
         });
 
         return NextResponse.redirect(new URL("/dashboard/settings?sync=success", req.url));

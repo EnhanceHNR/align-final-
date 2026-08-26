@@ -1,14 +1,15 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { prisma } from "~/lib/prisma";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { protectedProcedure, router } from "../trpc";
 
 export const labRouter = router({
   listLabs: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.db.lab.findMany({
-      where: { organizationId: ctx.user.organizationId },
-      orderBy: { createdAt: "desc" },
-    });
+    const snapshot = await adminDb.collection('labs')
+      .where("organizationId", "==", ctx.user.organizationId)
+      .orderBy("createdAt", "desc")
+      .get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }),
 
   createLab: protectedProcedure
@@ -20,10 +21,10 @@ export const labRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const lab = await ctx.db.lab.create({
-        data: { ...input, organizationId: ctx.user.organizationId },
-      });
-      return { success: true, lab };
+      const docRef = adminDb.collection('labs').doc();
+      const labData = { ...input, organizationId: ctx.user.organizationId, createdAt: new Date() };
+      await docRef.set(labData);
+      return { success: true, lab: { id: docRef.id, ...labData } };
     }),
 
   updateLab: protectedProcedure
@@ -37,27 +38,37 @@ export const labRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const lab = await ctx.db.lab.updateMany({
-        where: { id, organizationId: ctx.user.organizationId },
-        data,
-      });
-      return { success: true, lab };
+      const snapshot = await adminDb.collection('labs')
+        .where("organizationId", "==", ctx.user.organizationId)
+        .get();
+      
+      const docToUpdate = snapshot.docs.find(doc => doc.id === id);
+      if (docToUpdate) {
+        await docToUpdate.ref.update(data);
+      }
+      return { success: true };
     }),
 
   deleteLab: protectedProcedure
     .input(z.object({ id: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.lab.deleteMany({
-        where: { id: input.id, organizationId: ctx.user.organizationId },
-      });
+      const snapshot = await adminDb.collection('labs')
+        .where("organizationId", "==", ctx.user.organizationId)
+        .get();
+        
+      const docToDelete = snapshot.docs.find(doc => doc.id === input.id);
+      if (docToDelete) {
+        await docToDelete.ref.delete();
+      }
       return { success: true };
     }),
 
   listTemplates: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.db.instructionTemplate.findMany({
-      where: { organizationId: ctx.user.organizationId },
-      orderBy: { createdAt: "desc" },
-    });
+    const snapshot = await adminDb.collection('instructionTemplates')
+      .where("organizationId", "==", ctx.user.organizationId)
+      .orderBy("createdAt", "desc")
+      .get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }),
 
   createTemplate: protectedProcedure
@@ -68,10 +79,10 @@ export const labRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const template = await ctx.db.instructionTemplate.create({
-        data: { ...input, organizationId: ctx.user.organizationId },
-      });
-      return { success: true, template };
+      const docRef = adminDb.collection('instructionTemplates').doc();
+      const templateData = { ...input, organizationId: ctx.user.organizationId, createdAt: new Date() };
+      await docRef.set(templateData);
+      return { success: true, template: { id: docRef.id, ...templateData } };
     }),
 
   updateTemplate: protectedProcedure
@@ -84,19 +95,28 @@ export const labRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const template = await ctx.db.instructionTemplate.updateMany({
-        where: { id, organizationId: ctx.user.organizationId },
-        data,
-      });
-      return { success: true, template };
+      const snapshot = await adminDb.collection('instructionTemplates')
+        .where("organizationId", "==", ctx.user.organizationId)
+        .get();
+      
+      const docToUpdate = snapshot.docs.find(doc => doc.id === id);
+      if (docToUpdate) {
+        await docToUpdate.ref.update(data);
+      }
+      return { success: true };
     }),
 
   deleteTemplate: protectedProcedure
     .input(z.object({ id: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.instructionTemplate.deleteMany({
-        where: { id: input.id, organizationId: ctx.user.organizationId },
-      });
+      const snapshot = await adminDb.collection('instructionTemplates')
+        .where("organizationId", "==", ctx.user.organizationId)
+        .get();
+        
+      const docToDelete = snapshot.docs.find(doc => doc.id === input.id);
+      if (docToDelete) {
+        await docToDelete.ref.delete();
+      }
       return { success: true };
     }),
 });

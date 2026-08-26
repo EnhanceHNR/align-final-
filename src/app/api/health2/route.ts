@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebaseAdmin";
 
 export async function GET() {
     try {
-        const dbStatus = await prisma.user.count().then(() => "connected").catch((e) => `error: ${e.message}`);
+        const dbStatus = await adminDb.collection('users').limit(1).get().then(() => "connected").catch((e) => `error: ${e.message}`);
         return NextResponse.json({ status: "ok", database: dbStatus });
     } catch (error: any) {
         return NextResponse.json({ status: "error", message: error.message }, { status: 500 });

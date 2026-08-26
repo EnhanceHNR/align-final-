@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    /* Base Options: */
     "types": ["jest", "node"],
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -10,13 +9,9 @@
     "moduleDetection": "force",
     "isolatedModules": true,
     "verbatimModuleSyntax": false,
-
-    /* Strictness */
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "checkJs": true,
-
-    /* Bundled projects */
     "lib": ["dom", "dom.iterable", "ES2022"],
     "noEmit": true,
     "module": "ESNext",
@@ -24,10 +19,8 @@
     "jsx": "preserve",
     "plugins": [{ "name": "next" }],
     "incremental": true,
-
-    /* Path Aliases */
-    
-    /* Path Aliases */ "baseUrl": ".", "paths": { "@prisma/client": ["./prisma/generated/client"], "~/*": ["./src/*"], "@/*": ["./src/*"] }
+    "baseUrl": ".",
+    "paths": { "~/*": ["./src/*"], "@/*": ["./src/*"] }
   },
   "include": [
     "next-env.d.ts",
@@ -37,5 +30,5 @@
     "**/*.js",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "generated"]
+  "exclude": ["node_modules"]
 }

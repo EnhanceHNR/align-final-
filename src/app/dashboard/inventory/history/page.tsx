@@ -7,7 +7,7 @@ import { type ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { exportToCsv, exportToPdf } from '@/lib/utils';
 import type { Table } from '@tanstack/react-table';
-import { type ConsumptionRecord } from '@prisma/client';
+import { type ConsumptionRecord } from '@/types/models';
 import { api } from "~/trpc/react";
 
 const columns: ColumnDef<any>[] = [

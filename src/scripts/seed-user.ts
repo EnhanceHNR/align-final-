@@ -4,44 +4,67 @@
  * Run with:
  * npx tsx src/scripts/seed-user.ts
  *
- * Safe to run multiple times: uses upsert so it won't duplicate records.
+ * Safe to run multiple times: checks if users exist before creating.
  */
 
-import { prisma } from "../lib/prisma";
+import { adminDb } from "../lib/firebaseAdmin";
 import { hashPassword } from "../lib/password";
 
 async function main() {
     console.log("🌱 Seeding initial users...");
 
-    // ── MASTER user ────────────────────────────────────────────────────────────
-    const masterHash = await hashPassword("password123");
+    // Create an organization for the seeded users
+    const orgQuery = await adminDb.collection("organizations").where("name", "==", "Align Default").get();
+    let orgId = "";
+    if (orgQuery.empty) {
+        const orgRef = adminDb.collection("organizations").doc();
+        orgId = orgRef.id;
+        await orgRef.set({
+            name: "Align Default",
+            slug: "align-default",
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+    } else {
+        orgId = orgQuery.docs[0].id;
+    }
 
-    const master = await prisma.user.upsert({
-        where: { email: "admin@align.com" },
-        update: {},
-        create: {
+    // ── MASTER user ────────────────────────────────────────────────────────────
+    const masterQuery = await adminDb.collection("users").where("email", "==", "admin@align.com").get();
+    if (masterQuery.empty) {
+        const masterHash = await hashPassword("password123");
+        await adminDb.collection("users").doc().set({
             email: "admin@align.com",
             passwordHash: masterHash,
             role: "MASTER",
             isActive: true,
-        },
-    });
-    console.log(`✅ Master user ready: ${master.email}`);
+            organizationId: orgId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+        console.log(`✅ Master user created: admin@align.com`);
+    } else {
+        console.log(`✅ Master user already exists: admin@align.com`);
+    }
 
     // ── STAFF user ─────────────────────────────────────────────────────────────
-    const staffHash = await hashPassword("staff123");
-
-    const staff = await prisma.user.upsert({
-        where: { email: "staff@align.com" },
-        update: {},
-        create: {
+    const staffQuery = await adminDb.collection("users").where("email", "==", "staff@align.com").get();
+    if (staffQuery.empty) {
+        const staffHash = await hashPassword("staff123");
+        await adminDb.collection("users").doc().set({
             email: "staff@align.com",
             passwordHash: staffHash,
             role: "STAFF",
             isActive: true,
-        },
-    });
-    console.log(`✅ Staff user ready: ${staff.email}`);
+            organizationId: orgId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+        console.log(`✅ Staff user created: staff@align.com`);
+    } else {
+        console.log(`✅ Staff user already exists: staff@align.com`);
+    }
 }
 
 async function run() {
@@ -51,8 +74,6 @@ async function run() {
     } catch (err) {
         console.error("❌ Seed failed:", err);
         process.exit(1);
-    } finally {
-        await prisma.$disconnect();
     }
 }
 

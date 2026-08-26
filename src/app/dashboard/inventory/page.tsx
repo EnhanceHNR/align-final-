@@ -30,7 +30,7 @@ import { EditItemDialog } from "@/components/inventory/edit-item-dialog";
 import { DashboardAlerts } from "@/components/dashboard/dashboard-alerts";
 
 import { api } from "~/trpc/react";
-import { type InventoryItem } from "@prisma/client";
+import { type InventoryItem } from "@/types/models";
 
 export default function InventoryPage() {
     const { toast } = useToast();

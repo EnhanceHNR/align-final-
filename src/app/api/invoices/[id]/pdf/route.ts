@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "~/lib/prisma";
+import { adminDb } from "@/lib/firebaseAdmin";
 import puppeteer from "puppeteer";
 import fs from "fs";
 import path from "path";
@@ -17,27 +17,31 @@ export async function GET(
     try {
         const { id } = await params;
 
-        const invoice = await prisma.invoice.findUnique({
-            where: { id },
-            include: {
-                items: true,
-                patient: true,
-            },
-        });
-
-        if (!invoice) {
+        const doc = await adminDb.collection("invoices").doc(id).get();
+        if (!doc.exists) {
             return NextResponse.json(
                 { error: "Invoice not found" },
                 { status: 404 }
             );
         }
 
-        const date = new Date(invoice.createdAt).toLocaleDateString("en-GB");
+        const invoice = { id: doc.id, ...doc.data() } as any;
+
+        // Fetch patient
+        const patientDoc = await adminDb.collection("patients").doc(invoice.patientId).get();
+        const patient = patientDoc.exists ? patientDoc.data() : { fullName: "Unknown" };
+        invoice.patient = patient;
+
+        // Fetch items
+        const itemsSnap = await adminDb.collection("invoiceItems").where("invoiceId", "==", id).get();
+        invoice.items = itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const date = invoice.createdAt ? new Date(invoice.createdAt.toDate ? invoice.createdAt.toDate() : invoice.createdAt).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB");
         const logo = getLogoBase64();
 
-        const subtotal = (invoice as any).subtotal || invoice.totalAmount / 1.17;
-        const taxAmount = (invoice as any).taxAmount || invoice.totalAmount * 0.17;
-        const taxRate = (invoice as any).taxRate || 0.17;
+        const subtotal = invoice.subtotal || invoice.totalAmount / 1.17;
+        const taxAmount = invoice.taxAmount || invoice.totalAmount * 0.17;
+        const taxRate = invoice.taxRate || 0.17;
 
         const html = `
 <!DOCTYPE html>
@@ -212,7 +216,7 @@ td {
   </thead>
   <tbody>
     ${invoice.items
-            .map((item) => {
+            .map((item: any) => {
                 const total = item.unitPrice * item.quantity;
                 return `
         <tr>

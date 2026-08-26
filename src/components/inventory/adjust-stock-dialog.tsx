@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import { type InventoryItem } from "@prisma/client";
+import { type InventoryItem } from "@/types/models";
 import {
   Dialog,
   DialogContent,

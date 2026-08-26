@@ -1,25 +1,39 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { prisma } from "~/lib/prisma";
+import { adminDb } from "~/lib/firebaseAdmin";
 import { protectedProcedure, router } from "../trpc";
 
 export const labTransactionRouter = router({
   list: protectedProcedure
-    .input(z.object({ labId: z.string().cuid().optional() }).optional())
+    .input(z.object({ labId: z.string().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      return ctx.db.labTransaction.findMany({
-        where: { organizationId: ctx.user.organizationId, ...(input?.labId ? { labId: input.labId } : {}) },
-        orderBy: { createdAt: "desc" },
-        include: {
-          lab: true,
-        },
-      });
+      let query = adminDb.collection("labTransactions")
+        .where("organizationId", "==", ctx.user.organizationId)
+        .orderBy("createdAt", "desc");
+      
+      if (input?.labId) {
+        query = query.where("labId", "==", input.labId);
+      }
+
+      const snapshot = await query.get();
+      const transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      return Promise.all(transactions.map(async (txn) => {
+        let lab = null;
+        if (txn.labId) {
+          const labDoc = await adminDb.collection("labs").doc(txn.labId).get();
+          if (labDoc.exists) {
+            lab = { id: labDoc.id, ...labDoc.data() };
+          }
+        }
+        return { ...txn, lab };
+      }));
     }),
 
   create: protectedProcedure
     .input(
       z.object({
-        labId: z.string().cuid(),
+        labId: z.string(),
         amount: z.number(),
         type: z.string(),
         description: z.string(),
@@ -28,19 +42,37 @@ export const labTransactionRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const transaction = await ctx.db.labTransaction.create({
-        data: { ...input, organizationId: ctx.user.organizationId },
-        include: { lab: true },
-      });
-      return { success: true, transaction };
+      const data = {
+        ...input,
+        organizationId: ctx.user.organizationId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const docRef = await adminDb.collection("labTransactions").add(data);
+      const transaction = { id: docRef.id, ...data };
+
+      let lab = null;
+      if (data.labId) {
+        const labDoc = await adminDb.collection("labs").doc(data.labId).get();
+        if (labDoc.exists) {
+          lab = { id: labDoc.id, ...labDoc.data() };
+        }
+      }
+
+      return { success: true, transaction: { ...transaction, lab } };
     }),
 
   delete: protectedProcedure
-    .input(z.object({ id: z.string().cuid() }))
+    .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.labTransaction.deleteMany({
-        where: { id: input.id, organizationId: ctx.user.organizationId },
-      });
+      const docRef = adminDb.collection("labTransactions").doc(input.id);
+      const docSnap = await docRef.get();
+
+      if (docSnap.exists && docSnap.data()?.organizationId === ctx.user.organizationId) {
+        await docRef.delete();
+      }
+
       return { success: true };
     }),
 });

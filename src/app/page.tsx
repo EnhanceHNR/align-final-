@@ -1,6 +1,6 @@
 "use client";
-
-import React, { useState } from 'react';
+import { useSearchParams } from "next/navigation";
+import React, { useState, Suspense } from "react";
 import { useRouter } from 'next/navigation';
 import { signIn } from "next-auth/react"; 
 import Image from 'next/image'; // Imported for modern and optimized image handling
@@ -13,7 +13,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams();
+  const registered = searchParams.get("registered");
+  const verified = searchParams.get("verified");
+
   const [selectedRole, setSelectedRole] = useState<'MASTER' | 'STAFF' | null>(null);
   const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState(""); 
@@ -42,22 +46,33 @@ export default function LoginPage() {
       if (result?.ok) {
           // Do NOT setLoading(false) here, because we want the spinner to stay while the page transitions
           router.push("/dashboard");
+          router.refresh();
       } else {
-          setLoading(false); // Only stop loading if we failed
-          if (result?.error === "ACCOUNT_INACTIVE") {
-              setServerError("Your account is deactivated. Contact the administrator.");
+          setLoading(false);
+          if (result?.error) {
+              setServerError(result.error === "EMAIL_NOT_VERIFIED" ? "Please verify your email before logging in." : result.error);
           } else {
               setServerError("Invalid email or password.");
           }
       }
-    } catch (error) {
+    } catch (error: any) {
         setLoading(false);
-        setServerError("An error occurred during login.");
+        setServerError("An unexpected error occurred. Please try again.");
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans selection:bg-blue-100 relative overflow-hidden">
+      {registered === "true" && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 p-4 bg-green-100 text-green-800 rounded-xl shadow-lg font-bold text-sm text-center border border-green-200">
+          Registration successful! Please check your email to verify your account before logging in.
+        </div>
+      )}
+      {verified === "true" && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 p-4 bg-green-100 text-green-800 rounded-xl shadow-lg font-bold text-sm text-center border border-green-200">
+          Email successfully verified! You can now log in.
+        </div>
+      )}
       
       {/* Decorative Background Blur */}
       <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-blue-50 rounded-full blur-3xl opacity-60 z-0" />
@@ -73,6 +88,7 @@ export default function LoginPage() {
                 src="/clinic-logo-v3.png" 
                 alt="Clinic Official Logo" 
                 fill
+                sizes="(max-width: 768px) 100vw, 224px"
                 priority
                 className="object-contain"
               />
@@ -153,8 +169,6 @@ export default function LoginPage() {
                         className="pl-12 h-14 bg-slate-50/50 border-slate-100 rounded-2xl focus-visible:ring-blue-600 font-medium"
                       />
                     </div>
-
-
                   </div>
                   
                   <div className="space-y-2">
@@ -206,8 +220,6 @@ export default function LoginPage() {
           )}
         </div>
       </main>
-
-
     </div>
   );
 }
@@ -228,5 +240,13 @@ function RoleButton({ icon, title, description, onClick }: { icon: React.ReactNo
       </div>
       <ArrowRight className="ml-auto text-slate-300 group-hover:text-white transition-all opacity-0 group-hover:opacity-100" />
     </button>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

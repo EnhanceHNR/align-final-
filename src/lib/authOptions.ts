@@ -1,7 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
+import { adminDb } from "@/lib/firebaseAdmin";
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -14,19 +14,21 @@ export const authOptions: NextAuthOptions = {
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) return null;
 
-                const user = await prisma.user.findUnique({
-                    where: { email: credentials.email.toLowerCase().trim() },
-                    select: {
-                        id: true,
-                        email: true,
-                        role: true,
-                        isActive: true,
-                        passwordHash: true, organizationId: true,
-                    },
-                });
+                const usersSnapshot = await adminDb.collection("users")
+                    .where("email", "==", credentials.email.toLowerCase().trim())
+                    .limit(1)
+                    .get();
 
-                if (!user) return null;
-                if (!user.isActive) throw new Error("ACCOUNT_INACTIVE");
+                if (usersSnapshot.empty) return null;
+                const userDoc = usersSnapshot.docs[0];
+                const user = { id: userDoc.id, ...userDoc.data() } as any;
+
+                console.log("USER IS:", user); if (!user.isActive) throw new Error("ACCOUNT_INACTIVE");
+                
+                // Block login if explicitly marked as unverified
+                if (user.emailVerified === false) {
+                    throw new Error("EMAIL_NOT_VERIFIED");
+                }
 
                 const passwordValid = await verifyPassword(user.passwordHash, credentials.password);
                 if (!passwordValid) return null;
@@ -34,7 +36,8 @@ export const authOptions: NextAuthOptions = {
                 return {
                     id: user.id,
                     email: user.email,
-                    role: user.role, organizationId: user.organizationId,
+                    role: user.role, 
+                    organizationId: user.organizationId,
                 };
             },
         }),
@@ -43,15 +46,19 @@ export const authOptions: NextAuthOptions = {
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id;
-                token.role = (user as { role: string }).role; token.organizationId = (user as any).organizationId;
+                token.role = (user as { role: string }).role; 
+                token.organizationId = (user as any).organizationId;
+                console.log("JWT CALLBACK - user object:", user);
             }
             return token;
         },
         async session({ session, token }) {
             if (session.user) {
                 session.user.id = token.id as string;
-                session.user.role = token.role as string; (session.user as any).organizationId = token.organizationId as string;
+                session.user.role = token.role as string; 
+                (session.user as any).organizationId = token.organizationId as string;
             }
+            console.log("SESSION CALLBACK - session.user:", session.user, "token:", token);
             return session;
         },
     },

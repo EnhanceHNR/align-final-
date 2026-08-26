@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { type InventoryItem, type Dealer } from "@prisma/client";
+import { type InventoryItem, type Dealer } from "@/types/models";
 
 interface ImportCsvDialogProps {
     mode: 'inventory' | 'dealers' | 'patients';

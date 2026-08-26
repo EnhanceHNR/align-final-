@@ -1,6 +1,5 @@
-
 import { z } from "zod";
-import { prisma } from "~/lib/prisma";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const visitNotesRouter = createTRPCRouter({
@@ -14,50 +13,42 @@ export const visitNotesRouter = createTRPCRouter({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            return prisma.visitNote.create({
-                data: {
-                    content: input.content,
-                    patientId: input.patientId,
-                    appointmentId: input.appointmentId,
-                    userId: ctx.user.id,
-                },
-            });
+            const data = {
+                content: input.content,
+                patientId: input.patientId,
+                appointmentId: input.appointmentId ?? null,
+                userId: ctx.user.id,
+                organizationId: ctx.user.organizationId,
+                createdAt: new Date().toISOString(),
+            };
+            const docRef = await adminDb.collection("visitNotes").add(data);
+            return { id: docRef.id, ...data };
         }),
 
+    getByPatientId: protectedProcedure
+        .input(
+            z.object({
+                patientId: z.string().cuid(),
+            })
+        )
+        .query(async ({ ctx, input }) => {
+            const snapshot = await adminDb.collection("visitNotes")
+                .where("organizationId", "==", ctx.user.organizationId)
+                .where("patientId", "==", input.patientId)
+                .orderBy("createdAt", "desc")
+                .get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }),
 
-getByPatientId: protectedProcedure
-    .input(
-        z.object({
-            patientId: z.string().cuid(),
-        })
-    )
-    .query(async ({ input }) => {
-        return prisma.visitNote.findMany({
-            where: {
-                organizationId: ctx.user.organizationId,
-                patientId: input.patientId,
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
-        });
-    }),
-
-delete: protectedProcedure
-    .input(
-        z.object({
-            id: z.string().cuid(),
-        })
-    )
-    .mutation(async ({ input }) => {
-        return prisma.visitNote.delete({
-            where: {
-                id: input.id,
-            },
-        });
-    }),
-
-
+    delete: protectedProcedure
+        .input(
+            z.object({
+                id: z.string().cuid(),
+            })
+        )
+        .mutation(async ({ ctx, input }) => {
+            await adminDb.collection("visitNotes").doc(input.id).delete();
+            return { success: true };
+        }),
 
 });
-

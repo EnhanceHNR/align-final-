@@ -3,7 +3,7 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { type Dealer } from "@prisma/client";
+import { type Dealer } from "@/types/models";
 import { MoreVertical, PlusCircle, Trash2, FileDown, Edit } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";

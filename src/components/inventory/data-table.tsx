@@ -25,7 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { type InventoryItem } from "@prisma/client"
+import { type InventoryItem } from "@/types/models"
 import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
