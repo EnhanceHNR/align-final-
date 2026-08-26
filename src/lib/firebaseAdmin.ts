@@ -1,48 +1,40 @@
 import * as admin from 'firebase-admin';
 
-// In Next.js, files can be executed multiple times. 
-// We must cache the initialized admin instance on the global object.
-const globalAny: any = global;
+function initFirebaseAdmin() {
+  if (admin.apps.length > 0) {
+    return admin.app();
+  }
 
-if (!globalAny.firebaseAdminInitialized) {
-    if (!admin.apps.length) {
-        try {
-            const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'studio-3524371045-b11af.firebasestorage.app';
-            
-            if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
-                const serviceAccount = typeof process.env.GCP_SERVICE_ACCOUNT_KEY === 'string' && process.env.GCP_SERVICE_ACCOUNT_KEY.startsWith('{') 
-                    ? JSON.parse(process.env.GCP_SERVICE_ACCOUNT_KEY) 
-                    : process.env.GCP_SERVICE_ACCOUNT_KEY;
-                
-                if (serviceAccount.private_key) {
-                    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-                }
-                admin.initializeApp({
-                    credential: admin.credential.cert(serviceAccount),
-                    storageBucket
-                });
-            } else if (process.env.FIREBASE_PRIVATE_KEY) {
-                admin.initializeApp({
-                    credential: admin.credential.cert({
-                        projectId: process.env.FIREBASE_PROJECT_ID || 'studio-3524371045-b11af',
-                        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-                    }),
-                    storageBucket
-                });
-            } else {
-                admin.initializeApp({ storageBucket });
-            }
-        } catch (error: any) {
-            console.error('Firebase admin initialization error', error.stack);
-            if (!admin.apps.length) {
-                admin.initializeApp();
-            }
-        }
+  try {
+    if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
+      const serviceAccount = typeof process.env.GCP_SERVICE_ACCOUNT_KEY === 'string' && process.env.GCP_SERVICE_ACCOUNT_KEY.startsWith('{') 
+          ? JSON.parse(process.env.GCP_SERVICE_ACCOUNT_KEY) 
+          : process.env.GCP_SERVICE_ACCOUNT_KEY;
+      
+      if (serviceAccount.private_key) {
+          serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+      return admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'studio-3524371045-b11af.firebasestorage.app'
+      });
     }
-    globalAny.firebaseAdminInitialized = true;
+
+    return admin.initializeApp({
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'studio-3524371045-b11af.firebasestorage.app'
+    });
+  } catch (error) {
+    console.error('Firebase admin initialization error:', error);
+    // Return existing app if it somehow got created during the race condition
+    if (admin.apps.length > 0) {
+      return admin.app();
+    }
+    throw error;
+  }
 }
 
-export const adminDb = admin.firestore();
-export const adminAuth = admin.auth();
+const app = initFirebaseAdmin();
+
+export const adminDb = app.firestore();
+export const adminAuth = app.auth();
 export default admin;
