@@ -9,9 +9,6 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   outputFileTracingRoot: path.join(__dirname),
-  outputFileTracingIncludes: {
-    "/**": ["./prisma/generated/client/*.node", "./prisma/generated/client/*.wasm"],
-  },
 };
 
 module.exports = nextConfig;
