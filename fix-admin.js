@@ -1,6 +1,9 @@
-import * as admin from 'firebase-admin';
+const fs = require('fs');
+let code = fs.readFileSync('src/lib/firebaseAdmin.ts', 'utf8');
 
-if (!admin.apps.length) {
+code = code.replace(
+    /if \(!admin\.apps\.length\) \{([\s\S]*?)export const adminDb/m,
+    `if (!admin.apps.length) {
     try {
         const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'studio-3524371045-b11af.firebasestorage.app';
         
@@ -14,7 +17,7 @@ if (!admin.apps.length) {
                 : process.env.GCP_SERVICE_ACCOUNT_KEY;
             
             if (serviceAccount.private_key) {
-                serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+                serviceAccount.private_key = serviceAccount.private_key.replace(/\\\\n/g, '\\n');
             }
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount),
@@ -25,7 +28,7 @@ if (!admin.apps.length) {
                 credential: admin.credential.cert({
                     projectId: process.env.FIREBASE_PROJECT_ID || 'studio-3524371045-b11af',
                     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+                    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\\\n/g, '\\n'),
                 }),
                 storageBucket
             });
@@ -41,6 +44,7 @@ if (!admin.apps.length) {
     }
 }
 
-export const adminDb = admin.firestore();
-export const adminAuth = admin.auth();
-export default admin;
+export const adminDb`
+);
+
+fs.writeFileSync('src/lib/firebaseAdmin.ts', code);

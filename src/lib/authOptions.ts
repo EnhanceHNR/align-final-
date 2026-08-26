@@ -38,6 +38,7 @@ export const authOptions: NextAuthOptions = {
                     email: user.email,
                     role: user.role, 
                     organizationId: user.organizationId,
+                    isSuperAdmin: user.isSuperAdmin || false,
                 };
             },
         }),
@@ -48,7 +49,7 @@ export const authOptions: NextAuthOptions = {
                 token.id = user.id;
                 token.role = (user as { role: string }).role; 
                 token.organizationId = (user as any).organizationId;
-                console.log("JWT CALLBACK - user object:", user);
+                token.isSuperAdmin = (user as any).isSuperAdmin || false;
             }
             return token;
         },
@@ -57,8 +58,8 @@ export const authOptions: NextAuthOptions = {
                 session.user.id = token.id as string;
                 session.user.role = token.role as string; 
                 (session.user as any).organizationId = token.organizationId as string;
+                (session.user as any).isSuperAdmin = token.isSuperAdmin as boolean;
             }
-            console.log("SESSION CALLBACK - session.user:", session.user, "token:", token);
             return session;
         },
     },

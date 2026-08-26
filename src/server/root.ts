@@ -19,6 +19,7 @@ import { historyRouter } from "./routers/history.router";
 
 import { doctorsRouter } from "./routers/doctors.router";
 import { proceduresRouter } from "./routers/procedures.router";
+import { superadminRouter } from "./routers/superadmin.router";
 
 export const appRouter = router({
   patients: patientsRouter,
@@ -41,6 +42,7 @@ export const appRouter = router({
 
   doctors: doctorsRouter,
   procedures: proceduresRouter,
+  superadmin: superadminRouter,
 });
 
 export type AppRouter = typeof appRouter;

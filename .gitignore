@@ -57,3 +57,4 @@ node_modules/
 # firebase
 .firebase/
 .firebaserc
+firebase-debug.log
