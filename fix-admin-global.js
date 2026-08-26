@@ -1,4 +1,6 @@
-import * as admin from 'firebase-admin';
+const fs = require('fs');
+
+const code = `import * as admin from 'firebase-admin';
 
 // In Next.js, files can be executed multiple times. 
 // We must cache the initialized admin instance on the global object.
@@ -15,7 +17,7 @@ if (!globalAny.firebaseAdminInitialized) {
                     : process.env.GCP_SERVICE_ACCOUNT_KEY;
                 
                 if (serviceAccount.private_key) {
-                    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+                    serviceAccount.private_key = serviceAccount.private_key.replace(/\\\\n/g, '\\n');
                 }
                 admin.initializeApp({
                     credential: admin.credential.cert(serviceAccount),
@@ -26,7 +28,7 @@ if (!globalAny.firebaseAdminInitialized) {
                     credential: admin.credential.cert({
                         projectId: process.env.FIREBASE_PROJECT_ID || 'studio-3524371045-b11af',
                         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+                        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\\\n/g, '\\n'),
                     }),
                     storageBucket
                 });
@@ -46,3 +48,6 @@ if (!globalAny.firebaseAdminInitialized) {
 export const adminDb = admin.firestore();
 export const adminAuth = admin.auth();
 export default admin;
+`;
+
+fs.writeFileSync('src/lib/firebaseAdmin.ts', code);

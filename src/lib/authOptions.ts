@@ -1,3 +1,4 @@
+process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL || "https://studio-3524371045-b11af.web.app";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { verifyPassword } from "@/lib/password";

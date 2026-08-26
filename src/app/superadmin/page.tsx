@@ -1,25 +1,25 @@
 "use client";
 
-import { trpc } from "@/app/_trpc/client";
+import { api } from "@/trpc/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShieldCheck, Ban, CheckCircle2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SuperAdminPage() {
   const { toast } = useToast();
-  const { data: orgs, isLoading, refetch } = trpc.superadmin.getOrganizations.useQuery();
+  const { data: orgs, isLoading, refetch } = api.superadmin.getOrganizations.useQuery();
 
-  const grantMutation = trpc.superadmin.grantLifetime.useMutation({
+  const grantMutation = api.superadmin.grantLifetime.useMutation({
     onSuccess: () => {
       toast({ title: "Lifetime access granted" });
       refetch();
     }
   });
 
-  const suspendMutation = trpc.superadmin.suspendOrganization.useMutation({
+  const suspendMutation = api.superadmin.suspendOrganization.useMutation({
     onSuccess: () => {
       toast({ title: "Organization suspended" });
       refetch();
