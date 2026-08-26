@@ -1,6 +1,6 @@
 'use server';
 
-import { adminStorage } from '@/lib/firebase-admin';
+import { adminStorage } from '@/lib/firebaseAdmin';
 
 export async function uploadFile(file: File, path: string): Promise<string> {
   console.log(`uploadFile called for path: ${path}`);
