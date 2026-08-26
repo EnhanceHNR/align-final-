@@ -136,6 +136,9 @@ export const attendanceRouter = createTRPCRouter({
       employeeProfileId: z.string(),
       date: z.string(), // ISO date string
       status: z.string(),
+      punchInTime: z.string().optional(),
+      punchOutTime: z.string().optional(),
+      notes: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const targetDate = new Date(input.date);

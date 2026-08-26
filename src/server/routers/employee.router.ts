@@ -263,6 +263,12 @@ export const employeeRouter = createTRPCRouter({
         mobileNumber: z.string().optional(),
         jobTitle: z.string().optional(),
         shifts: z.array(z.object({ id: z.string().optional(), startTime: z.string(), endTime: z.string() })).optional(),
+        paidLeaveBalance: z.number().optional(),
+        sickLeaveBalance: z.number().optional(),
+        latePunchinBuffer: z.number().optional(),
+        weeklyOffs: z.array(z.string()).optional(),
+        salaryComponents: z.array(z.object({ name: z.string(), amount: z.number(), type: z.enum(['addition', 'deduction']) })).optional(),
+        avatarUrl: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

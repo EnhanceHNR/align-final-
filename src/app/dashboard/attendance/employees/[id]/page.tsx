@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { useParams, useRouter } from "next/navigation";
+import { EditEmployeeForm } from "./EditEmployeeForm";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday } from "date-fns";
 
 export default function EmployeeDetailsPage() {
@@ -45,6 +46,9 @@ export default function EmployeeDetailsPage() {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [attendanceStatus, setAttendanceStatus] = useState("Present");
+  const [punchInTime, setPunchInTime] = useState("09:00 AM");
+  const [punchOutTime, setPunchOutTime] = useState("05:00 PM");
+  const [attendanceNotes, setAttendanceNotes] = useState("");
 
   const upsertAttendanceMutation = api.attendance.upsertAttendance.useMutation({
     onSuccess: () => {
@@ -61,6 +65,9 @@ export default function EmployeeDetailsPage() {
       employeeProfileId: employee.id,
       date: selectedDate.toISOString(),
       status: attendanceStatus,
+      punchInTime,
+      punchOutTime,
+      notes: attendanceNotes,
     });
   };
 
@@ -89,7 +96,7 @@ export default function EmployeeDetailsPage() {
     }
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = (data: any) => {
     updateProfile.mutate({
       userId: employee!.userId,
       name: editName,
@@ -140,23 +147,7 @@ export default function EmployeeDetailsPage() {
                 <DialogHeader>
                   <DialogTitle>Edit Employee Details</DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label className="text-right">Name</Label>
-                    <Input className="col-span-3" value={editName} onChange={e => setEditName(e.target.value)} />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label className="text-right">Department</Label>
-                    <Input className="col-span-3" value={editDepartment} onChange={e => setEditDepartment(e.target.value)} />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label className="text-right">Base Salary</Label>
-                    <Input className="col-span-3" type="number" value={editSalary} onChange={e => setEditSalary(e.target.value)} />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button onClick={handleSaveEdit} disabled={updateProfile.isPending}>Save Changes</Button>
-                </DialogFooter>
+                <EditEmployeeForm employee={employee} onSave={handleSaveEdit} isPending={updateProfile.isPending} />
               </DialogContent>
             </Dialog>
           </div>
@@ -375,6 +366,9 @@ export default function EmployeeDetailsPage() {
                              onClick={() => {
                                setSelectedDate(day);
                                setAttendanceStatus(attendanceRecord ? attendanceRecord.status : "Present");
+                               setPunchInTime(attendanceRecord?.punchInTime || "09:00 AM");
+                               setPunchOutTime(attendanceRecord?.punchOutTime || "05:00 PM");
+                               setAttendanceNotes(attendanceRecord?.notes || "");
                                setIsAttendanceModalOpen(true);
                              }}
                              className={`h-8 w-8 flex items-center justify-center rounded-sm text-sm cursor-pointer hover:ring-2 hover:ring-slate-300 transition-all ${bgColor} ${textColor} ${isToday(day) ? 'ring-2 ring-slate-400' : ''}`}>
@@ -497,6 +491,52 @@ export default function EmployeeDetailsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    
+      {/* Attendance Override Dialog */}
+      <Dialog open={isAttendanceModalOpen} onOpenChange={setIsAttendanceModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Override Attendance</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Date</Label>
+              <Input disabled value={selectedDate ? format(selectedDate, "MMMM d, yyyy") : ""} />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={attendanceStatus} onValueChange={setAttendanceStatus}>
+                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Present">Present</SelectItem>
+                  <SelectItem value="Absent">Absent</SelectItem>
+                  <SelectItem value="Half Day">Half Day</SelectItem>
+                  <SelectItem value="Late">Late</SelectItem>
+                  <SelectItem value="Weekend">Weekend</SelectItem>
+                  <SelectItem value="Holiday">Holiday</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Punch In</Label>
+                <Input value={punchInTime} onChange={e => setPunchInTime(e.target.value)} placeholder="09:00 AM" />
+              </div>
+              <div className="space-y-2">
+                <Label>Punch Out</Label>
+                <Input value={punchOutTime} onChange={e => setPunchOutTime(e.target.value)} placeholder="05:00 PM" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Admin Notes</Label>
+              <Input value={attendanceNotes} onChange={e => setAttendanceNotes(e.target.value)} placeholder="e.g. Approved leave" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleSaveAttendance} disabled={upsertAttendanceMutation.isPending}>Save Attendance</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+</div>
   );
 }
