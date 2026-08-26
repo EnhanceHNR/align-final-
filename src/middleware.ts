@@ -7,7 +7,7 @@ export default withAuth({
     },
     cookies: {
         sessionToken: {
-            name: "align_token",
+            name: "__session",
         },
     },
 });

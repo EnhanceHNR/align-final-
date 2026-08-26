@@ -73,7 +73,7 @@ export const authOptions: NextAuthOptions = {
     },
     cookies: {
         sessionToken: {
-            name: "align_token",
+            name: "__session",
             options: {
                 httpOnly: true,
                 sameSite: "lax",
