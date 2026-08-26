@@ -368,6 +368,17 @@ export function ReceiveForm({ users = [], sentRecords = [] }: ReceiveFormProps) 
     }
   }, [searchParams, sentRecords, selectedSentId]);
 
+  const onError = (errors: any) => {
+    console.error("Form errors:", errors);
+    const missingFields = Object.keys(errors).join(', ');
+    toast({
+      title: "Validation Error",
+      description: "Please fill all required fields. Missing: " + missingFields,
+      variant: "destructive",
+      duration: 5000,
+    });
+  };
+
   const onSubmit = async (data: ReceiveFormValues) => {
     let hasFileError = false;
     
@@ -441,6 +452,7 @@ export function ReceiveForm({ users = [], sentRecords = [] }: ReceiveFormProps) 
 
       if (result?.message && !result?.errors) {
         toast({ title: "Success!", description: result.message });
+        alert("Submission Successful: " + result.message);
         form.reset();
         setSelfieFile(null);
         setSelfiePreview(null);
@@ -522,7 +534,7 @@ export function ReceiveForm({ users = [], sentRecords = [] }: ReceiveFormProps) 
           </DropdownMenu>
       </div>
       <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-12">
+      <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8 pb-12">
 
         {/* Staff Verification Section */}
         <div className="glass-card p-6 rounded-3xl space-y-6 border-l-4 border-l-primary">
@@ -675,7 +687,7 @@ export function ReceiveForm({ users = [], sentRecords = [] }: ReceiveFormProps) 
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-xl font-black flex items-center gap-2">
                     <ImageIcon className="w-5 h-5 text-primary" />
-                    Item Verification
+                    Item Photo (Required)
                 </h2>
                 <div className="flex items-center gap-4">
                     <span className="text-[10px] font-black uppercase text-muted-foreground">{verificationFiles.length} Captured</span>
@@ -908,13 +920,13 @@ export function ReceiveForm({ users = [], sentRecords = [] }: ReceiveFormProps) 
             )}
         </div>
 
-        {/* Include Documents */}
+        {/* Include Documents (Optional) */}
         <div className="glass-card p-6 rounded-3xl space-y-6">
             <div className="flex items-center justify-between mb-3">
                 <div>
                     <h2 className="text-xl font-black flex items-center gap-2">
                         <FileEdit className="w-5 h-5 text-primary" />
-                        Include Documents
+                        Include Documents (Optional)
                     </h2>
                     <p className="text-xs text-muted-foreground font-medium mt-1">Add Challans or Bills for this case</p>
                 </div>

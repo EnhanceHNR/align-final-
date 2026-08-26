@@ -431,6 +431,17 @@ export function SendForm({ users = [], receivedRecords = [] }: SendFormProps) {
 
   const prevStep = () => setStep(step - 1);
 
+  const onError = (errors: any) => {
+    console.error("Form errors:", errors);
+    const missingFields = Object.keys(errors).join(', ');
+    toast({
+      title: "Validation Error",
+      description: "Please fill all required fields. Missing: " + missingFields,
+      variant: "destructive",
+      duration: 5000,
+    });
+  };
+
   const onSubmit = async (data: SendFormValues) => {
     setIsSubmitting(true);
     try {
@@ -469,6 +480,7 @@ export function SendForm({ users = [], receivedRecords = [] }: SendFormProps) {
 
       if (result?.message && !result?.errors) {
         toast({ title: "Success!", description: result.message });
+        alert("Submission Successful: " + result.message);
         form.reset();
         setStep(1);
         setSelfiePreview(null);

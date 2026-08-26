@@ -278,12 +278,17 @@ export const appointmentRouter = router({
 
             const [countSnap, snapshot] = await Promise.all([
                 query.count().get(),
-                query.orderBy("startTime", "desc").get()
+                query.get()
             ]);
 
             const total = countSnap.data().count;
             
-            const paginatedDocs = snapshot.docs.slice(skip, skip + input.pageSize);
+            const sortedDocs = snapshot.docs.sort((a, b) => {
+                const aTime = a.data().startTime?.toDate ? a.data().startTime.toDate().getTime() : new Date(a.data().startTime).getTime();
+                const bTime = b.data().startTime?.toDate ? b.data().startTime.toDate().getTime() : new Date(b.data().startTime).getTime();
+                return bTime - aTime;
+            });
+            const paginatedDocs = sortedDocs.slice(skip, skip + input.pageSize);
 
             const appointments = await Promise.all(paginatedDocs.map(async (doc: any) => {
                 const data = doc.data();
