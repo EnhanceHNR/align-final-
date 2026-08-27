@@ -1,13 +1,12 @@
 "use client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isSameMonth } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import React, { useState, useEffect } from "react";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, Loader2, MapPin, Download, CheckCircle } from "lucide-react";
+import { Clock, Loader2, MapPin, Download, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 

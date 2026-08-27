@@ -57,6 +57,7 @@ export function DashboardSidebar({
                 <div className="relative flex h-24 w-36 items-center justify-center">
                     <Image 
                         src="/clinic-logo-v3.png" 
+                        sizes="144px"
                         alt="Clinic Official Logo" 
                         fill
                         priority
@@ -372,16 +373,8 @@ export function DashboardSidebar({
                       <Link href="/dashboard/learning">
                           <NavItem
                               icon={<FileText size={18} />}
-                              label="Learning Videos"
+                              label="E-Learning"
                               active={pathname === "/dashboard/learning"}
-                          />
-                      </Link>
-
-                      <Link href="/dashboard/learning">
-                          <NavItem
-                              icon={<ImageIcon size={18} />}
-                              label="Learning Images"
-                              active={false}
                           />
                       </Link>
 
@@ -397,7 +390,7 @@ export function DashboardSidebar({
                         <Link href="/dashboard/learning/manage">
                             <NavItem
                                 icon={<Settings size={18} />}
-                                label="Manage Image Learning"
+                                label="Manage E-Learning"
                                 active={pathname === "/dashboard/learning/manage"}
                                 isMasterOnly={true}
                             />

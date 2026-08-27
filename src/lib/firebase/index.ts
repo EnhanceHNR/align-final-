@@ -1,13 +1,12 @@
 'use client';
 
-import { firebaseConfig } from '@/firebase/config';
+import { firebaseConfig } from '@/lib/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore } from 'firebase/firestore';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  const CLIENT_APP_NAME = "labtrack-client";
+  const CLIENT_APP_NAME = "dental-client";
   const apps = getApps();
   const existingApp = apps.find(app => app.name === CLIENT_APP_NAME);
 
@@ -15,12 +14,10 @@ export function initializeFirebase() {
     return getSdks(existingApp);
   }
 
-  // Initialize a NAMED app to avoid conflicting with the incomplete [DEFAULT] app 
-  // that Firebase Web Frameworks automatically injects during SSR.
   let firebaseApp;
   try {
     firebaseApp = initializeApp(firebaseConfig, CLIENT_APP_NAME);
-  } catch (e: any) {
+  } catch (e) {
     firebaseApp = getApp(CLIENT_APP_NAME);
   }
 
@@ -49,16 +46,7 @@ export function getSdks(firebaseApp: FirebaseApp) {
 
   return {
     firebaseApp,
-    auth: authInstance as ReturnType<typeof getAuth>,
-    firestore: firestoreInstance as ReturnType<typeof getFirestore>
+    auth: authInstance,
+    firestore: firestoreInstance
   };
 }
-
-export * from './provider';
-export * from './client-provider';
-export * from './firestore/use-collection';
-export * from './firestore/use-doc';
-export * from './non-blocking-updates';
-export * from './non-blocking-login';
-export * from './errors';
-export * from './error-emitter';

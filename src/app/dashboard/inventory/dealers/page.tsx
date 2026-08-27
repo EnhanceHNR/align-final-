@@ -36,9 +36,8 @@ import { api } from "~/trpc/react";
 export default function DealersPage() {
     const { toast } = useToast();
     
-    // Using tRPC instead of Firebase
-    // TODO: Connect this to api.dealer.getAll once router is added
-    const { data: dealers, isLoading, refetch } = { data: [] as any[], isLoading: false, refetch: () => {} };
+    const { data: dealers, isLoading, refetch } = api.inventory.getDealers.useQuery();
+    const deleteDealer = api.inventory.deleteDealer.useMutation();
 
     const [dealerToDelete, setDealerToDelete] = useState<string | null>(null);
 
@@ -46,11 +45,12 @@ export default function DealersPage() {
         if (!dealerToDelete) return;
 
         try {
-            // Mock delete
+            await deleteDealer.mutateAsync({ id: dealerToDelete });
             toast({
-                title: "Dealer Deleted (Mock)",
+                title: "Dealer Deleted",
                 description: "The dealer has been successfully deleted.",
             });
+            refetch();
         } catch (error) {
             console.error("Error deleting dealer: ", error);
             toast({

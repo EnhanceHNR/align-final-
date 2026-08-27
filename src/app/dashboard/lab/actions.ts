@@ -91,6 +91,17 @@ async function handleSubmission(
     }
   });
 
+  if (rawFormData.documentsMeta) {
+    try {
+        const meta = JSON.parse(rawFormData.documentsMeta);
+        rawFormData.documents = meta.map((m, i) => ({
+            type: m.type,
+            amount: m.amount,
+            photo: formData.get(`documentFile_${i}`)
+        }));
+    } catch(e) {}
+  }
+
   const validatedFields = schema.safeParse(rawFormData);
   if (!validatedFields.success) {
     return {
@@ -141,8 +152,15 @@ async function handleSubmission(
             photoUrl = photoUrls[0] || '';
         }
         
-        if (data.billPhoto && data.billPhoto instanceof File && data.billPhoto.size > 0) {
-            billPhotoUrl = await (await import('@/lib/firebase/storage')).uploadFile(data.billPhoto, `submissions/${timestampPrefix}-bill-${data.billPhoto.name}`);
+        if (data.documents && Array.isArray(data.documents)) {
+            const docPromises = data.documents.map(async (doc: any, index: number) => {
+                let docPhotoUrl = null;
+                if (doc.photo && doc.photo instanceof File && doc.photo.size > 0) {
+                    docPhotoUrl = await (await import('@/lib/firebase/storage')).uploadFile(doc.photo, `submissions/${timestampPrefix}-doc-${index}-${doc.photo.name}`);
+                }
+                return { type: doc.type, amount: doc.amount, photoUrl: docPhotoUrl };
+            });
+            rawFormData.processedDocuments = await Promise.all(docPromises);
         }
     }
 
@@ -173,24 +191,32 @@ async function handleSubmission(
         tat: rawFormData.tat || null,
         linkedRecordId: rawFormData.linkedRecordId || null,
         approvalStatus: rawFormData.approvalStatus || "Pending",
+        documents: rawFormData.processedDocuments || null,
         createdAt: new Date(),
     };
 
     const submissionRef = await adminDb.collection('labSubmissions').add(submissionData);
     const submissionId = submissionRef.id;
 
-    // Handle bill transaction for receives
-    if (submissionType === 'receive' && rawFormData.hasBill && rawFormData.billAmount) {
-        await adminDb.collection('labTransactions').add({
-            labId: lab.id,
-            amount: parseFloat(rawFormData.billAmount),
-            type: 'bill',
-            description: `Bill for ${rawFormData.item} (${rawFormData.patientName})`,
-            photoUrl: billPhotoUrl || null,
-            submissionId: submissionId,
-            organizationId: orgId,
-            createdAt: new Date()
-        });
+    // Handle bill transaction for receives via new documents array
+    if (submissionType === 'receive' && rawFormData.processedDocuments) {
+        for (const doc of rawFormData.processedDocuments) {
+            if (doc.type === 'Bill' && doc.amount) {
+                const amt = parseFloat(doc.amount);
+                if (!isNaN(amt) && amt > 0) {
+                    await adminDb.collection('labTransactions').add({
+                        labId: lab.id,
+                        amount: amt,
+                        type: 'bill',
+                        description: `Bill for ${rawFormData.item} (${rawFormData.patientName})`,
+                        photoUrl: doc.photoUrl || null,
+                        submissionId: submissionId,
+                        organizationId: orgId,
+                        createdAt: new Date()
+                    });
+                }
+            }
+        }
     }
 
     revalidatePath('/dashboard/lab/send');

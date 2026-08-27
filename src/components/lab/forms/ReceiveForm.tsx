@@ -280,10 +280,7 @@ export function ReceiveForm({ users = [], sentRecords = [] }: ReceiveFormProps) 
         setDeliveryFile(file);
         setDeliveryPreview(URL.createObjectURL(file));
         form.setValue("deliveryPersonPhoto", file, { shouldValidate: true });
-    } else if (cameraType === 'bill') {
-        setBillFile(file);
-        setBillPreview(URL.createObjectURL(file));
-        form.setValue("billPhoto", file, { shouldValidate: true });
+
     }
     setIsCameraOpen(false);
   };
@@ -313,10 +310,7 @@ export function ReceiveForm({ users = [], sentRecords = [] }: ReceiveFormProps) 
           setDeliveryFile(file);
           setDeliveryPreview(URL.createObjectURL(file));
           form.setValue("deliveryPersonPhoto", file, { shouldValidate: true });
-        } else if (uploadType === 'bill') {
-          setBillFile(file);
-          setBillPreview(URL.createObjectURL(file));
-          form.setValue("billPhoto", file, { shouldValidate: true });
+    
         }
       }
     }
@@ -460,8 +454,8 @@ export function ReceiveForm({ users = [], sentRecords = [] }: ReceiveFormProps) 
         setVerificationPreviews([]);
         setDeliveryFile(null);
         setDeliveryPreview(null);
-        setBillFile(null);
-        setBillPreview(null);
+        setDocuments([]);
+        
         setDeliveryFile(null);
         setSelectedSentId(null);
         

@@ -24,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="font-sans antialiased">
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <body className="font-sans antialiased" suppressHydrationWarning>
         {/* Wrapped the application with TRPCReactProvider to resolve the runtime context error */}
         <TRPCReactProvider>
           <Providers>

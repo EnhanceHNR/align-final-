@@ -23,6 +23,7 @@ export default function PriceListTemplate({
             <div className="relative h-20 w-20">
               <Image
                 src="/clinic-logo-v3.png"
+                sizes="112px"
                 alt="Align.io Logo"
                 fill
                 priority

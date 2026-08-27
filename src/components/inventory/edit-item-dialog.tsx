@@ -50,6 +50,7 @@ export function EditItemDialog({ item, onSave, onOpenChange }: EditItemDialogPro
     const [unitValue, setUnitValue] = useState(item.quantityValue || 1);
     const [dealer, setDealer] = useState(item.dealer || '');
     const [stock, setStock] = useState<any[]>([...(item.stockEntries || [])]);
+    const [keywords, setKeywords] = useState(item.keywords || "");
     const [isSaving, setIsSaving] = useState(false);
 
     // TODO: Change to api.dealer.getAll.useQuery() once dealerRouter is created
@@ -85,6 +86,7 @@ export function EditItemDialog({ item, onSave, onOpenChange }: EditItemDialogPro
                 minQuantity,
                 quantity: { value: unitValue, unit },
                 stockEntries: stock,
+                keywords,
                 dealer,
                 itemCount: totalCount,
                 status: totalCount === 0 ? 'Out of Stock' : (totalCount <= minQuantity ? 'Low Stock' : 'In Stock')

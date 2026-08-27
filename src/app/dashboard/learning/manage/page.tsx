@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+
 import { api } from '~/trpc/react';
 import { uploadLearningMaterial } from '../actions';
 import { FolderPlus, Upload, Trash2, X, Plus, ImageIcon, Video } from 'lucide-react';
@@ -29,6 +30,7 @@ export default function ManageLearningPage() {
         { categoryId: selectedCategoryId || undefined },
         { enabled: !!selectedCategoryId }
     );
+    
 
     // Mutations
     const createCategory = api.learning.createCategory.useMutation({
@@ -223,8 +225,15 @@ export default function ManageLearningPage() {
                                         <input 
                                             type="file"
                                             required
-                                            accept={newItemType === 'IMAGE' ? "image/*" : "video/*"}
-                                            onChange={e => setNewItemFile(e.target.files?.[0] || null)}
+                                            accept="image/*,video/*"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0] || null;
+                                                setNewItemFile(file);
+                                                if (file) {
+                                                    if (file.type.startsWith('video/')) setNewItemType('VIDEO');
+                                                    else if (file.type.startsWith('image/')) setNewItemType('IMAGE');
+                                                }
+                                            }}
                                             className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                                         />
                                     </div>

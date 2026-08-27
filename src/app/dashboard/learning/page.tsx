@@ -8,13 +8,39 @@ import Link from 'next/link';
 export default function ImageLearningPage() {
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [selectedImage, setSelectedImage] = useState<any>(null);
+
+
     const [zoomLevel, setZoomLevel] = useState(1);
+
+
 
     const { data: categories, isLoading: categoriesLoading } = api.learning.listCategories.useQuery();
     const { data: materials, isLoading: materialsLoading } = api.learning.listMaterials.useQuery(
         { categoryId: selectedCategoryId || undefined },
         { enabled: !!selectedCategoryId }
     );
+
+    const currentIndex = materials?.findIndex(m => m.id === selectedImage?.id) ?? -1;
+
+    const navigateSlide = (direction: number) => {
+        if (!materials) return;
+        const newIndex = currentIndex + direction;
+        if (newIndex >= 0 && newIndex < materials.length) {
+            setSelectedImage(materials[newIndex]);
+            setZoomLevel(1);
+        }
+    };
+
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!selectedImage) return;
+            if (e.key === 'ArrowRight') navigateSlide(1);
+            if (e.key === 'ArrowLeft') navigateSlide(-1);
+            if (e.key === 'Escape') setSelectedImage(null);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedImage, currentIndex, materials]);
 
     const isLoading = categoriesLoading || (selectedCategoryId && materialsLoading);
 
@@ -140,6 +166,26 @@ export default function ImageLearningPage() {
                             <X className="w-6 h-6" />
                         </button>
                     </div>
+
+                    
+                    {/* Navigation Arrows */}
+                    {currentIndex > 0 && (
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); navigateSlide(-1); }}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 rounded-full text-white transition backdrop-blur-md z-50 shadow-xl"
+                        >
+                            <ChevronLeft className="w-8 h-8" />
+                        </button>
+                    )}
+                    
+                    {currentIndex >= 0 && currentIndex < (materials?.length || 0) - 1 && (
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); navigateSlide(1); }}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 rounded-full text-white transition backdrop-blur-md z-50 shadow-xl"
+                        >
+                            <ChevronRight className="w-8 h-8" />
+                        </button>
+                    )}
 
                     <div className="w-full max-w-6xl max-h-[85vh] p-4 flex items-center justify-center relative overflow-hidden">
                         {selectedImage.type === 'VIDEO' ? (

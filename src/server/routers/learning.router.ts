@@ -1,17 +1,17 @@
 import { z } from "zod";
-import { router, publicProcedure, masterOnlyProcedure } from "../trpc";
+import { router, publicProcedure, protectedProcedure, masterOnlyProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { adminDb } from "~/lib/firebaseAdmin";
 
 export const learningRouter = router({
   // CATEGORIES
-  listCategories: publicProcedure.query(async ({ ctx }) => {
+  listCategories: protectedProcedure.query(async ({ ctx }) => {
     const snapshot = await adminDb.collection("learningCategories")
       .where("organizationId", "==", ctx.user.organizationId)
-      .orderBy("name", "asc")
       .get();
     
     const categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    categories.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     return Promise.all(categories.map(async (cat) => {
       const materialsSnapshot = await adminDb.collection("learningMaterials")
@@ -51,19 +51,25 @@ export const learningRouter = router({
     }),
 
   // MATERIALS
-  listMaterials: publicProcedure
+  listMaterials: protectedProcedure
     .input(z.object({ categoryId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       let query = adminDb.collection("learningMaterials")
-        .where("organizationId", "==", ctx.user.organizationId)
-        .orderBy("createdAt", "desc");
+        .where("organizationId", "==", ctx.user.organizationId);
       
       if (input.categoryId) {
         query = query.where("categoryId", "==", input.categoryId);
       }
 
       const snapshot = await query.get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort in memory to avoid composite index requirements
+      docs.sort((a, b) => {
+          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return timeB - timeA;
+      });
+      return docs;
     }),
   createMaterial: masterOnlyProcedure
     .input(

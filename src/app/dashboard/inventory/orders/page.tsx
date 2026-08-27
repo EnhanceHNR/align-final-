@@ -1,6 +1,18 @@
 "use client";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { PlusCircle } from "lucide-react";
 import { InventoryDataTable } from "@/components/inventory/data-table";
 import { columns } from "@/components/orders/columns";
@@ -15,10 +27,14 @@ import { api } from "~/trpc/react";
 export default function OrdersPage() {
     const { toast } = useToast();
     const router = useRouter();
+    const utils = api.useUtils();
     
     // Mocking tRPC for now
-    const { data: purchaseOrders, isLoading: isOrdersLoading } = { data: [] as any[], isLoading: false };
+    const { data: purchaseOrders, isLoading: isOrdersLoading } = api.inventory.getOrders.useQuery();
     
+        const [bypassingOrderId, setBypassingOrderId] = React.useState<string | null>(null);
+    const [bypassNote, setBypassNote] = React.useState("");
+    const [orderToDelete, setOrderToDelete] = React.useState<string | null>(null);
     const [selectedMonth, setSelectedMonth] = React.useState<string>('all');
     const [selectedDealers, setSelectedDealers] = React.useState<string[]>([]);
     const [selectedItems, setSelectedItems] = React.useState<string[]>([]);
@@ -35,15 +51,26 @@ export default function OrdersPage() {
         if (!purchaseOrders) return [];
         return purchaseOrders.map(order => ({
             ...order,
-            itemBrand: "Brand",
-            itemCompany: "Company",
-            dealerMobile: "1234567890",
-            orderedByName: "Admin",
-            receivedByName: "Staff",
-            approvedByOrBypassed: "Admin",
-            deliveryExpiry: "2027-01-01"
+            receivedByName: order.receivedByName || "-",
+            approvedByOrBypassed: order.approvedByOrBypassed || "-",
+            deliveryExpiry: order.deliveryExpiry || "-"
         }));
     }, [purchaseOrders]);
+
+        const executeDeleteOrder = () => {
+        if (orderToDelete) {
+            deleteOrder.mutate({ id: orderToDelete });
+            setOrderToDelete(null);
+        }
+    };
+
+    const handleBypassApprovalSubmit = () => {
+        if (bypassingOrderId && bypassNote.trim()) {
+            updateOrderStatus.mutate({ id: bypassingOrderId, status: 'Pending', bypassReason: bypassNote });
+            setBypassingOrderId(null);
+            setBypassNote("");
+        }
+    };
 
     const handleExport = (format: 'csv' | 'pdf', table: Table<any>) => {
         const dataToExport = table.getFilteredRowModel().rows.map(row => row.original);
@@ -63,15 +90,30 @@ export default function OrdersPage() {
         }
     };
 
+    
+    const updateOrderStatus = api.inventory.updateOrderStatus.useMutation({
+        onSuccess: () => {
+            toast({ title: "Order status updated" });
+            utils.inventory.getOrders.invalidate();
+        }
+    });
+    
+    const deleteOrder = api.inventory.deleteOrder.useMutation({
+        onSuccess: () => {
+            toast({ title: "Order cancelled" });
+            utils.inventory.getOrders.invalidate();
+        }
+    });
+
     const tableColumns = useMemo(() => columns({
-        onDelete: (id) => console.log('delete', id),
-        onViewDetails: (id) => console.log('view', id),
-        onVerifyDelivery: (id) => console.log('verify', id),
-        onApprove: (id) => console.log('approve', id),
-        onReject: (id) => console.log('reject', id),
-        onBypassApproval: (id) => console.log('bypass', id),
+        onDelete: (id) => setOrderToDelete(id),
+        onViewDetails: (id) => router.push(`/dashboard/inventory/orders/${id}`),
+        onVerifyDelivery: (id) => router.push(`/dashboard/inventory/orders/${id}/verify`),
+        onApprove: (id) => updateOrderStatus.mutate({ id, status: 'Pending' }),
+        onReject: (id) => updateOrderStatus.mutate({ id, status: 'Rejected' }),
+        onBypassApproval: (id) => setBypassingOrderId(id),
         isAdmin: true,
-    }), []);
+    }), [router]);
 
     if (isOrdersLoading) {
         return <div className="p-8">Loading orders...</div>;

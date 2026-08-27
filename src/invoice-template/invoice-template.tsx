@@ -29,6 +29,7 @@ export default function InvoiceTemplate({
             <div className="relative h-20 w-28">
               <Image
                 src="/clinic-logo-v3.png"
+                sizes="112px"
                 alt="Align.io Logo"
                 fill
                 priority
