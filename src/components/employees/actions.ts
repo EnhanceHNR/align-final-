@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { adminDb, adminStorage } from "@/lib/firebaseAdmin";
 import { cookies } from "next/headers";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/server/auth";
+import { authOptions } from "@/lib/authOptions";
 
 export async function addEmployeeAction(formData: FormData) {
   try {
