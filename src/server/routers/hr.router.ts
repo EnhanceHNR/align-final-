@@ -3,13 +3,24 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 
+
+const serializeTimestamps = (obj: any): any => {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (typeof obj.toDate === 'function') return obj.toDate().toISOString();
+    if ('_seconds' in obj && '_nanoseconds' in obj) return new Date(obj._seconds * 1000).toISOString();
+    if (Array.isArray(obj)) return obj.map(serializeTimestamps);
+    const res: any = {};
+    for (const key in obj) res[key] = serializeTimestamps(obj[key]);
+    return res;
+};
+
 const fetchWithProfiles = async (collectionName: string, organizationId: string, employeeProfileId?: string) => {
     let query: FirebaseFirestore.Query = adminDb.collection(collectionName).where("organizationId", "==", organizationId);
     if (employeeProfileId) {
         query = query.where("employeeProfileId", "==", employeeProfileId);
     }
     const snap = await query.get();
-    const records = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const records = snap.docs.map(doc => ({ id: doc.id, ...serializeTimestamps(doc.data()) }));
     
     // Fetch profiles
     const profileIds = [...new Set(records.map((r: any) => r.employeeProfileId).filter(Boolean))];
@@ -18,7 +29,7 @@ const fetchWithProfiles = async (collectionName: string, organizationId: string,
         await Promise.all(profileIds.map(async (id) => {
             const pDoc = await adminDb.collection("employeeProfiles").doc(id as string).get();
             if (pDoc.exists) {
-                (profiles as any)[id as string] = { id: pDoc.id, ...pDoc.data() };
+                (profiles as any)[id as string] = { id: pDoc.id, ...serializeTimestamps(pDocdata()) };
             }
         }));
     }
@@ -35,7 +46,7 @@ export const hrRouter = createTRPCRouter({
     .input(z.object({ employeeProfileId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const records = await fetchWithProfiles("leaveRequests", ctx.user.organizationId, input.employeeProfileId);
-      return records.sort((a: any, b: any) => (b.dateOfApplying?.toMillis?.() || 0) - (a.dateOfApplying?.toMillis?.() || 0));
+      return records.sort((a: any, b: any) => new Date(b.dateOfApplying || 0).getTime() - new Date(a.dateOfApplying || 0).getTime());
     }),
     
   applyLeave: protectedProcedure
@@ -63,7 +74,7 @@ export const hrRouter = createTRPCRouter({
     .input(z.object({ employeeProfileId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const records = await fetchWithProfiles("payrollRecords", ctx.user.organizationId, input.employeeProfileId);
-      return records.sort((a: any, b: any) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+      return records.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     }),
 
   // Resignations
@@ -102,7 +113,7 @@ export const hrRouter = createTRPCRouter({
   getHolidays: protectedProcedure
     .query(async ({ ctx }) => {
       const snap = await adminDb.collection("holidays").where("organizationId", "==", ctx.user.organizationId).get();
-      const records = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const records = snap.docs.map(doc => ({ id: doc.id, ...serializeTimestamps(doc.data()) }));
       return records.sort((a: any, b: any) => (a.date?.toMillis?.() || 0) - (b.date?.toMillis?.() || 0));
     }),
     
@@ -116,12 +127,12 @@ export const hrRouter = createTRPCRouter({
       ]);
       
       const getProfiles = async (docs: any[]) => {
-          const records = docs.map(d => ({ id: d.id, ...d.data() }));
+          const records = docs.map(d => ({ id: d.id, ...serializeTimestamps(d.data()) }));
           const pIds = [...new Set(records.map(r => r.employeeProfileId).filter(Boolean))];
           const profiles: any = {};
           await Promise.all(pIds.map(async id => {
               const p = await adminDb.collection("employeeProfiles").doc(id as string).get();
-              if (p.exists) profiles[id as string] = { id: p.id, ...p.data() };
+              if (p.exists) profiles[id as string] = { id: p.id, ...serializeTimestamps(p.data()) };
           }));
           return records.map(r => ({ ...r, employeeProfile: r.employeeProfileId ? profiles[r.employeeProfileId] || null : null }));
       };

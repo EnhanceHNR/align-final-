@@ -1,4 +1,15 @@
 "use client";
+function safeFormat(dateVal: any, formatStr: string) {
+  if (!dateVal) return '-';
+  let d;
+  if (dateVal && typeof dateVal === 'object' && '_seconds' in dateVal) {
+      d = new Date(dateVal._seconds * 1000);
+  } else {
+      d = new Date(dateVal);
+  }
+  return isNaN(d.getTime()) ? 'Invalid Date' : format(d, formatStr);
+}
+
 
 import React from "react";
 import { api } from "~/trpc/react";
@@ -54,8 +65,8 @@ export default function ResignationsPage() {
               {resignations && resignations.length > 0 ? (
                 resignations.map((res) => (
                   <TableRow key={res.id}>
-                    <TableCell className="font-medium">{format(new Date(res.createdAt), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell>{format(new Date(res.lastWorkingDay), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell className="font-medium">{safeFormat(new Date(res.createdAt), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell>{safeFormat(new Date(res.lastWorkingDay), 'MMM dd, yyyy')}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{res.reason}</TableCell>
                     <TableCell>
                       <Badge variant={res.status === 'Approved' ? 'default' : res.status === 'Rejected' ? 'destructive' : 'outline'}>

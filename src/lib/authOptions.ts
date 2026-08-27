@@ -24,7 +24,7 @@ export const authOptions: NextAuthOptions = {
                 const userDoc = usersSnapshot.docs[0];
                 const user = { id: userDoc.id, ...userDoc.data() } as any;
 
-                console.log("USER IS:", user); if (!user.isActive) throw new Error("ACCOUNT_INACTIVE");
+                console.log("USER IS:", user); if (user.isActive === false) throw new Error("ACCOUNT_INACTIVE");
                 
                 // Block login if explicitly marked as unverified
                 if (user.emailVerified === false) {

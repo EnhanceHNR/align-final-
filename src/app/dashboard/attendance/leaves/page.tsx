@@ -1,4 +1,15 @@
 "use client";
+function safeFormat(dateVal: any, formatStr: string) {
+  if (!dateVal) return '-';
+  let d;
+  if (dateVal && typeof dateVal === 'object' && '_seconds' in dateVal) {
+      d = new Date(dateVal._seconds * 1000);
+  } else {
+      d = new Date(dateVal);
+  }
+  return isNaN(d.getTime()) ? 'Invalid Date' : format(d, formatStr);
+}
+
 
 import React, { useState } from "react";
 import { api } from "~/trpc/react";
@@ -159,8 +170,8 @@ export default function LeavesPage() {
                 leaves.map((leave) => (
                   <TableRow key={leave.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium text-slate-900 pl-6">{leave.type}</TableCell>
-                    <TableCell className="text-slate-600">{format(new Date(leave.startDate), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell className="text-slate-600">{format(new Date(leave.endDate), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell className="text-slate-600">{safeFormat(new Date(leave.startDate), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell className="text-slate-600">{safeFormat(new Date(leave.endDate), 'MMM dd, yyyy')}</TableCell>
                     <TableCell className="text-center font-medium text-slate-700">{leave.days}</TableCell>
                     <TableCell className="pr-6 text-right">
                       <Badge variant={leave.status === 'Approved' ? 'default' : leave.status === 'Rejected' ? 'destructive' : 'outline'} className={`px-3 py-1 font-medium ${leave.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200/50' : leave.status === 'Pending' ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200/50' : ''}`}>

@@ -1,4 +1,15 @@
 "use client";
+function safeFormat(dateVal: any, formatStr: string) {
+  if (!dateVal) return '-';
+  let d;
+  if (dateVal && typeof dateVal === 'object' && '_seconds' in dateVal) {
+      d = new Date(dateVal._seconds * 1000);
+  } else {
+      d = new Date(dateVal);
+  }
+  return isNaN(d.getTime()) ? 'Invalid Date' : format(d, formatStr);
+}
+
 
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";

@@ -139,6 +139,8 @@ export const attendanceRouter = createTRPCRouter({
       punchInTime: z.string().optional(),
       punchOutTime: z.string().optional(),
       notes: z.string().optional(),
+      clockInPhoto: z.string().optional(),
+      clockOutPhoto: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const targetDate = new Date(input.date);
@@ -156,10 +158,13 @@ export const attendanceRouter = createTRPCRouter({
         .limit(1)
         .get();
 
+      let attendanceId = null;
       if (!snap.empty) {
-        const id = snap.docs[0].id;
-        await adminDb.collection('attendances').doc(id).update({ status: input.status });
-        return { id, ...snap.docs[0].data(), status: input.status };
+        attendanceId = snap.docs[0].id;
+        await adminDb.collection('attendances').doc(attendanceId).update({ 
+            status: input.status,
+            notes: input.notes || null,
+        });
       } else {
         const ref = adminDb.collection('attendances').doc();
         const data = {
@@ -167,9 +172,67 @@ export const attendanceRouter = createTRPCRouter({
           employeeProfileId: input.employeeProfileId,
           date: targetDate,
           status: input.status,
+          notes: input.notes || null,
         };
         await ref.set(data);
-        return { id: ref.id, ...data };
+        attendanceId = ref.id;
       }
+      
+      // Upsert the session
+      const sessionsSnap = await adminDb
+        .collection('attendanceSessions')
+        .where('attendanceId', '==', attendanceId)
+        .limit(1)
+        .get();
+        
+      
+      let pIn = null;
+      if (input.punchInTime && input.punchInTime.includes(':')) {
+         pIn = new Date(targetDate);
+         const [hrs, mins] = input.punchInTime.split(':');
+         pIn.setHours(parseInt(hrs, 10), parseInt(mins, 10), 0, 0);
+      }
+      
+      let pOut = null;
+      if (input.punchOutTime && input.punchOutTime.includes(':')) {
+         pOut = new Date(targetDate);
+         const [hrs, mins] = input.punchOutTime.split(':');
+         pOut.setHours(parseInt(hrs, 10), parseInt(mins, 10), 0, 0);
+      }
+
+      
+      let duration = null;
+      if (pIn && pOut) {
+         const diffMs = pOut.getTime() - pIn.getTime();
+         const diffHrs = Math.floor(diffMs / 3600000);
+         const diffMins = Math.floor((diffMs % 3600000) / 60000);
+         duration = `${diffHrs}h ${diffMins}m`;
+      }
+
+      if (!sessionsSnap.empty) {
+          const sId = sessionsSnap.docs[0].id;
+          const updates = {};
+          if (pIn) updates.clockInTime = pIn;
+          if (pOut) updates.clockOutTime = pOut;
+          if (duration) updates.duration = duration;
+          if (input.clockInPhoto) updates.clockInPhoto = input.clockInPhoto;
+          if (input.clockOutPhoto) updates.clockOutPhoto = input.clockOutPhoto;
+          
+          if (Object.keys(updates).length > 0) {
+              await adminDb.collection('attendanceSessions').doc(sId).update(updates);
+          }
+      } else if (pIn || pOut || input.clockInPhoto || input.clockOutPhoto) {
+          await adminDb.collection('attendanceSessions').add({
+              attendanceId,
+              organizationId: ctx.user.organizationId,
+              clockInTime: pIn || new Date(),
+              clockOutTime: pOut || null,
+              duration,
+              clockInPhoto: input.clockInPhoto || null,
+              clockOutPhoto: input.clockOutPhoto || null,
+          });
+      }
+      
+      return { success: true };
     }),
 });

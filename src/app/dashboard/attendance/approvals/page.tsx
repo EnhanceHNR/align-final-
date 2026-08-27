@@ -1,4 +1,15 @@
 "use client";
+function safeFormat(dateVal: any, formatStr: string) {
+  if (!dateVal) return '-';
+  let d;
+  if (dateVal && typeof dateVal === 'object' && '_seconds' in dateVal) {
+      d = new Date(dateVal._seconds * 1000);
+  } else {
+      d = new Date(dateVal);
+  }
+  return isNaN(d.getTime()) ? 'Invalid Date' : format(d, formatStr);
+}
+
 
 import React, { useState } from "react";
 import { api } from "~/trpc/react";
@@ -103,7 +114,7 @@ export default function ApprovalsPage() {
                 </Avatar>
                 <div>
                   <h3 className="font-bold text-base">{req.employeeProfile?.name}</h3>
-                  <p className="text-sm font-semibold">{format(startDate, 'MMM dd, yyyy')} - {format(endDate, 'MMM dd, yyyy')}</p>
+                  <p className="text-sm font-semibold">{safeFormat(startDate, 'MMM dd, yyyy')} - {safeFormat(endDate, 'MMM dd, yyyy')}</p>
                   <p className="text-sm text-muted-foreground">{diffDays} day(s) - {req.leaveType || 'Unpaid Leave'}</p>
                 </div>
               </div>

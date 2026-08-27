@@ -1,5 +1,6 @@
-
 "use client";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isSameMonth } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import React, { useState, useEffect } from "react";
 import { api } from "~/trpc/react";
@@ -7,18 +8,29 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, Loader2, MapPin, Download, CheckCircle } from "lucide-react";
-import { format } from "date-fns";
+
 import { PageHeader } from "@/components/shared/page-header";
+
 import { Badge } from "~/components/ui/badge";
 import { useSession } from "next-auth/react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ClockInOutDialog } from "@/components/attendance/clock-in-out-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+function safeFormat(dateVal: any, formatStr: string) {
+  if (!dateVal) return '-';
+  const d = new Date(dateVal);
+  return isNaN(d.getTime()) ? 'Invalid Time' : format(d, formatStr);
+}
+
 
 export default function AttendancePage() {
   const { data: session } = useSession();
   const { toast } = useToast();
   
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -29,6 +41,18 @@ export default function AttendancePage() {
     { userId: session?.user?.id },
     { enabled: !!session?.user?.id }
   );
+
+  const { data: employeeDetails } = api.employee.getEmployeeDetails.useQuery(
+    { employeeProfileId: profile?.id as string },
+    { enabled: !!profile?.id }
+  );
+
+  const daysInMonth = eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) });
+  const currentMonthAttendances = employeeDetails?.attendances?.filter((a: any) => isSameMonth(new Date(a.date), currentMonth)) || [];
+
+  const handlePrevMonth = () => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)));
+  const handleNextMonth = () => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)));
+
 
   const { data: todayAttendance, refetch: refetchAttendance, isLoading: isLoadingAttendance } = api.attendance.getToday.useQuery(
     { employeeProfileId: profile?.id as string },
@@ -116,19 +140,11 @@ export default function AttendancePage() {
               </div>
 
               <div className="flex flex-col gap-3">
-                <Button 
-                  size="lg" 
-                  className={`w-full ${isClockedIn ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
-                  onClick={isClockedIn ? handleClockOut : handleClockIn}
-                  disabled={clockInMutation.isPending || clockOutMutation.isPending}
-                >
-                  {(clockInMutation.isPending || clockOutMutation.isPending) ? (
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  ) : (
-                    <Clock className="mr-2 h-5 w-5" />
-                  )}
-                  {isClockedIn ? "Punch Out" : "Punch In"}
-                </Button>
+                <ClockInOutDialog 
+        isClockedIn={isClockedIn} 
+        onClockIn={handleClockIn} 
+        onClockOut={handleClockOut} 
+     />
                 
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1">Late Arrival</Button>
@@ -147,11 +163,11 @@ export default function AttendancePage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-emerald-600 font-medium">
-                            {format(new Date(session.clockInTime), 'HH:mm')}
+                            {safeFormat(session.clockInTime, 'HH:mm')}
                           </span>
                           <span className="text-muted-foreground">-</span>
                           <span className={session.clockOutTime ? "text-amber-600 font-medium" : "text-muted-foreground italic"}>
-                            {session.clockOutTime ? format(new Date(session.clockOutTime), 'HH:mm') : "Ongoing"}
+                            {session.clockOutTime ? safeFormat(session.clockOutTime, 'HH:mm') : "Ongoing"}
                           </span>
                         </div>
                       </div>
@@ -196,14 +212,14 @@ export default function AttendancePage() {
                     <TableBody>
                       {todayAttendance ? (
                         <TableRow>
-                           <TableCell className="font-medium">{format(new Date(todayAttendance.date), 'MMM dd, yyyy')}</TableCell>
+                           <TableCell className="font-medium">{safeFormat(todayAttendance.date, 'MMM dd, yyyy')}</TableCell>
                            <TableCell><Badge className="bg-emerald-500 hover:bg-emerald-600">{todayAttendance.status}</Badge></TableCell>
                            <TableCell>
-                              {todayAttendance.sessions[0] ? format(new Date(todayAttendance.sessions[0].clockInTime), 'HH:mm') : '-'}
+                              {todayAttendance.sessions[0] ? safeFormat(todayAttendance.sessions[0].clockInTime, 'HH:mm') : '-'}
                            </TableCell>
                            <TableCell>
                               {todayAttendance.sessions[todayAttendance.sessions.length - 1]?.clockOutTime 
-                                ? format(new Date(todayAttendance.sessions[todayAttendance.sessions.length - 1].clockOutTime!), 'HH:mm') 
+                                ? safeFormat(todayAttendance.sessions[todayAttendance.sessions.length - 1].clockOutTime!, 'HH:mm') 
                                 : '-'}
                            </TableCell>
                            <TableCell>-</TableCell>
@@ -227,9 +243,123 @@ export default function AttendancePage() {
                   <CardTitle>Attendance Calendar</CardTitle>
                   <CardDescription>View your attendance patterns over the month.</CardDescription>
                 </CardHeader>
-                <CardContent className="h-64 flex items-center justify-center border-dashed border-2 m-6 rounded-xl text-muted-foreground">
-                  Calendar view will be integrated soon.
+                
+                <CardContent className="pt-6">
+                  <div className="flex justify-center">
+                    <div className="w-full max-w-sm">
+                      <div className="flex items-center justify-between p-4">
+                        <Button variant="ghost" size="icon" onClick={handlePrevMonth}><ChevronLeft className="h-5 w-5" /></Button>
+                        <h3 className="font-semibold text-lg">{format(currentMonth, 'MMMM yyyy')}</h3>
+                        <Button variant="ghost" size="icon" onClick={handleNextMonth}><ChevronRight className="h-5 w-5" /></Button>
+                      </div>
+                      <div className="grid grid-cols-7 gap-1 px-2 text-center mb-2">
+                        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                          <div key={day} className="text-xs font-medium text-muted-foreground">{day}</div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-7 gap-2 px-2">
+                        {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, i) => (
+                          <div key={`empty-${i}`} className="h-8 w-8"></div>
+                        ))}
+                        {daysInMonth.map(day => {
+                          let bgColor = "bg-transparent hover:bg-slate-100";
+                          let textColor = "text-slate-700";
+                          
+                          const attendanceRecord = currentMonthAttendances.find((a: any) => isSameDay(new Date(a.date), day));
+                          
+                          if (attendanceRecord) {
+                              if (attendanceRecord.status === "Present") {
+                                 bgColor = "bg-emerald-100";
+                                 textColor = "text-emerald-700";
+                              } else if (attendanceRecord.status === "Absent") {
+                                 bgColor = "bg-red-200";
+                                 textColor = "text-red-700";
+                              } else if (attendanceRecord.status === "Late" || attendanceRecord.status === "Double Late") {
+                                 bgColor = "bg-amber-700";
+                                 textColor = "text-white";
+                              } else if (attendanceRecord.status === "Grace Period") {
+                                 bgColor = "bg-yellow-400";
+                                 textColor = "text-yellow-900";
+                              } else if (attendanceRecord.status.includes("Leave")) {
+                                 bgColor = "bg-amber-100";
+                                 textColor = "text-amber-700";
+                              } else if (attendanceRecord.status === "Holiday" || attendanceRecord.status === "Weekend") {
+                                 bgColor = "bg-slate-100";
+                                 textColor = "text-slate-400";
+                              }
+                          }
+
+                          return (
+                            <div key={day.toISOString()} className="flex justify-center items-center">
+                              <div 
+                                 onClick={() => setSelectedDate(day)}
+                                 className={`h-8 w-8 flex items-center justify-center rounded-sm text-sm cursor-pointer hover:ring-2 hover:ring-slate-300 transition-all ${bgColor} ${textColor} ${isToday(day) ? 'ring-2 ring-slate-400' : ''}`}>
+                                {day.getDate()}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Selected Date Details */}
+                  {selectedDate && (
+                    <div className="mt-6 border-t pt-6">
+                        <h4 className="font-semibold mb-2">Details for {format(selectedDate, 'MMMM dd, yyyy')}</h4>
+                        {(() => {
+                          const att = currentMonthAttendances.find((a: any) => isSameDay(new Date(a.date), selectedDate));
+                          if (!att) return <p className="text-sm text-muted-foreground">No attendance record for this date.</p>;
+                          
+                          return (
+                            <div className="space-y-4">
+                              <div className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-slate-100">
+                                Status: <span className="font-bold">{att.status}</span>
+                              </div>
+                              
+                              {att.sessions && att.sessions.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {att.sessions.map((session: any, idx: number) => (
+                                    <div key={session.id} className="border rounded-lg p-4 bg-slate-50 space-y-3">
+                                      <h5 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">Session {idx + 1}</h5>
+                                      <div className="flex justify-between text-sm">
+                                        <div>
+                                          <p className="text-muted-foreground">Punch In</p>
+                                          <p className="font-medium">{session.clockInTime ? safeFormat(session.clockInTime, 'hh:mm a') : 'N/A'}</p>
+                                        </div>
+                                        <div className="text-right">
+                                          <p className="text-muted-foreground">Punch Out</p>
+                                          <p className="font-medium">{session.clockOutTime ? safeFormat(session.clockOutTime, 'hh:mm a') : 'N/A'}</p>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="flex gap-2 mt-2">
+                                        {session.clockInPhoto && (
+                                          <div className="flex-1">
+                                            <p className="text-[10px] text-muted-foreground mb-1 uppercase font-semibold">In Photo</p>
+                                            <img src={session.clockInPhoto} alt="Clock In" className="w-full h-20 object-cover rounded border border-slate-200" />
+                                          </div>
+                                        )}
+                                        {session.clockOutPhoto && (
+                                          <div className="flex-1">
+                                            <p className="text-[10px] text-muted-foreground mb-1 uppercase font-semibold">Out Photo</p>
+                                            <img src={session.clockOutPhoto} alt="Clock Out" className="w-full h-20 object-cover rounded border border-slate-200" />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">No punch details recorded.</p>
+                              )}
+                            </div>
+                          );
+                        })()}
+                    </div>
+                  )}
                 </CardContent>
+
               </Card>
             </TabsContent>
 

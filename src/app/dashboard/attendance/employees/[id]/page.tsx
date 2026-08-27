@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { useParams, useRouter } from "next/navigation";
 import { EditEmployeeForm } from "./EditEmployeeForm";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function EmployeeDetailsPage() {
   const params = useParams();
@@ -23,7 +24,7 @@ export default function EmployeeDetailsPage() {
   const employeeId = params.id as string;
   
   const utils = api.useUtils();
-  const { data: employee, isLoading } = api.employee.getEmployeeDetails.useQuery(
+  const { data: employee, isLoading, refetch } = api.employee.getEmployeeDetails.useQuery(
     { employeeProfileId: employeeId },
     { enabled: !!employeeId }
   );
@@ -49,6 +50,8 @@ export default function EmployeeDetailsPage() {
   const [punchInTime, setPunchInTime] = useState("09:00 AM");
   const [punchOutTime, setPunchOutTime] = useState("05:00 PM");
   const [attendanceNotes, setAttendanceNotes] = useState("");
+  const [clockInPhoto, setClockInPhoto] = useState<string>("");
+  const [clockOutPhoto, setClockOutPhoto] = useState<string>("");
 
   const upsertAttendanceMutation = api.attendance.upsertAttendance.useMutation({
     onSuccess: () => {
@@ -68,6 +71,8 @@ export default function EmployeeDetailsPage() {
       punchInTime,
       punchOutTime,
       notes: attendanceNotes,
+      clockInPhoto: clockInPhoto || undefined,
+      clockOutPhoto: clockOutPhoto || undefined,
     });
   };
 
@@ -350,6 +355,9 @@ export default function EmployeeDetailsPage() {
                           } else if (attendanceRecord.status === "Late" || attendanceRecord.status === "Double Late") {
                              bgColor = "bg-amber-700";
                              textColor = "text-white";
+                          } else if (attendanceRecord.status === "Grace Period") {
+                             bgColor = "bg-yellow-400";
+                             textColor = "text-yellow-900";
                           } else if (attendanceRecord.status.includes("Leave")) {
                              bgColor = "bg-amber-100";
                              textColor = "text-amber-700";
@@ -366,10 +374,13 @@ export default function EmployeeDetailsPage() {
                              onClick={() => {
                                setSelectedDate(day);
                                setAttendanceStatus(attendanceRecord ? attendanceRecord.status : "Present");
-                               setPunchInTime(attendanceRecord?.punchInTime || "09:00 AM");
-                               setPunchOutTime(attendanceRecord?.punchOutTime || "05:00 PM");
+                               const sess = attendanceRecord?.sessions?.[0];
+                               setPunchInTime(sess?.clockInTime ? format(new Date(sess.clockInTime), 'HH:mm') : "");
+                               setPunchOutTime(sess?.clockOutTime ? format(new Date(sess.clockOutTime), 'HH:mm') : "");
                                setAttendanceNotes(attendanceRecord?.notes || "");
-                               setIsAttendanceModalOpen(true);
+                               setClockInPhoto(attendanceRecord?.sessions?.[0]?.clockInPhoto || "");
+                               setClockOutPhoto(attendanceRecord?.sessions?.[0]?.clockOutPhoto || "");
+                               // setIsAttendanceModalOpen(true); // removed to show details below instead
                              }}
                              className={`h-8 w-8 flex items-center justify-center rounded-sm text-sm cursor-pointer hover:ring-2 hover:ring-slate-300 transition-all ${bgColor} ${textColor} ${isToday(day) ? 'ring-2 ring-slate-400' : ''}`}>
                             {dayOfMonth}
@@ -378,8 +389,84 @@ export default function EmployeeDetailsPage() {
                       )
                     })}
                   </div>
+                
                 </Card>
               </div>
+              
+              {/* Selected Date Details */}
+              {selectedDate && (
+                <Card className="shadow-sm border-0 bg-white mt-6">
+                  <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="text-lg font-semibold">Details for {format(selectedDate, 'MMMM dd, yyyy')}</CardTitle>
+                        <CardDescription>Punch details and selfies</CardDescription>
+                    </div>
+                    <Button variant="outline" onClick={() => setIsAttendanceModalOpen(true)}>
+                      Manual Override
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const att = currentMonthAttendances.find(a => isSameDay(new Date(a.date), selectedDate));
+                      if (!att) return <p className="text-sm text-muted-foreground">No attendance record for this date.</p>;
+                      
+                      return (
+                        <div className="space-y-4">
+                          <div className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-slate-100">
+                            Status: <span className="font-bold">{att.status}</span>
+                          </div>
+                          
+                          {att.sessions && att.sessions.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {att.sessions.map((session: any, idx: number) => (
+                                <div key={session.id} className="border rounded-lg p-4 bg-slate-50 space-y-3">
+                                  <h4 className="font-semibold text-sm">Session {idx + 1}</h4>
+                                  <div className="flex justify-between text-sm">
+                                    <div>
+                                      <p className="text-muted-foreground">Punch In</p>
+                                      <p className="font-medium">{session.clockInTime ? format(new Date(session.clockInTime), 'hh:mm a') : 'N/A'}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-muted-foreground">Punch Out</p>
+                                      <p className="font-medium">{session.clockOutTime ? format(new Date(session.clockOutTime), 'hh:mm a') : 'N/A'}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Photos */}
+                                  <div className="flex gap-2 mt-2">
+                                    {session.clockInPhoto && (
+                                      <div className="flex-1">
+                                        <p className="text-xs text-muted-foreground mb-1">In Photo</p>
+                                        <img src={session.clockInPhoto} alt="Clock In" className="w-full h-24 object-cover rounded-md border" />
+                                      </div>
+                                    )}
+                                    {session.clockOutPhoto && (
+                                      <div className="flex-1">
+                                        <p className="text-xs text-muted-foreground mb-1">Out Photo</p>
+                                        <img src={session.clockOutPhoto} alt="Clock Out" className="w-full h-24 object-cover rounded-md border" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No punch details recorded.</p>
+                          )}
+                          
+                          {att.notes && (
+                            <div className="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-md">
+                              <p className="text-xs font-semibold text-amber-800 mb-1">Admin Notes</p>
+                              <p className="text-sm text-amber-900">{att.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              )}
+
             </TabsContent>
 
                         <TabsContent value="salary" className="m-0 space-y-6">
@@ -512,6 +599,7 @@ export default function EmployeeDetailsPage() {
                   <SelectItem value="Absent">Absent</SelectItem>
                   <SelectItem value="Half Day">Half Day</SelectItem>
                   <SelectItem value="Late">Late</SelectItem>
+                  <SelectItem value="Grace Period">Late (Grace Period)</SelectItem>
                   <SelectItem value="Weekend">Weekend</SelectItem>
                   <SelectItem value="Holiday">Holiday</SelectItem>
                 </SelectContent>
@@ -520,11 +608,11 @@ export default function EmployeeDetailsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Punch In</Label>
-                <Input value={punchInTime} onChange={e => setPunchInTime(e.target.value)} placeholder="09:00 AM" />
+                <Input type="time" value={punchInTime} onChange={e => setPunchInTime(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Punch Out</Label>
-                <Input value={punchOutTime} onChange={e => setPunchOutTime(e.target.value)} placeholder="05:00 PM" />
+                <Input type="time" value={punchOutTime} onChange={e => setPunchOutTime(e.target.value)} />
               </div>
             </div>
             <div className="space-y-2">
@@ -532,6 +620,46 @@ export default function EmployeeDetailsPage() {
               <Input value={attendanceNotes} onChange={e => setAttendanceNotes(e.target.value)} placeholder="e.g. Approved leave" />
             </div>
           </div>
+          
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Clock In Photo</Label>
+                <div className="flex flex-col gap-2">
+                   {clockInPhoto && <img src={clockInPhoto} className="w-full h-24 object-cover rounded-md border" />}
+                   <Input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => {
+                         const file = e.target.files?.[0];
+                         if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (evt) => setClockInPhoto(evt.target?.result as string);
+                            reader.readAsDataURL(file);
+                         }
+                      }} 
+                   />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Clock Out Photo</Label>
+                <div className="flex flex-col gap-2">
+                   {clockOutPhoto && <img src={clockOutPhoto} className="w-full h-24 object-cover rounded-md border" />}
+                   <Input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => {
+                         const file = e.target.files?.[0];
+                         if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (evt) => setClockOutPhoto(evt.target?.result as string);
+                            reader.readAsDataURL(file);
+                         }
+                      }} 
+                   />
+                </div>
+              </div>
+            </div>
+
           <DialogFooter>
             <Button onClick={handleSaveAttendance} disabled={upsertAttendanceMutation.isPending}>Save Attendance</Button>
           </DialogFooter>

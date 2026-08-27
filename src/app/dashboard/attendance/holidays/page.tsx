@@ -1,4 +1,15 @@
 "use client";
+function safeFormat(dateVal: any, formatStr: string) {
+  if (!dateVal) return '-';
+  let d;
+  if (dateVal && typeof dateVal === 'object' && '_seconds' in dateVal) {
+      d = new Date(dateVal._seconds * 1000);
+  } else {
+      d = new Date(dateVal);
+  }
+  return isNaN(d.getTime()) ? 'Invalid Date' : format(d, formatStr);
+}
+
 
 import React from "react";
 import { api } from "~/trpc/react";
@@ -42,7 +53,7 @@ export default function HolidaysPage() {
                 holidays.map((holiday) => (
                   <TableRow key={holiday.id}>
                     <TableCell className="font-medium">{holiday.name}</TableCell>
-                    <TableCell>{format(new Date(holiday.date), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell>{safeFormat(new Date(holiday.date), 'MMM dd, yyyy')}</TableCell>
                     <TableCell>{holiday.type}</TableCell>
                   </TableRow>
                 ))

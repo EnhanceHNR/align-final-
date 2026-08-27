@@ -1,6 +1,7 @@
 import "@/styles/globals.css";
 import { Inter } from "next/font/google";
 import Providers from "@/app/_components/Providers";
+import { Toaster } from "@/components/ui/toaster";
 import { TRPCReactProvider } from "~/trpc/react"; // Imported to provide global tRPC and React Query context
 
 const inter = Inter({
@@ -29,6 +30,7 @@ export default function RootLayout({
         <TRPCReactProvider>
           <Providers>
             {children}
+            <Toaster />
           </Providers>
         </TRPCReactProvider>
       </body>
