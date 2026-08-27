@@ -114,3 +114,20 @@ export type InventoryTransaction = {
     photoUrl?: string;
     createdAt: string;
 };
+
+export type Employee = {
+  id: string;
+  name: string;
+  role?: string;
+  [key: string]: any;
+};
+
+export type ClockEvent = {
+  time: string;
+  timestamp: string;
+  photo?: string | null;
+  location?: any;
+  isManual?: boolean;
+  remarks?: string;
+};
+

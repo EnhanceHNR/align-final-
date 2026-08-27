@@ -11,6 +11,7 @@ import { Badge } from "~/components/ui/badge";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { AddEmployeeDialog } from "@/components/employees/add-employee-dialog";
 
 type Shift = { id: string; startTime: string; endTime: string };
 
@@ -277,30 +278,10 @@ export default function EmployeesPage() {
          <div className="flex gap-3">
             <Button variant="outline" className="bg-white">Export</Button>
             <Button variant="outline" className="bg-white">Import</Button>
-            <Button onClick={() => { resetForm(); setIsAddOpen(true); }} className="bg-slate-900 hover:bg-slate-800 text-white shadow-md">
-              <Plus className="h-4 w-4 mr-2" /> Add
-            </Button>
+            <AddEmployeeDialog />
          </div>
       </div>
 
-      {/* Add Modal */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-[480px] bg-[#f8f9f8] border-0 p-6 shadow-2xl max-h-[90vh] overflow-y-auto rounded-3xl">
-          <DialogHeader className="mb-2">
-            <DialogTitle className="text-[20px] font-semibold text-slate-900">Add Employee</DialogTitle>
-            <DialogDescription className="text-[14px] text-slate-500">Create a new employee profile and system account.</DialogDescription>
-          </DialogHeader>
-          {renderFormFields(false)}
-          <div className="flex justify-end pt-6 mt-2">
-             <Button onClick={handleSaveAdd} disabled={createStaffMutation.isPending || !name || !email || !password} className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-12 text-[15px] font-medium shadow-md">
-               {createStaffMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-               Create Employee
-             </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-[480px] bg-[#f8f9f8] border-0 p-6 shadow-2xl max-h-[90vh] overflow-y-auto rounded-3xl">
           <DialogHeader className="mb-2">

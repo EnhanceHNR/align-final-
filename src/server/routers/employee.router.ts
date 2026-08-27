@@ -120,7 +120,14 @@ export const employeeRouter = createTRPCRouter({
         .collection('attendances')
         .where('employeeProfileId', '==', profileData.id)
         .get();
-      let attendances = attendancesSnap.docs.map(d => ({ id: d.id, ...d.data() as any }));
+      let attendances = attendancesSnap.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          date: data.date && typeof data.date.toDate === 'function' ? data.date.toDate().toISOString() : data.date
+        } as any;
+      });
       attendances.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
       attendances = await Promise.all(attendances.map(async (att) => {
@@ -146,7 +153,15 @@ export const employeeRouter = createTRPCRouter({
         .collection('payrolls')
         .where('employeeProfileId', '==', profileData.id)
         .get();
-      let payrolls = payrollsSnap.docs.map(d => ({ id: d.id, ...d.data() as any }));
+      let payrolls = payrollsSnap.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          createdAt: data.createdAt && typeof data.createdAt.toDate === 'function' ? data.createdAt.toDate().toISOString() : data.createdAt,
+          updatedAt: data.updatedAt && typeof data.updatedAt.toDate === 'function' ? data.updatedAt.toDate().toISOString() : data.updatedAt
+        } as any;
+      });
       payrolls.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
       return {

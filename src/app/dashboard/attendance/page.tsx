@@ -14,6 +14,8 @@ import { Badge } from "~/components/ui/badge";
 import { useSession } from "next-auth/react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClockInOutDialog } from "@/components/attendance/clock-in-out-dialog";
+import { ManualAttendanceDialog } from "@/components/attendance/manual-attendance-dialog";
+import { uploadAttendancePhoto } from "@/components/attendance/actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 function safeFormat(dateVal: any, formatStr: string) {
@@ -57,6 +59,54 @@ export default function AttendancePage() {
     { employeeProfileId: profile?.id as string },
     { enabled: !!profile?.id }
   );
+
+  const { data: allEmployees } = api.employee.getAllEmployees.useQuery();
+
+  const upsertAttendanceMutation = api.attendance.upsertAttendance.useMutation({
+    onSuccess: () => {
+      toast({ title: "Manual entry saved successfully" });
+      refetchAttendance();
+    },
+    onError: (error) => {
+      toast({ title: "Failed to save entry", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const handleManualEntry = async (employeeId: string, type: any, time: string, date: Date, capture?: any) => {
+      let photoUrl = undefined;
+      if (capture?.photo) {
+          photoUrl = await uploadAttendancePhoto(capture.photo);
+      }
+      
+      upsertAttendanceMutation.mutate({
+          employeeProfileId: employeeId,
+          date: date.toISOString(),
+          status: type,
+          punchInTime: type === 'clock-in' ? time : undefined,
+          punchOutTime: type === 'clock-out' ? time : undefined,
+          notes: capture?.remarks || undefined,
+          clockInPhoto: type === 'clock-in' ? (photoUrl || undefined) : undefined,
+          clockOutPhoto: type === 'clock-out' ? (photoUrl || undefined) : undefined,
+      });
+  };
+
+  const handleAddCompleteSession = async (employeeId: string, punchInTime: string, punchOutTime: string, date: Date, punchInCapture?: any, punchOutCapture?: any) => {
+      let inPhotoUrl = undefined;
+      let outPhotoUrl = undefined;
+      if (punchInCapture?.photo) inPhotoUrl = await uploadAttendancePhoto(punchInCapture.photo);
+      if (punchOutCapture?.photo) outPhotoUrl = await uploadAttendancePhoto(punchOutCapture.photo);
+
+      upsertAttendanceMutation.mutate({
+          employeeProfileId: employeeId,
+          date: date.toISOString(),
+          status: 'complete-session',
+          punchInTime: punchInTime,
+          punchOutTime: punchOutTime,
+          notes: punchInCapture?.remarks || undefined,
+          clockInPhoto: inPhotoUrl || undefined,
+          clockOutPhoto: outPhotoUrl || undefined,
+      });
+  };
 
   const clockInMutation = api.attendance.clockIn.useMutation({
     onSuccess: () => {
@@ -148,6 +198,15 @@ export default function AttendancePage() {
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1">Late Arrival</Button>
                   <Button variant="outline" className="flex-1">Early Punch Out</Button>
+                </div>
+
+                <div className="flex w-full mt-2">
+                  <ManualAttendanceDialog 
+                    employees={allEmployees || []} 
+                    onManualEntry={handleManualEntry}
+                    onAddCompleteSession={handleAddCompleteSession}
+                    defaultEmployeeId={profile.id}
+                  />
                 </div>
               </div>
 

@@ -18,6 +18,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import { useToast } from "@/hooks/use-toast";
+import Papa from "papaparse";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function AddDealerPage() {
     const router = useRouter();
@@ -25,6 +27,13 @@ export default function AddDealerPage() {
     
     const { data: inventoryItems, isLoading: itemsLoading } = api.inventory.getAll.useQuery();
     const createDealer = api.inventory.createDealer.useMutation();
+    const createItem = api.inventory.create.useMutation();
+    const utils = api.useUtils();
+
+    const [isAddItemOpen, setIsAddItemOpen] = useState(false);
+    const [newItemName, setNewItemName] = useState("");
+    const [newItemBrand, setNewItemBrand] = useState("");
+    const [newItemPrice, setNewItemPrice] = useState("");
 
     const [name, setName] = useState("");
     const [contactPerson, setContactPerson] = useState("");
@@ -49,6 +58,84 @@ export default function AddDealerPage() {
             (item.brandName && item.brandName.toLowerCase().includes(lowerTerm))
         );
     }, [inventoryItems, searchTerm]);
+
+    
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async (results) => {
+                const data = results.data as Record<string, string>[];
+                let addedCount = 0;
+                
+                const newSelected = [...selectedItems];
+                const newPrices = { ...itemPrices };
+                
+                for (const row of data) {
+                    const name = row['Item Name'] || row['name'] || row['Name'];
+                    const brand = row['Brand Name'] || row['brand'] || row['Brand'] || '';
+                    const price = row['Price'] || row['price'] || '';
+                    
+                    if (!name) continue;
+
+                    // find existing item
+                    let item = inventoryItems?.find(i => i.name.toLowerCase() === name.toLowerCase());
+                    
+                    if (!item) {
+                        try {
+                            item = await createItem.mutateAsync({ name, brandName: brand, itemCount: 0, costPerUnit: parseFloat(price) || 0 });
+                        } catch(err) {
+                            console.error(err);
+                            continue;
+                        }
+                    }
+
+                    if (item && !newSelected.includes(item.id)) {
+                        newSelected.push(item.id);
+                        newPrices[item.id] = price;
+                        addedCount++;
+                    }
+                }
+                
+                setSelectedItems(newSelected);
+                setItemPrices(newPrices);
+                
+                if (addedCount > 0) {
+                    utils.inventory.getAll.invalidate();
+                }
+
+                toast({ title: "CSV Processed", description: `Added ${addedCount} items from CSV.` });
+            }
+        });
+    };
+
+    const handleAddManualItem = async () => {
+        if (!newItemName) {
+            toast({ title: "Name required", variant: "destructive" });
+            return;
+        }
+        try {
+            const item = await createItem.mutateAsync({
+                name: newItemName,
+                brandName: newItemBrand,
+                itemCount: 0,
+                costPerUnit: parseFloat(newItemPrice) || 0
+            });
+            setSelectedItems(prev => [...prev, item.id]);
+            setItemPrices(prev => ({ ...prev, [item.id]: newItemPrice }));
+            utils.inventory.getAll.invalidate();
+            setIsAddItemOpen(false);
+            setNewItemName("");
+            setNewItemBrand("");
+            setNewItemPrice("");
+            toast({ title: "Item added successfully" });
+        } catch(e) {
+            toast({ title: "Failed to add item", variant: "destructive" });
+        }
+    };
 
     const handleItemToggle = (itemId: string) => {
         setSelectedItems(prev => 
@@ -158,8 +245,37 @@ export default function AddDealerPage() {
                                 accept=".csv"
                                 className="hidden"
                                 ref={fileInputRef}
-                                onChange={() => toast({ title: "CSV upload simulated" })}
+                                onChange={handleFileUpload}
                             />
+                            
+                            <Dialog open={isAddItemOpen} onOpenChange={setIsAddItemOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline">Add Item Manually</Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Add New Item to Dealer</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label>Item Name</Label>
+                                            <Input value={newItemName} onChange={e => setNewItemName(e.target.value)} placeholder="e.g. Dental Mirror" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Brand Name (Optional)</Label>
+                                            <Input value={newItemBrand} onChange={e => setNewItemBrand(e.target.value)} placeholder="e.g. OralB" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Price</Label>
+                                            <Input type="number" value={newItemPrice} onChange={e => setNewItemPrice(e.target.value)} placeholder="0.00" />
+                                        </div>
+                                        <Button className="w-full" onClick={handleAddManualItem} disabled={createItem.isPending}>
+                                            {createItem.isPending ? "Adding..." : "Add to List"}
+                                        </Button>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+
                             <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
                                 <Upload className="h-4 w-4 mr-2" />
                                 Upload CSV

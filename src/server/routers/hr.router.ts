@@ -69,6 +69,31 @@ export const hrRouter = createTRPCRouter({
       return { id: ref.id, ...input };
     }),
 
+  updateLeaveStatus: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      status: z.enum(["Approved", "Rejected", "Pending"]),
+      overrideType: z.string().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const docRef = adminDb.collection("leaveRequests").doc(input.id);
+      const docSnap = await docRef.get();
+      if (!docSnap.exists) throw new TRPCError({ code: "NOT_FOUND" });
+      
+      const docData = docSnap.data()!;
+      if (docData.organizationId !== ctx.user.organizationId) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+
+      const updateData: any = { status: input.status };
+      if (input.overrideType) {
+        updateData.type = input.overrideType;
+      }
+      
+      await docRef.update(updateData);
+      return { id: input.id, ...updateData };
+    }),
+
   // Payroll
   getPayrolls: protectedProcedure
     .input(z.object({ employeeProfileId: z.string().optional() }))

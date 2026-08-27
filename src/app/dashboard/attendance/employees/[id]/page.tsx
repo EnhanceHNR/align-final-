@@ -15,7 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { useParams, useRouter } from "next/navigation";
 import { EditEmployeeForm } from "./EditEmployeeForm";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday } from "date-fns";
+import SalaryCalculator from "@/components/employees/salary-calculator";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function EmployeeDetailsPage() {
@@ -47,8 +48,8 @@ export default function EmployeeDetailsPage() {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [attendanceStatus, setAttendanceStatus] = useState("Present");
-  const [punchInTime, setPunchInTime] = useState("09:00 AM");
-  const [punchOutTime, setPunchOutTime] = useState("05:00 PM");
+  const [punchInTime, setPunchInTime] = useState("09:00");
+  const [punchOutTime, setPunchOutTime] = useState("17:00");
   const [attendanceNotes, setAttendanceNotes] = useState("");
   const [clockInPhoto, setClockInPhoto] = useState<string>("");
   const [clockOutPhoto, setClockOutPhoto] = useState<string>("");
@@ -64,6 +65,19 @@ export default function EmployeeDetailsPage() {
 
   const handleSaveAttendance = () => {
     if (!selectedDate || !employee) return;
+    
+    const isWorkingStatus = ["Present", "Late", "Double Late"].includes(attendanceStatus);
+    if (isWorkingStatus) {
+      if (punchInTime && !clockInPhoto) {
+        toast({ title: "Validation Error", description: "Clock In Photo is mandatory.", variant: "destructive" });
+        return;
+      }
+      if (punchOutTime && !clockOutPhoto) {
+        toast({ title: "Validation Error", description: "Clock Out Photo is mandatory when punch out time is provided.", variant: "destructive" });
+        return;
+      }
+    }
+
     upsertAttendanceMutation.mutate({
       employeeProfileId: employee.id,
       date: selectedDate.toISOString(),
@@ -286,6 +300,7 @@ export default function EmployeeDetailsPage() {
             <TabsList className="w-full justify-start rounded-md bg-white border border-slate-200 p-1 mb-6">
               <TabsTrigger value="attendance" className="flex-1 data-[state=active]:bg-slate-100 data-[state=active]:shadow-none">Attendance History</TabsTrigger>
               <TabsTrigger value="salary" className="flex-1 data-[state=active]:bg-slate-100 data-[state=active]:shadow-none">Salary Configuration</TabsTrigger>
+              <TabsTrigger value="payroll" className="flex-1 data-[state=active]:bg-slate-100 data-[state=active]:shadow-none">Payroll Calculation</TabsTrigger>
               <TabsTrigger value="config" className="flex-1 data-[state=active]:bg-slate-100 data-[state=active]:shadow-none">History & Config</TabsTrigger>
             </TabsList>
 
@@ -434,18 +449,22 @@ export default function EmployeeDetailsPage() {
                                   
                                   {/* Photos */}
                                   <div className="flex gap-2 mt-2">
-                                    {session.clockInPhoto && (
                                       <div className="flex-1">
                                         <p className="text-xs text-muted-foreground mb-1">In Photo</p>
-                                        <img src={session.clockInPhoto} alt="Clock In" className="w-full h-24 object-cover rounded-md border" />
+                                        {session.clockInPhoto ? (
+                                          <img src={session.clockInPhoto} alt="Clock In" className="w-full h-24 object-cover rounded-md border" />
+                                        ) : (
+                                          <div className="w-full h-24 bg-slate-100 rounded-md border flex items-center justify-center text-xs text-muted-foreground">No photo</div>
+                                        )}
                                       </div>
-                                    )}
-                                    {session.clockOutPhoto && (
                                       <div className="flex-1">
                                         <p className="text-xs text-muted-foreground mb-1">Out Photo</p>
-                                        <img src={session.clockOutPhoto} alt="Clock Out" className="w-full h-24 object-cover rounded-md border" />
+                                        {session.clockOutPhoto ? (
+                                          <img src={session.clockOutPhoto} alt="Clock Out" className="w-full h-24 object-cover rounded-md border" />
+                                        ) : (
+                                          <div className="w-full h-24 bg-slate-100 rounded-md border flex items-center justify-center text-xs text-muted-foreground">No photo</div>
+                                        )}
                                       </div>
-                                    )}
                                   </div>
                                 </div>
                               ))}
@@ -532,6 +551,21 @@ export default function EmployeeDetailsPage() {
                    </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="payroll" className="m-0">
+              <SalaryCalculator
+                employee={employee || {}}
+                attendance={employee?.attendances || []}
+                leaves={employee?.leaves || []}
+                holidays={[]}
+                addPayroll={async (payroll) => {
+                  toast({
+                    title: "Payroll calculation successful",
+                    description: "Payroll feature uses Server Actions. Integration in progress.",
+                  });
+                }}
+              />
             </TabsContent>
 
             <TabsContent value="config" className="m-0">
