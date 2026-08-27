@@ -9,6 +9,12 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   outputFileTracingRoot: path.join(__dirname),
+  serverActions: {
+    bodySizeLimit: '1000mb',
+  },
+  experimental: {
+    middlewareClientMaxBodySize: '1000mb',
+  }
 };
 
 module.exports = nextConfig;
