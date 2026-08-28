@@ -38,7 +38,7 @@ export function LabSelector({ form, name, label, labs, selectedService, disabled
             filtered = filtered.filter(l => l.name?.toLowerCase().includes(searchQuery.toLowerCase()));
         }
 
-        return filtered.map(l => {
+        const sorted = filtered.map(l => {
             if (!selectedService) return { ...l, highlight: 'default', matchingService: null };
             
             const exactService = l.services?.find((s: any) => s.name === selectedService);
@@ -59,11 +59,20 @@ export function LabSelector({ form, name, label, labs, selectedService, disabled
 
             return { ...l, highlight: 'red', matchingService: null };
         }).sort((a, b) => {
+            if (disabled && selectedLab) {
+                if (a.name === selectedLab && b.name !== selectedLab) return -1;
+                if (b.name === selectedLab && a.name !== selectedLab) return 1;
+            }
             const score: Record<string, number> = { green: 0, yellow: 1, red: 2, default: 3 };
             if (score[a.highlight] !== score[b.highlight]) return score[a.highlight] - score[b.highlight];
             return (a.name || "").localeCompare(b.name || "");
         });
-    }, [labs, searchQuery, selectedService, globalKeywordsForSelected]);
+
+        if (disabled && selectedLab) {
+            return sorted.filter(l => l.name === selectedLab);
+        }
+        return sorted;
+    }, [labs, searchQuery, selectedService, globalKeywordsForSelected, disabled, selectedLab]);
 
     const exactMatch = labs.some(l => l.name?.toLowerCase() === searchQuery.toLowerCase());
 
@@ -78,7 +87,7 @@ export function LabSelector({ form, name, label, labs, selectedService, disabled
             <div className="relative">
                 <Search className="absolute left-3 top-3.5 w-5 h-5 text-muted-foreground" />
                 <Input 
-                    placeholder="Search for a lab..." 
+                    placeholder={disabled ? (selectedLab || "Lab locked") : "Search for a lab..."} 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 h-12 rounded-xl bg-background/50 border-primary/20"
