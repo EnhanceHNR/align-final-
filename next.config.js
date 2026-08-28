@@ -9,10 +9,18 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   outputFileTracingRoot: path.join(__dirname),
-  serverActions: {
-    bodySizeLimit: '1000mb',
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      }
+    ]
   },
   experimental: {
+    serverActions: {
+      bodySizeLimit: '1000mb',
+    },
     middlewareClientMaxBodySize: '1000mb',
   }
 };
