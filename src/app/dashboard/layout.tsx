@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import AutoLogoutProvider from "@/app/_components/AutoLogoutProvider";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { AppProvider } from "@/context/app-context";
 
 export default function DashboardLayout({
     children,
@@ -32,22 +33,24 @@ export default function DashboardLayout({
     }
 
     return (
-        <AutoLogoutProvider>
-            <SidebarProvider>
-                <DashboardSidebar />
-                <SidebarInset className="bg-[#F8FAFC]">
-                    <main className="flex-1 overflow-y-auto flex flex-col min-h-screen">
-                        <header className="md:hidden sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6 shadow-sm">
-                            <SidebarTrigger />
-                            <span className="font-bold text-lg text-slate-800 tracking-tight">Align.io</span>
-                        </header>
-                        
-                        <div className="flex-1 w-full max-w-[1600px] mx-auto p-4 md:p-8 lg:p-10">
-                            {children}
-                        </div>
-                    </main>
-                </SidebarInset>
-            </SidebarProvider>
-        </AutoLogoutProvider>
+        <AppProvider>
+            <AutoLogoutProvider>
+                <SidebarProvider>
+                    <DashboardSidebar />
+                    <SidebarInset className="bg-[#F8FAFC]">
+                        <main className="flex-1 overflow-y-auto flex flex-col min-h-screen">
+                            <header className="md:hidden sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6 shadow-sm">
+                                <SidebarTrigger />
+                                <span className="font-bold text-lg text-slate-800 tracking-tight">Align.io</span>
+                            </header>
+
+                            <div className="flex-1 w-full max-w-[1600px] mx-auto p-4 md:p-8 lg:p-10">
+                                {children}
+                            </div>
+                        </main>
+                    </SidebarInset>
+                </SidebarProvider>
+            </AutoLogoutProvider>
+        </AppProvider>
     );
 }

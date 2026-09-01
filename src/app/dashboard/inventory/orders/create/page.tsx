@@ -117,13 +117,24 @@ export default function CreateOrderPage() {
     
     const { data: items } = api.inventory.getAll.useQuery();
     const { data: dealers } = api.inventory.getDealers.useQuery();
-    // Assuming we don't have a staff query right now, we'll mock it based on users or just text
-    const staffOptions = [{ value: "admin", label: "Enhance Head Neck Rehabilitation" }];
-    
+    // Staff list comes from the same employee directory attendance/HR
+    // management uses, not a mocked/hardcoded entry.
+    const { data: employees } = api.employee.getAllEmployees.useQuery();
+    const staffOptions = useMemo(
+        () => (employees || []).map((e: any) => ({ value: e.userId || e.id, label: e.name || e.user?.email || "Unnamed Staff" })),
+        [employees]
+    );
+
     const createOrder = api.inventory.createOrder.useMutation();
     const updateDealerItem = api.inventory.updateDealerItem.useMutation();
 
-    const [selectedStaff, setSelectedStaff] = useState("admin");
+    const [selectedStaff, setSelectedStaff] = useState("");
+
+    useEffect(() => {
+        if (!selectedStaff && staffOptions.length > 0) {
+            setSelectedStaff(staffOptions[0]!.value);
+        }
+    }, [staffOptions, selectedStaff]);
     const [baseOrderId, setBaseOrderId] = useState("A17");
     
     type OrderItem = { id: string; quantity: number; dealerId: string; price: number; expiryDate?: string; isCollapsed: boolean };

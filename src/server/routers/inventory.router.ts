@@ -2,6 +2,23 @@ import { z } from "zod";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { router, publicProcedure, protectedProcedure } from "../trpc";
 
+// ctx.user has no `name` field (it's {id, email, role, organizationId}) —
+// resolve a display name from the same employeeProfiles directory
+// attendance/HR management uses.
+async function getEmployeeName(userId: string, organizationId?: string): Promise<string> {
+  try {
+    const snap = await adminDb.collection('employeeProfiles').where('userId', '==', userId).limit(1).get();
+    const doc = snap.docs[0];
+    if (doc) {
+      const name = (doc.data() as any)?.name;
+      if (name) return name;
+    }
+  } catch {
+    // fall through to default below
+  }
+  return "User";
+}
+
 export const inventoryRouter = router({
   getAll: protectedProcedure.query(async ({ ctx }) => {
     try {
@@ -9,24 +26,28 @@ export const inventoryRouter = router({
       .where("organizationId", "==", ctx.user.organizationId)
       .get();
     
-    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
-    
+    // `id` must be spread LAST — some inventoryItems docs (from an old CSV
+    // import) have their own stray `id` data field, which otherwise
+    // silently overwrites the real Firestore doc id and produces duplicate
+    // ids/React key collisions in the items table.
+    const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+
     // fetch dealers and stockEntries
     const [dealersSnap, stockEntriesSnap] = await Promise.all([
       adminDb.collection('dealers').where("organizationId", "==", ctx.user.organizationId).get(),
       adminDb.collection('stockEntries').where("organizationId", "==", ctx.user.organizationId).get()
     ]);
-    
+
     const dealersMap = new Map();
-    dealersSnap.docs.forEach(d => dealersMap.set(d.id, { id: d.id, ...d.data() }));
-    
+    dealersSnap.docs.forEach(d => dealersMap.set(d.id, { ...d.data(), id: d.id }));
+
     const stockEntriesMap = new Map();
     stockEntriesSnap.docs.forEach(d => {
       const data = d.data();
       if (!stockEntriesMap.has(data.inventoryItemId)) {
         stockEntriesMap.set(data.inventoryItemId, []);
       }
-      stockEntriesMap.get(data.inventoryItemId).push({ id: d.id, ...data });
+      stockEntriesMap.get(data.inventoryItemId).push({ ...data, id: d.id });
     });
 
     return items.map((item: any) => ({
@@ -79,7 +100,7 @@ export const inventoryRouter = router({
     const snapshot = await adminDb.collection('dealers')
       .where("organizationId", "==", ctx.user.organizationId)
       .get();
-    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
     return items.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }),
 
@@ -179,10 +200,10 @@ export const inventoryRouter = router({
       const dealerSnap = await adminDb.collection('dealers').doc(data.dealerId).get();
       
       return {
-        id: docSnap.id,
         ...data,
-        item: itemSnap.exists ? { id: itemSnap.id, ...itemSnap.data() } : null,
-        dealer: dealerSnap.exists ? { id: dealerSnap.id, ...dealerSnap.data() } : null,
+        id: docSnap.id,
+        item: itemSnap.exists ? { ...itemSnap.data(), id: itemSnap.id } : null,
+        dealer: dealerSnap.exists ? { ...dealerSnap.data(), id: dealerSnap.id } : null,
       };
     }),
 
@@ -205,13 +226,14 @@ export const inventoryRouter = router({
       }
       
       const orderData = orderSnap.data();
-      
+      const receivedByName = await getEmployeeName(ctx.user.id, ctx.user.organizationId);
+
       // Update Order Status
       await orderRef.update({
         status: 'Delivered',
         receivedQuantity: input.receivedQuantity,
         receivedDate: new Date(),
-        receivedByName: ctx.user.name || "User",
+        receivedByName,
         deliveryExpiry: input.expiryDate || null,
         billAmount: input.billAmount || null,
         batchNumber: input.batchNumber || null,
@@ -245,21 +267,26 @@ export const inventoryRouter = router({
     }),
 
   getOrders: protectedProcedure.query(async ({ ctx }) => {
-    const [ordersSnap, itemsSnap, dealersSnap, usersSnap] = await Promise.all([
+    const [ordersSnap, itemsSnap, dealersSnap, profilesSnap] = await Promise.all([
       adminDb.collection('purchaseOrders').where("organizationId", "==", ctx.user.organizationId).get(),
       adminDb.collection('inventoryItems').where("organizationId", "==", ctx.user.organizationId).get(),
       adminDb.collection('dealers').where("organizationId", "==", ctx.user.organizationId).get(),
-      adminDb.collection('users').where("organizationId", "==", ctx.user.organizationId).get()
+      // Staff names come from the same employeeProfiles directory attendance/HR
+      // use, not the bare auth `users` collection (which has no `name` field).
+      adminDb.collection('employeeProfiles').where("organizationId", "==", ctx.user.organizationId).get()
     ]);
 
     const itemsMap = new Map();
-    itemsSnap.docs.forEach(d => itemsMap.set(d.id, { id: d.id, ...d.data() }));
+    itemsSnap.docs.forEach(d => itemsMap.set(d.id, { ...d.data(), id: d.id }));
 
     const dealersMap = new Map();
-    dealersSnap.docs.forEach(d => dealersMap.set(d.id, { id: d.id, ...d.data() }));
+    dealersSnap.docs.forEach(d => dealersMap.set(d.id, { ...d.data(), id: d.id }));
 
     const usersMap = new Map();
-    usersSnap.docs.forEach(d => usersMap.set(d.id, { id: d.id, ...d.data() }));
+    profilesSnap.docs.forEach(d => {
+      const profile: any = d.data();
+      if (profile.userId) usersMap.set(profile.userId, { ...profile, id: d.id });
+    });
 
     const orders = ordersSnap.docs.map(doc => {
       const data = doc.data();
@@ -293,7 +320,7 @@ export const inventoryRouter = router({
         return null;
       }
       
-      const itemData = { id: docSnap.id, ...docSnap.data() };
+      const itemData = { ...docSnap.data(), id: docSnap.id };
       
       const [dealersSnap, stockEntriesSnap, purchaseOrdersSnap] = await Promise.all([
         itemData.dealerId ? adminDb.collection('dealers').doc(itemData.dealerId as string).get() : Promise.resolve(null),
@@ -303,9 +330,9 @@ export const inventoryRouter = router({
       
       return {
         ...itemData,
-        dealer: dealersSnap?.exists ? { id: dealersSnap.id, ...dealersSnap.data() } : null,
-        stockEntries: stockEntriesSnap ? stockEntriesSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [],
-        purchaseOrders: purchaseOrdersSnap ? purchaseOrdersSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : []
+        dealer: dealersSnap?.exists ? { ...dealersSnap.data(), id: dealersSnap.id } : null,
+        stockEntries: stockEntriesSnap ? stockEntriesSnap.docs.map((d: any) => ({ ...d.data(), id: d.id })) : [],
+        purchaseOrders: purchaseOrdersSnap ? purchaseOrdersSnap.docs.map((d: any) => ({ ...d.data(), id: d.id })) : []
       };
     }),
     

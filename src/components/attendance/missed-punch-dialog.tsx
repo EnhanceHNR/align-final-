@@ -17,7 +17,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { AppContext } from '@/context/app-context';
-import { uploadAttendanceImageAction } from '@/app/actions';
+import { uploadAttendanceImageAction } from '@/components/attendance/actions';
 import { Loader2, Camera, Upload } from 'lucide-react';
 
 function PhotoUploader({

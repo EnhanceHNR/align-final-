@@ -342,21 +342,32 @@ export async function fetchSubmissions() {
     }));
 }
 
+// Staff picker for the send/receive forms. Sourced from the same
+// employeeProfiles directory that attendance/HR management uses, so lab
+// module shows employees' real names rather than a name guessed from their
+// login email.
 export async function fetchUsersAction() {
     const orgId = await getActionOrgId();
-    const snapshot = await adminDb.collection('users')
+    const profilesSnap = await adminDb.collection('employeeProfiles')
         .where('organizationId', '==', orgId)
-        .where('isActive', '==', true)
         .get();
-    
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
+
+    const profiles = profilesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+
+    const users = await Promise.all(profiles.map(async (profile) => {
+        let email = '';
+        if (profile.userId) {
+            const userDoc = await adminDb.collection('users').doc(profile.userId).get();
+            email = userDoc.exists ? (userDoc.data()?.email || '') : '';
+        }
         return {
-            id: doc.id,
-            email: data.email,
-            fullName: data.email ? data.email.split('@')[0] : 'Unknown'
+            id: profile.id,
+            email,
+            fullName: profile.name || (email ? email.split('@')[0] : 'Unnamed Staff'),
         };
-    });
+    }));
+
+    return users.sort((a, b) => a.fullName.localeCompare(b.fullName));
 }
 
 export async function fetchLabTransactions() {

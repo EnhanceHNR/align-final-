@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,6 +21,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { ClockEvent } from '@/lib/types';
+import { AppContext } from '@/context/app-context';
 import { format } from 'date-fns';
 
 interface ClockInOutDialogProps {
@@ -46,7 +47,8 @@ export function ClockInOutDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [remarks, setRemarks] = useState('');
-    const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const { currentUser } = useContext(AppContext);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getPermissions = async () => {

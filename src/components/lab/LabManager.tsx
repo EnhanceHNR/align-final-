@@ -17,7 +17,9 @@ import { cn } from "@/lib/utils";
 
 export function LabManager() {
   const { data: session, status } = useSession();
-  const isAdmin = session?.user?.role === 'MASTER' || session?.user?.role === 'ADMIN';
+  // Dental's real role enum is MASTER | STAFF | SUPERADMIN (no 'ADMIN'), so
+  // this used to only ever grant admin rights to MASTER accounts.
+  const isAdmin = session?.user?.role === 'MASTER' || session?.user?.role === 'SUPERADMIN';
   const isRoleLoading = status === 'loading';
   const collectionName = 'labs';
   const title = "Labs & Partners";

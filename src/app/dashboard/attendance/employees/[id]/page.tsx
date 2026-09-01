@@ -18,6 +18,7 @@ import { EditEmployeeForm } from "./EditEmployeeForm";
 import SalaryCalculator from "@/components/employees/salary-calculator";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import EmployeeAttendanceCalendar from "@/components/employees/employee-attendance-calendar";
 
 export default function EmployeeDetailsPage() {
   const params = useParams();
@@ -29,6 +30,21 @@ export default function EmployeeDetailsPage() {
     { employeeProfileId: employeeId },
     { enabled: !!employeeId }
   );
+
+  // Leaves + holidays for the ported EmployeeAttendanceCalendar component,
+  // shaped to match the reference app's Leave/Holiday field names.
+  const { data: rawLeaves } = api.hr.getLeaves.useQuery({ employeeProfileId: employeeId }, { enabled: !!employeeId });
+  const { data: rawHolidays } = api.hr.getHolidays.useQuery();
+  const employeeLeaves = (rawLeaves || []).map((l: any) => ({
+    ...l,
+    employeeId: l.employeeProfileId,
+    startDate: typeof l.startDate === 'string' ? l.startDate.slice(0, 10) : l.startDate,
+    endDate: typeof l.endDate === 'string' ? l.endDate.slice(0, 10) : l.endDate,
+  }));
+  const holidaysData = (rawHolidays || []).map((h: any) => ({
+    ...h,
+    date: typeof h.date === 'string' ? h.date.slice(0, 10) : h.date,
+  }));
   
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [activeTab, setActiveTab] = useState("attendance");
@@ -65,15 +81,22 @@ export default function EmployeeDetailsPage() {
 
   const handleSaveAttendance = () => {
     if (!selectedDate || !employee) return;
-    
-    const isWorkingStatus = ["Present", "Late", "Double Late"].includes(attendanceStatus);
-    if (isWorkingStatus) {
-      if (punchInTime && !clockInPhoto) {
-        toast({ title: "Validation Error", description: "Clock In Photo is mandatory.", variant: "destructive" });
+
+    // Matches the admin override behavior of the original app: only "Present"
+    // requires punch times, and both punch in and out must be provided, with
+    // punch out after punch in. There is no mandatory photo requirement here —
+    // photo capture only applies to the employee-side manual attendance flow.
+    if (attendanceStatus === "Present") {
+      if (!punchInTime || !punchOutTime) {
+        toast({ title: "Validation Error", description: "Punch In and Punch Out times are required for Present.", variant: "destructive" });
         return;
       }
-      if (punchOutTime && !clockOutPhoto) {
-        toast({ title: "Validation Error", description: "Clock Out Photo is mandatory when punch out time is provided.", variant: "destructive" });
+      const toMinutes = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+      };
+      if (toMinutes(punchOutTime) <= toMinutes(punchInTime)) {
+        toast({ title: "Validation Error", description: "Punch out time must be after punch in time.", variant: "destructive" });
         return;
       }
     }
@@ -82,8 +105,8 @@ export default function EmployeeDetailsPage() {
       employeeProfileId: employee.id,
       date: selectedDate.toISOString(),
       status: attendanceStatus,
-      punchInTime,
-      punchOutTime,
+      punchInTime: attendanceStatus === "Present" ? punchInTime : undefined,
+      punchOutTime: attendanceStatus === "Present" ? punchOutTime : undefined,
       notes: attendanceNotes,
       clockInPhoto: clockInPhoto || undefined,
       clockOutPhoto: clockOutPhoto || undefined,
@@ -306,186 +329,12 @@ export default function EmployeeDetailsPage() {
 
             <TabsContent value="attendance" className="space-y-6 m-0">
               <h2 className="text-2xl font-semibold">Attendance History</h2>
-              
-              <Card className="shadow-sm border-0 bg-white">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-semibold">Download Attendance Data</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-4 items-end">
-                    <div className="space-y-1.5 flex-1 min-w-[200px]">
-                      <label className="text-sm font-medium text-slate-700">From Date</label>
-                      <div className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 flex items-center gap-2">
-                        <Clock className="h-4 w-4" /> Jul 17, 2026
-                      </div>
-                    </div>
-                    <div className="space-y-1.5 flex-1 min-w-[200px]">
-                      <label className="text-sm font-medium text-slate-700">To Date</label>
-                      <div className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 flex items-center gap-2">
-                        <Clock className="h-4 w-4" /> Aug 16, 2026
-                      </div>
-                    </div>
-                    <Button className="bg-blue-600 hover:bg-blue-700 h-10 shadow-sm px-6">
-                      <Download className="mr-2 h-4 w-4" /> Export CSV
-                    </Button>
-                  </div>
-                  <Button variant="outline" className="mt-4 shadow-sm">
-                    <Download className="mr-2 h-4 w-4" /> Download PDF
-                  </Button>
-                </CardContent>
-              </Card>
 
-              {/* Custom Attendance Calendar */}
-              <div className="flex justify-center pt-4">
-                <Card className="w-full max-w-sm shadow-sm border-0 bg-white pb-6">
-                  <div className="flex items-center justify-between p-4">
-                    <Button variant="ghost" size="icon" onClick={handlePrevMonth}><ChevronLeft className="h-5 w-5" /></Button>
-                    <h3 className="font-semibold text-lg">{format(currentMonth, 'MMMM yyyy')}</h3>
-                    <Button variant="ghost" size="icon" onClick={handleNextMonth}><ChevronRight className="h-5 w-5" /></Button>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1 px-6 text-center mb-2">
-                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                      <div key={day} className="text-xs font-medium text-muted-foreground">{day}</div>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-7 gap-2 px-6">
-                    {/* Fill empty spaces before start of month */}
-                    {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, i) => (
-                      <div key={`empty-${i}`} className="h-8 w-8"></div>
-                    ))}
-                    {daysInMonth.map(day => {
-                      // Real attendance logic
-                      let bgColor = "bg-transparent hover:bg-slate-100";
-                      let textColor = "text-slate-700";
-                      
-                      const attendanceRecord = currentMonthAttendances.find(a => isSameDay(new Date(a.date), day));
-                      
-                      if (attendanceRecord) {
-                          if (attendanceRecord.status === "Present") {
-                             bgColor = "bg-emerald-100";
-                             textColor = "text-emerald-700";
-                          } else if (attendanceRecord.status === "Absent") {
-                             bgColor = "bg-red-200";
-                             textColor = "text-red-700";
-                          } else if (attendanceRecord.status === "Late" || attendanceRecord.status === "Double Late") {
-                             bgColor = "bg-amber-700";
-                             textColor = "text-white";
-                          } else if (attendanceRecord.status === "Grace Period") {
-                             bgColor = "bg-yellow-400";
-                             textColor = "text-yellow-900";
-                          } else if (attendanceRecord.status.includes("Leave")) {
-                             bgColor = "bg-amber-100";
-                             textColor = "text-amber-700";
-                          } else if (attendanceRecord.status === "Holiday" || attendanceRecord.status === "Weekend") {
-                             bgColor = "bg-slate-100";
-                             textColor = "text-slate-400";
-                          }
-                      }
-                      const dayOfMonth = day.getDate();
-
-                      return (
-                        <div key={day.toISOString()} className="flex justify-center items-center">
-                          <div 
-                             onClick={() => {
-                               setSelectedDate(day);
-                               setAttendanceStatus(attendanceRecord ? attendanceRecord.status : "Present");
-                               const sess = attendanceRecord?.sessions?.[0];
-                               setPunchInTime(sess?.clockInTime ? format(new Date(sess.clockInTime), 'HH:mm') : "");
-                               setPunchOutTime(sess?.clockOutTime ? format(new Date(sess.clockOutTime), 'HH:mm') : "");
-                               setAttendanceNotes(attendanceRecord?.notes || "");
-                               setClockInPhoto(attendanceRecord?.sessions?.[0]?.clockInPhoto || "");
-                               setClockOutPhoto(attendanceRecord?.sessions?.[0]?.clockOutPhoto || "");
-                               // setIsAttendanceModalOpen(true); // removed to show details below instead
-                             }}
-                             className={`h-8 w-8 flex items-center justify-center rounded-sm text-sm cursor-pointer hover:ring-2 hover:ring-slate-300 transition-all ${bgColor} ${textColor} ${isToday(day) ? 'ring-2 ring-slate-400' : ''}`}>
-                            {dayOfMonth}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                
-                </Card>
-              </div>
-              
-              {/* Selected Date Details */}
-              {selectedDate && (
-                <Card className="shadow-sm border-0 bg-white mt-6">
-                  <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle className="text-lg font-semibold">Details for {format(selectedDate, 'MMMM dd, yyyy')}</CardTitle>
-                        <CardDescription>Punch details and selfies</CardDescription>
-                    </div>
-                    <Button variant="outline" onClick={() => setIsAttendanceModalOpen(true)}>
-                      Manual Override
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    {(() => {
-                      const att = currentMonthAttendances.find(a => isSameDay(new Date(a.date), selectedDate));
-                      if (!att) return <p className="text-sm text-muted-foreground">No attendance record for this date.</p>;
-                      
-                      return (
-                        <div className="space-y-4">
-                          <div className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-slate-100">
-                            Status: <span className="font-bold">{att.status}</span>
-                          </div>
-                          
-                          {att.sessions && att.sessions.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {att.sessions.map((session: any, idx: number) => (
-                                <div key={session.id} className="border rounded-lg p-4 bg-slate-50 space-y-3">
-                                  <h4 className="font-semibold text-sm">Session {idx + 1}</h4>
-                                  <div className="flex justify-between text-sm">
-                                    <div>
-                                      <p className="text-muted-foreground">Punch In</p>
-                                      <p className="font-medium">{session.clockInTime ? format(new Date(session.clockInTime), 'hh:mm a') : 'N/A'}</p>
-                                    </div>
-                                    <div className="text-right">
-                                      <p className="text-muted-foreground">Punch Out</p>
-                                      <p className="font-medium">{session.clockOutTime ? format(new Date(session.clockOutTime), 'hh:mm a') : 'N/A'}</p>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Photos */}
-                                  <div className="flex gap-2 mt-2">
-                                      <div className="flex-1">
-                                        <p className="text-xs text-muted-foreground mb-1">In Photo</p>
-                                        {session.clockInPhoto ? (
-                                          <img src={session.clockInPhoto} alt="Clock In" className="w-full h-24 object-cover rounded-md border" />
-                                        ) : (
-                                          <div className="w-full h-24 bg-slate-100 rounded-md border flex items-center justify-center text-xs text-muted-foreground">No photo</div>
-                                        )}
-                                      </div>
-                                      <div className="flex-1">
-                                        <p className="text-xs text-muted-foreground mb-1">Out Photo</p>
-                                        {session.clockOutPhoto ? (
-                                          <img src={session.clockOutPhoto} alt="Clock Out" className="w-full h-24 object-cover rounded-md border" />
-                                        ) : (
-                                          <div className="w-full h-24 bg-slate-100 rounded-md border flex items-center justify-center text-xs text-muted-foreground">No photo</div>
-                                        )}
-                                      </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">No punch details recorded.</p>
-                          )}
-                          
-                          {att.notes && (
-                            <div className="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-md">
-                              <p className="text-xs font-semibold text-amber-800 mb-1">Admin Notes</p>
-                              <p className="text-sm text-amber-900">{att.notes}</p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </CardContent>
-                </Card>
-              )}
-
+              <EmployeeAttendanceCalendar
+                employeeId={employeeId}
+                leaves={employeeLeaves}
+                holidays={holidaysData}
+              />
             </TabsContent>
 
                         <TabsContent value="salary" className="m-0 space-y-6">
@@ -610,93 +459,6 @@ export default function EmployeeDetailsPage() {
               </Button>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
-    
-      {/* Attendance Override Dialog */}
-      <Dialog open={isAttendanceModalOpen} onOpenChange={setIsAttendanceModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Override Attendance</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Input disabled value={selectedDate ? format(selectedDate, "MMMM d, yyyy") : ""} />
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={attendanceStatus} onValueChange={setAttendanceStatus}>
-                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Present">Present</SelectItem>
-                  <SelectItem value="Absent">Absent</SelectItem>
-                  <SelectItem value="Half Day">Half Day</SelectItem>
-                  <SelectItem value="Late">Late</SelectItem>
-                  <SelectItem value="Grace Period">Late (Grace Period)</SelectItem>
-                  <SelectItem value="Weekend">Weekend</SelectItem>
-                  <SelectItem value="Holiday">Holiday</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Punch In</Label>
-                <Input type="time" value={punchInTime} onChange={e => setPunchInTime(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Punch Out</Label>
-                <Input type="time" value={punchOutTime} onChange={e => setPunchOutTime(e.target.value)} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Admin Notes</Label>
-              <Input value={attendanceNotes} onChange={e => setAttendanceNotes(e.target.value)} placeholder="e.g. Approved leave" />
-            </div>
-          </div>
-          
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Clock In Photo</Label>
-                <div className="flex flex-col gap-2">
-                   {clockInPhoto && <img src={clockInPhoto} className="w-full h-24 object-cover rounded-md border" />}
-                   <Input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={(e) => {
-                         const file = e.target.files?.[0];
-                         if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (evt) => setClockInPhoto(evt.target?.result as string);
-                            reader.readAsDataURL(file);
-                         }
-                      }} 
-                   />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Clock Out Photo</Label>
-                <div className="flex flex-col gap-2">
-                   {clockOutPhoto && <img src={clockOutPhoto} className="w-full h-24 object-cover rounded-md border" />}
-                   <Input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={(e) => {
-                         const file = e.target.files?.[0];
-                         if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (evt) => setClockOutPhoto(evt.target?.result as string);
-                            reader.readAsDataURL(file);
-                         }
-                      }} 
-                   />
-                </div>
-              </div>
-            </div>
-
-          <DialogFooter>
-            <Button onClick={handleSaveAttendance} disabled={upsertAttendanceMutation.isPending}>Save Attendance</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 </div>
