@@ -3,7 +3,8 @@
 import { useSession, signOut } from "next-auth/react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Settings, Users, Building, CreditCard, ChevronLeft, LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Settings, Users, Building, CreditCard, ChevronLeft, LogOut, DatabaseBackup } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function SuperAdminLayout({
@@ -12,6 +13,7 @@ export default function SuperAdminLayout({
   children: React.ReactNode;
 }) {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
 
   if (status === "loading") {
     return <div>Loading...</div>;
@@ -25,6 +27,18 @@ export default function SuperAdminLayout({
     redirect("/dashboard");
   }
 
+  const navLink = (href: string, icon: React.ReactNode, label: string) => (
+    <Link
+      href={href}
+      className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+        pathname === href ? "bg-slate-800 text-white" : "hover:bg-slate-800 hover:text-white"
+      }`}
+    >
+      {icon}
+      {label}
+    </Link>
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 flex">
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col hidden md:flex">
@@ -35,18 +49,10 @@ export default function SuperAdminLayout({
           </h2>
         </div>
         <nav className="flex-1 p-4 space-y-2">
-          <Link href="/superadmin" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors">
-            <Building className="w-5 h-5" />
-            Organizations
-          </Link>
-          <Link href="/superadmin/users" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors">
-            <Users className="w-5 h-5" />
-            Users
-          </Link>
-          <Link href="/superadmin/billing" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors">
-            <CreditCard className="w-5 h-5" />
-            Billing & MRR
-          </Link>
+          {navLink("/superadmin", <Building className="w-5 h-5" />, "Organizations")}
+          {navLink("/superadmin/users", <Users className="w-5 h-5" />, "Users")}
+          {navLink("/superadmin/billing", <CreditCard className="w-5 h-5" />, "Billing & MRR")}
+          {navLink("/superadmin/backups", <DatabaseBackup className="w-5 h-5" />, "Backups")}
         </nav>
         <div className="p-4 border-t border-slate-800 space-y-2">
           <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors">

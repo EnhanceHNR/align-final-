@@ -13,7 +13,7 @@ export default function DashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { status } = useSession();
+    const { data: session, status } = useSession();
     const router = useRouter();
 
     useEffect(() => {
@@ -32,11 +32,15 @@ export default function DashboardLayout({
         return null;
     }
 
+    const role = (session?.user as any)?.role as "MASTER" | "ADMIN" | "STAFF" | undefined;
+    const isSuperAdmin = !!(session?.user as any)?.isSuperAdmin;
+    const allowedModules = ((session?.user as any)?.allowedModules as string[] | undefined) || [];
+
     return (
         <AppProvider>
             <AutoLogoutProvider>
                 <SidebarProvider>
-                    <DashboardSidebar />
+                    <DashboardSidebar role={role} isSuperAdmin={isSuperAdmin} allowedModules={allowedModules} />
                     <SidebarInset className="bg-[#F8FAFC]">
                         <main className="flex-1 overflow-y-auto flex flex-col min-h-screen">
                             <header className="md:hidden sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6 shadow-sm">

@@ -37,9 +37,10 @@ export const authOptions: NextAuthOptions = {
                 return {
                     id: user.id,
                     email: user.email,
-                    role: user.role, 
+                    role: user.role,
                     organizationId: user.organizationId,
                     isSuperAdmin: user.isSuperAdmin || false,
+                    allowedModules: user.allowedModules || [],
                 };
             },
         }),
@@ -48,18 +49,47 @@ export const authOptions: NextAuthOptions = {
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id;
-                token.role = (user as { role: string }).role; 
+                token.role = (user as { role: string }).role;
                 token.organizationId = (user as any).organizationId;
                 token.isSuperAdmin = (user as any).isSuperAdmin || false;
+                (token as any).allowedModules = (user as any).allowedModules || [];
+                (token as any).modulesRefreshedAt = Date.now();
+                return token;
+            }
+
+            // The JWT strategy keeps this token for up to 30 days without
+            // re-running `authorize`, so role/module grants changed by a
+            // Super Admin or the Owner wouldn't otherwise show up until the
+            // user logs out and back in. Refresh the mutable fields from
+            // Firestore at most once every 5 minutes so grants take effect
+            // quickly without hitting the database on every request. This is
+            // a UX nicety only -- the real enforcement is server-side in
+            // createTRPCContext, which always reads fresh from Firestore.
+            const lastRefresh = (token as any).modulesRefreshedAt || 0;
+            if (token.id && Date.now() - lastRefresh > 5 * 60 * 1000) {
+                try {
+                    const userDoc = await adminDb.collection("users").doc(token.id as string).get();
+                    if (userDoc.exists) {
+                        const data: any = userDoc.data();
+                        token.role = data.role;
+                        token.organizationId = data.organizationId;
+                        token.isSuperAdmin = data.isSuperAdmin || false;
+                        (token as any).allowedModules = data.allowedModules || [];
+                    }
+                } catch (err) {
+                    console.error("JWT_REFRESH_ERROR:", err);
+                }
+                (token as any).modulesRefreshedAt = Date.now();
             }
             return token;
         },
         async session({ session, token }) {
             if (session.user) {
                 session.user.id = token.id as string;
-                session.user.role = token.role as string; 
+                session.user.role = token.role as string;
                 (session.user as any).organizationId = token.organizationId as string;
                 (session.user as any).isSuperAdmin = token.isSuperAdmin as boolean;
+                (session.user as any).allowedModules = (token as any).allowedModules || [];
             }
             return session;
         },

@@ -7,6 +7,7 @@ declare module "next-auth" {
             role: "MASTER" | "ADMIN" | "STAFF";
             organizationId?: string;
             isSuperAdmin?: boolean;
+            allowedModules?: string[];
         } & DefaultSession["user"];
     }
 
@@ -15,6 +16,7 @@ declare module "next-auth" {
         role: "MASTER" | "ADMIN" | "STAFF";
         organizationId?: string;
         isSuperAdmin?: boolean;
+        allowedModules?: string[];
     }
 }
 
@@ -24,5 +26,6 @@ declare module "next-auth/jwt" {
         role: "MASTER" | "ADMIN" | "STAFF";
         organizationId?: string;
         isSuperAdmin?: boolean;
+        allowedModules?: string[];
     }
 }

@@ -20,6 +20,7 @@ function serializeData(data: any) {
 import { sendSchema, receiveSchema } from '@/lib/schemas';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
+import { FieldValue } from 'firebase-admin/firestore';
 
 // User Management Actions
 export async function createInternalUserAction(adminUid: string, userData: { email: string; password: string; fullName: string; role: 'admin' | 'staff' }) {
@@ -43,6 +44,30 @@ async function getActionOrgId() {
     } catch (e: any) {
         console.error("Session error:", e);
         return null;
+    }
+}
+
+async function getActionUserId() {
+    try {
+        const session = await getServerSession(authOptions);
+        return session?.user?.id || null;
+    } catch (e: any) {
+        console.error("Session error:", e);
+        return null;
+    }
+}
+
+// The employee's real name from the attendance/HR directory -- used so the
+// per-edit audit trail shows who actually made the change instead of just
+// "Admin"/"Staff".
+async function getEditorDisplayName(userId: string | null, fallback: string): Promise<string> {
+    if (!userId) return fallback;
+    try {
+        const profileSnap = await adminDb.collection('employeeProfiles').where('userId', '==', userId).limit(1).get();
+        const name = profileSnap.empty ? null : (profileSnap.docs[0].data() as any)?.name;
+        return name || fallback;
+    } catch {
+        return fallback;
     }
 }
 
@@ -417,8 +442,81 @@ export async function deleteSubmissionAction(id: string) {
     }
 }
 
-export async function editSubmissionAction(formData: FormData) { 
-    return { success: true }; 
+export async function editSubmissionAction(formData: FormData) {
+    try {
+        const id = formData.get('id') as string;
+        if (!id) return { success: false, error: "Missing submission id" };
+
+        const orgId = await getActionOrgId();
+        if (!orgId) return { success: false, error: "Not authenticated" };
+
+        const docRef = adminDb.collection('labSubmissions').doc(id);
+        const docSnap = await docRef.get();
+        if (!docSnap.exists || docSnap.data()?.organizationId !== orgId) {
+            return { success: false, error: "Submission not found" };
+        }
+
+        const rawUpdates = formData.get('updates') as string | null;
+        const updates = rawUpdates ? JSON.parse(rawUpdates) : {};
+        const changes = (formData.get('changes') as string) || "Updated submission details.";
+        const editorNameFallback = (formData.get('editorName') as string) || "Staff";
+
+        const userId = await getActionUserId();
+        const editorName = await getEditorDisplayName(userId, editorNameFallback);
+
+        // Whoever makes an edit has their photo taken at the moment of
+        // saving, so every change to a record has a verifiable "who did
+        // this" attached to it, the same way sending/receiving an item does.
+        const editorSelfieFile = formData.get('editorSelfie') as File | null;
+        let editorSelfieUrl: string | null = null;
+        if (editorSelfieFile && editorSelfieFile instanceof File && editorSelfieFile.size > 0) {
+            editorSelfieUrl = await (await import('@/lib/firebase/storage')).uploadFile(
+                editorSelfieFile,
+                `submissions/${id}-edit-${Date.now()}-selfie.jpg`
+            );
+        }
+
+        // Existing gallery photos the user chose to keep (removals already
+        // applied client-side) plus any newly captured/uploaded photos.
+        const keptPhotoUrls: string[] = Array.isArray(updates.photoUrls) ? updates.photoUrls : [];
+        const newPhotoFiles = formData.getAll('newPhotos') as File[];
+        const newPhotoUrls: string[] = [];
+        for (const file of newPhotoFiles) {
+            if (file instanceof File && file.size > 0) {
+                const url = await (await import('@/lib/firebase/storage')).uploadFile(
+                    file,
+                    `submissions/${id}-edit-${Date.now()}-${file.name}`
+                );
+                newPhotoUrls.push(url);
+            }
+        }
+        const finalPhotoUrls = [...keptPhotoUrls, ...newPhotoUrls];
+
+        const updateData: Record<string, any> = {
+            updatedAt: new Date(),
+            photoUrls: finalPhotoUrls,
+        };
+        if (typeof updates.patientName === "string") updateData.patientName = updates.patientName;
+        if (typeof updates.labName === "string") updateData.labName = updates.labName;
+        if (typeof updates.item === "string") updateData.item = updates.item;
+        if (typeof updates.remarks === "string") updateData.remarks = updates.remarks;
+
+        const editLogEntry = {
+            editorName,
+            editorSelfieUrl: editorSelfieUrl || null,
+            changes,
+            timestamp: new Date().toISOString(),
+        };
+        updateData.editLogs = FieldValue.arrayUnion(editLogEntry);
+
+        await docRef.update(updateData);
+
+        revalidatePath('/dashboard/lab/records');
+        return { success: true };
+    } catch (error: any) {
+        console.error("EDIT_SUBMISSION_ERROR:", error);
+        return { success: false, error: error.message || "Failed to save changes" };
+    }
 }
 
 export async function updatePaymentStatusAction(formData: FormData) {

@@ -33,20 +33,37 @@ import {
     Undo2,
     CheckCircle,
     History,
+    ShieldCheck,
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 
+type Role = "MASTER" | "ADMIN" | "STAFF";
+
 type DashboardSidebarProps = {
-    isMaster?: boolean;
+    role?: Role;
+    isSuperAdmin?: boolean;
+    allowedModules?: string[];
 };
 
 export function DashboardSidebar({
-                                     isMaster = true,
+                                     role,
+                                     isSuperAdmin = false,
+                                     allowedModules = [],
                                  }: DashboardSidebarProps) {
     const pathname = usePathname();
+
+    // MASTER (the org's Super Admin) and the platform Owner always see and
+    // fully control every module. ADMIN/STAFF only see modules they've been
+    // explicitly granted, and ADMIN only gets the "master-only" items inside
+    // a module (approvals, employee management, templates, etc.) for modules
+    // they specifically have been granted -- not automatically everywhere.
+    const isOrgOwner = role === "MASTER" || isSuperAdmin;
+    const canSeeModule = (key: string) => isOrgOwner || allowedModules.includes(key);
+    const isModuleAdmin = (key: string) => isOrgOwner || (role === "ADMIN" && allowedModules.includes(key));
+
     return (
         <Sidebar className="border-r bg-white/50 backdrop-blur-xl">
 <SidebarHeader className="sticky top-0 bg-white/80 backdrop-blur-md z-10 pb-4 border-b">
@@ -104,6 +121,7 @@ export function DashboardSidebar({
                 </Link>
 
                 <Accordion type="multiple" defaultValue={["patient-management", "lab-management", "inventory-management", "hr-management", "elearning-management"]} className="w-full">
+                  {canSeeModule("patients") && (
                   <AccordionItem value="patient-management" className="border-b-0">
                     <AccordionTrigger className="hover:no-underline py-2 text-sm font-semibold text-slate-400 uppercase tracking-wider">
                       Patient Management
@@ -142,7 +160,9 @@ export function DashboardSidebar({
                       </Link>
                     </AccordionContent>
                   </AccordionItem>
+                  )}
 
+                  {canSeeModule("lab") && (
                   <AccordionItem value="lab-management" className="border-b-0">
                     <AccordionTrigger className="hover:no-underline py-2 text-sm font-semibold text-slate-400 uppercase tracking-wider mt-4">
                       Lab Management
@@ -196,7 +216,7 @@ export function DashboardSidebar({
                           />
                       </Link>
                       
-                      {isMaster && (
+                      {isModuleAdmin("lab") && (
                         <Link href="/dashboard/lab/management">
                             <NavItem
                                 icon={<Building2 size={18} />}
@@ -208,6 +228,8 @@ export function DashboardSidebar({
                       )}
                     </AccordionContent>
                   </AccordionItem>
+                  )}
+                  {canSeeModule("inventory") && (
                   <AccordionItem value="inventory-management" className="border-b-0">
                     <AccordionTrigger className="hover:no-underline py-2 text-sm font-semibold text-slate-400 uppercase tracking-wider mt-4">
                       Inventory Management
@@ -273,7 +295,9 @@ export function DashboardSidebar({
 
                     </AccordionContent>
                   </AccordionItem>
+                  )}
 
+                  {canSeeModule("attendance") && (
                   <AccordionItem value="hr-management" className="border-b-0">
                     <AccordionTrigger className="hover:no-underline py-2 text-sm font-semibold text-slate-400 uppercase tracking-wider mt-4">
                       HR & Attendance
@@ -323,7 +347,7 @@ export function DashboardSidebar({
                           />
                       </Link>
 
-                      {isMaster && (
+                      {isModuleAdmin("attendance") && (
                         <>
                           <Link href="/dashboard/attendance/employees">
                               <NavItem
@@ -364,7 +388,9 @@ export function DashboardSidebar({
                       )}
                     </AccordionContent>
                   </AccordionItem>
+                  )}
 
+                  {canSeeModule("learning") && (
                   <AccordionItem value="elearning-management" className="border-b-0">
                     <AccordionTrigger className="hover:no-underline py-2 text-sm font-semibold text-slate-400 uppercase tracking-wider mt-4">
                       E-Learning
@@ -386,7 +412,7 @@ export function DashboardSidebar({
                           />
                       </Link>
 
-                      {isMaster && (
+                      {isModuleAdmin("learning") && (
                         <Link href="/dashboard/learning/manage">
                             <NavItem
                                 icon={<Settings size={18} />}
@@ -398,11 +424,21 @@ export function DashboardSidebar({
                       )}
                     </AccordionContent>
                   </AccordionItem>
+                  )}
                 </Accordion>
             </nav>
             </SidebarContent>
 
-            <SidebarFooter className="p-4 border-t bg-white/80 backdrop-blur-md">
+            <SidebarFooter className="p-4 border-t bg-white/80 backdrop-blur-md space-y-1">
+                {isSuperAdmin && (
+                    <Link href="/superadmin">
+                        <NavItem
+                            icon={<ShieldCheck size={18} />}
+                            label="Platform Admin"
+                            active={pathname.startsWith("/superadmin")}
+                        />
+                    </Link>
+                )}
                 <Link href="/dashboard/settings">
                     <NavItem
                         icon={<Settings size={18} />}

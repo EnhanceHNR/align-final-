@@ -1,11 +1,13 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure, masterOnlyProcedure } from "../trpc";
+import { router, publicProcedure, protectedProcedure, masterOnlyProcedure, createModuleProcedure } from "../trpc";
+
+const moduleProcedure = createModuleProcedure("learning");
 import { TRPCError } from "@trpc/server";
 import { adminDb } from "~/lib/firebaseAdmin";
 
 export const learningRouter = router({
   // CATEGORIES
-  listCategories: protectedProcedure.query(async ({ ctx }) => {
+  listCategories: moduleProcedure.query(async ({ ctx }) => {
     const snapshot = await adminDb.collection("learningCategories")
       .where("organizationId", "==", ctx.user.organizationId)
       .get();
@@ -51,7 +53,7 @@ export const learningRouter = router({
     }),
 
   // MATERIALS
-  listMaterials: protectedProcedure
+  listMaterials: moduleProcedure
     .input(z.object({ categoryId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       let query = adminDb.collection("learningMaterials")

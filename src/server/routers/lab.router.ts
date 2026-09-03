@@ -1,10 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, router, createModuleProcedure } from "../trpc";
 
+const moduleProcedure = createModuleProcedure("lab");
 export const labRouter = router({
-  listLabs: protectedProcedure.query(async ({ ctx }) => {
+  listLabs: moduleProcedure.query(async ({ ctx }) => {
     const snapshot = await adminDb.collection('labs')
       .where("organizationId", "==", ctx.user.organizationId)
       .orderBy("createdAt", "desc")
@@ -12,7 +13,7 @@ export const labRouter = router({
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }),
 
-  createLab: protectedProcedure
+  createLab: moduleProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -27,7 +28,7 @@ export const labRouter = router({
       return { success: true, lab: { id: docRef.id, ...labData } };
     }),
 
-  updateLab: protectedProcedure
+  updateLab: moduleProcedure
     .input(
       z.object({
         id: z.string().cuid(),
@@ -49,7 +50,7 @@ export const labRouter = router({
       return { success: true };
     }),
 
-  deleteLab: protectedProcedure
+  deleteLab: moduleProcedure
     .input(z.object({ id: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
       const snapshot = await adminDb.collection('labs')
@@ -63,7 +64,7 @@ export const labRouter = router({
       return { success: true };
     }),
 
-  listTemplates: protectedProcedure.query(async ({ ctx }) => {
+  listTemplates: moduleProcedure.query(async ({ ctx }) => {
     const snapshot = await adminDb.collection('instructionTemplates')
       .where("organizationId", "==", ctx.user.organizationId)
       .orderBy("createdAt", "desc")
@@ -71,7 +72,7 @@ export const labRouter = router({
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }),
 
-  createTemplate: protectedProcedure
+  createTemplate: moduleProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -85,7 +86,7 @@ export const labRouter = router({
       return { success: true, template: { id: docRef.id, ...templateData } };
     }),
 
-  updateTemplate: protectedProcedure
+  updateTemplate: moduleProcedure
     .input(
       z.object({
         id: z.string().cuid(),
@@ -106,7 +107,7 @@ export const labRouter = router({
       return { success: true };
     }),
 
-  deleteTemplate: protectedProcedure
+  deleteTemplate: moduleProcedure
     .input(z.object({ id: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
       const snapshot = await adminDb.collection('instructionTemplates')

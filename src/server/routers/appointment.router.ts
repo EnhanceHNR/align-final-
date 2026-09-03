@@ -2,8 +2,9 @@ import { google } from "googleapis";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { router, protectedProcedure, masterOnlyProcedure } from "../trpc";
+import { router, protectedProcedure, masterOnlyProcedure, createModuleProcedure } from "../trpc";
 
+const moduleProcedure = createModuleProcedure("patients");
 const appointmentStatusInput = z.enum([
     "SCHEDULED",
     "WAITING",
@@ -41,7 +42,7 @@ async function checkOverlap(params: {
 }
 
 export const appointmentRouter = router({
-    create: protectedProcedure
+    create: moduleProcedure
         .input(
             z.object({
                 patientId: z.string().min(1, "Please select a patient."),
@@ -140,7 +141,7 @@ export const appointmentRouter = router({
             return appointment;
         }),
 
-    update: protectedProcedure
+    update: moduleProcedure
         .input(
             z.object({
                 id: z.string().min(1),
@@ -218,7 +219,7 @@ export const appointmentRouter = router({
             return { id: updatedDoc.id, ...apptData, patient: patientData, chair: chairData };
         }),
 
-    getById: protectedProcedure
+    getById: moduleProcedure
         .input(z.object({ id: z.string().min(1) }))
         .query(async ({ ctx, input }) => {
             const docRef = await adminDb.collection("appointments").doc(input.id).get();
@@ -256,7 +257,7 @@ export const appointmentRouter = router({
             };
         }),
 
-    list: protectedProcedure
+    list: moduleProcedure
         .input(
             z.object({
                 patientId: z.string().optional(),
@@ -332,7 +333,7 @@ export const appointmentRouter = router({
             };
         }),
 
-    getCalendarEvents: protectedProcedure
+    getCalendarEvents: moduleProcedure
         .input(
             z.object({
                 date: z.coerce.date(),
@@ -450,7 +451,7 @@ export const appointmentRouter = router({
             return combined;
         }),
 
-    checkAvailability: protectedProcedure
+    checkAvailability: moduleProcedure
         .input(
             z.object({
                 startTime: z.coerce.date(),
@@ -475,7 +476,7 @@ export const appointmentRouter = router({
             };
         }),
 
-    getDashboardStats: protectedProcedure.query(async ({ ctx }) => {
+    getDashboardStats: moduleProcedure.query(async ({ ctx }) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayEnd = new Date(today);

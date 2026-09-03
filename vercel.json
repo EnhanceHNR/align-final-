@@ -1,1 +1,7 @@
-{ "framework": "nextjs", "buildCommand": "npm run build" }
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "crons": [
+    { "path": "/api/cron/backup", "schedule": "0 3 * * *" }
+  ]
+}

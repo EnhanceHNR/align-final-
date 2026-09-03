@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { router, publicProcedure, protectedProcedure } from "../trpc";
+import { router, publicProcedure, protectedProcedure, createModuleProcedure } from "../trpc";
 
+const moduleProcedure = createModuleProcedure("inventory");
 // ctx.user has no `name` field (it's {id, email, role, organizationId}) —
 // resolve a display name from the same employeeProfiles directory
 // attendance/HR management uses.
@@ -20,7 +21,7 @@ async function getEmployeeName(userId: string, organizationId?: string): Promise
 }
 
 export const inventoryRouter = router({
-  getAll: protectedProcedure.query(async ({ ctx }) => {
+  getAll: moduleProcedure.query(async ({ ctx }) => {
     try {
     const snapshot = await adminDb.collection('inventoryItems')
       .where("organizationId", "==", ctx.user.organizationId)
@@ -61,7 +62,7 @@ export const inventoryRouter = router({
     }
   }),
   
-  createDealer: protectedProcedure
+  createDealer: moduleProcedure
     .input(z.object({
       name: z.string(),
       contactPerson: z.string().optional(),
@@ -96,7 +97,7 @@ export const inventoryRouter = router({
       return dealer;
     }),
 
-  getDealers: protectedProcedure.query(async ({ ctx }) => {
+  getDealers: moduleProcedure.query(async ({ ctx }) => {
     const snapshot = await adminDb.collection('dealers')
       .where("organizationId", "==", ctx.user.organizationId)
       .get();
@@ -105,7 +106,7 @@ export const inventoryRouter = router({
   }),
 
   
-  updateDealerItem: protectedProcedure
+  updateDealerItem: moduleProcedure
     .input(z.object({
       dealerId: z.string(),
       itemId: z.string(),
@@ -139,7 +140,7 @@ export const inventoryRouter = router({
       return { success: true };
     }),
 
-  deleteDealer: protectedProcedure
+  deleteDealer: moduleProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const docRef = adminDb.collection('dealers').doc(input.id);
@@ -152,7 +153,7 @@ export const inventoryRouter = router({
   
   
   
-  updateOrderStatus: protectedProcedure
+  updateOrderStatus: moduleProcedure
     .input(z.object({
       id: z.string(),
       status: z.string(),
@@ -171,7 +172,7 @@ export const inventoryRouter = router({
       return { success: true };
     }),
 
-  deleteOrder: protectedProcedure
+  deleteOrder: moduleProcedure
     .input(z.object({
       id: z.string()
     }))
@@ -186,7 +187,7 @@ export const inventoryRouter = router({
     }),
 
   
-  getOrderById: protectedProcedure
+  getOrderById: moduleProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const docRef = adminDb.collection('purchaseOrders').doc(input.id);
@@ -207,7 +208,7 @@ export const inventoryRouter = router({
       };
     }),
 
-  verifyDelivery: protectedProcedure
+  verifyDelivery: moduleProcedure
     .input(z.object({
       orderId: z.string(),
       receivedQuantity: z.number(),
@@ -266,7 +267,7 @@ export const inventoryRouter = router({
       return { success: true };
     }),
 
-  getOrders: protectedProcedure.query(async ({ ctx }) => {
+  getOrders: moduleProcedure.query(async ({ ctx }) => {
     const [ordersSnap, itemsSnap, dealersSnap, profilesSnap] = await Promise.all([
       adminDb.collection('purchaseOrders').where("organizationId", "==", ctx.user.organizationId).get(),
       adminDb.collection('inventoryItems').where("organizationId", "==", ctx.user.organizationId).get(),
@@ -311,7 +312,7 @@ export const inventoryRouter = router({
     return orders.sort((a, b) => b.createdAt - a.createdAt);
   }),
 
-  getById: protectedProcedure
+  getById: moduleProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const docRef = adminDb.collection('inventoryItems').doc(input.id);
@@ -336,7 +337,7 @@ export const inventoryRouter = router({
       };
     }),
     
-  createOrder: protectedProcedure
+  createOrder: moduleProcedure
     .input(z.object({
       inventoryItemId: z.string(),
       quantity: z.number(),
@@ -364,7 +365,7 @@ export const inventoryRouter = router({
       return { id: docRef.id, ...order };
     }),
 
-  create: protectedProcedure
+  create: moduleProcedure
     .input(z.object({
       name: z.string(),
       description: z.string().optional(),

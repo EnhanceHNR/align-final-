@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, createModuleProcedure } from "../trpc";
+
+const moduleProcedure = createModuleProcedure("patients");
 import { adminDb } from "@/lib/firebaseAdmin";
 import { TRPCError } from "@trpc/server";
 import { ODONTOGRAM_SURFACES, ODONTOGRAM_CONDITIONS } from "~/lib/odontogram";
@@ -12,7 +14,7 @@ const odontogramConditionInput = z.enum(ODONTOGRAM_CONDITIONS);
 export const odontogramRouter = router({
 
     /** odontogram.get - dohvaća odontogram pacijenta **/
-    get: protectedProcedure
+    get: moduleProcedure
         .input(z.object({ patientId: z.string().cuid() }))
         .query(async ({ ctx, input }) => {
 
@@ -40,7 +42,7 @@ export const odontogramRouter = router({
         }),
 
     /** odontogram.save - upsertuje stanje jedne povrsine zuba **/
-    save: protectedProcedure
+    save: moduleProcedure
         .input(
             z.object({
                 patientId: z.string().cuid(),

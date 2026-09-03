@@ -1,8 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, router, createModuleProcedure } from "../trpc";
 
+const moduleProcedure = createModuleProcedure("patients");
 const invoiceItemInput = z.object({
   serviceCode: z.string(),
   serviceName: z.string(),
@@ -55,7 +56,7 @@ async function generateInvoiceNumber(organizationId: string): Promise<string> {
 }
 
 export const invoiceRouter = router({
-  create: protectedProcedure
+  create: moduleProcedure
     .input(createInvoiceInput)
     .mutation(async ({ ctx, input }) => {
       const { patientId, items, status } = input;
@@ -128,7 +129,7 @@ export const invoiceRouter = router({
       return { success: true as const, invoice };
     }),
 
-  getById: protectedProcedure
+  getById: moduleProcedure
     .input(z.object({ id: z.string().cuid() }))
     .query(async ({ ctx, input }) => {
       const docRef = adminDb.collection('invoices').doc(input.id);
@@ -163,7 +164,7 @@ export const invoiceRouter = router({
       };
     }),
 
-  list: protectedProcedure
+  list: moduleProcedure
     .input(listInvoicesInput)
     .query(async ({ ctx, input }) => {
       const { search, page, perPage, sortBy, sortDir, status } = input;
@@ -227,7 +228,7 @@ export const invoiceRouter = router({
       };
     }),
 
-  update: protectedProcedure
+  update: moduleProcedure
     .input(updateInvoiceInput)
     .mutation(async ({ ctx, input }) => {
       const { id, patientId, items, status } = input;
@@ -321,7 +322,7 @@ export const invoiceRouter = router({
       };
     }),
 
-  delete: protectedProcedure
+  delete: moduleProcedure
     .input(z.object({ id: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
       const docRef = adminDb.collection('invoices').doc(input.id);
@@ -350,7 +351,7 @@ export const invoiceRouter = router({
       return { success: true as const };
     }),
 
-  markAsPaid: protectedProcedure
+  markAsPaid: moduleProcedure
     .input(z.object({ id: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
       const docRef = adminDb.collection('invoices').doc(input.id);
@@ -393,7 +394,7 @@ export const invoiceRouter = router({
       };
     }),
 
-  getByPatientId: protectedProcedure
+  getByPatientId: moduleProcedure
     .input(
       z.object({
         patientId: z.string().cuid(),

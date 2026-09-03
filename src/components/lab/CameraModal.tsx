@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Camera, RefreshCw, X, Check, Repeat } from 'lucide-react';
+import { Camera, RefreshCw, X, Check, Repeat, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CameraModalProps {
@@ -20,11 +20,18 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [hasFlash, setHasFlash] = useState(false);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  // The video element can report a stream is attached before it has actually
+  // decoded and painted a frame. Capturing before that point draws a blank
+  // (transparent) canvas, which a JPEG encoder renders as solid black -- this
+  // was the root cause of every "photo" (selfies, case gallery shots) coming
+  // out as a black square. Gate the shutter on an actual decoded frame.
+  const [isVideoReady, setIsVideoReady] = useState(false);
 
   const startCamera = useCallback(async () => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
     }
+    setIsVideoReady(false);
 
     try {
       const constraints = {
@@ -57,6 +64,7 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
         stream.getTracks().forEach(track => track.stop());
         setStream(null);
       }
+      setIsVideoReady(false);
     }
     return () => {
       if (stream) {
@@ -66,6 +74,7 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
   }, [isOpen, startCamera]);
 
   const toggleCamera = () => {
+    setIsVideoReady(false);
     setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
   };
 
@@ -74,6 +83,14 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
+
+    // Belt-and-braces guard in addition to disabling the shutter button:
+    // never draw a frame that hasn't actually decoded (readyState < 2 means
+    // no current frame, and 0x0 dimensions mean no frame geometry yet either).
+    if (video.readyState < video.HAVE_CURRENT_DATA || video.videoWidth === 0 || video.videoHeight === 0) {
+      return;
+    }
+
     const context = canvas.getContext('2d');
 
     if (context) {
@@ -119,11 +136,20 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
             autoPlay
             playsInline
             muted
+            onLoadedData={() => setIsVideoReady(true)}
+            onCanPlay={() => setIsVideoReady(true)}
             className={cn(
               "w-full h-full object-cover",
               facingMode === 'user' && "scale-x-[-1]"
             )}
           />
+
+          {!isVideoReady && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 text-white">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <p className="text-sm font-medium">Starting camera...</p>
+            </div>
+          )}
 
           {/* Shutter Flash Effect */}
           {hasFlash && <div className="absolute inset-0 bg-white shutter-flash z-50" />}
@@ -144,7 +170,8 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
 
               <button
                 onClick={capturePhoto}
-                className="w-20 h-20 rounded-full bg-white p-1 text-black flex items-center justify-center active:scale-95 transition-transform"
+                disabled={!isVideoReady}
+                className="w-20 h-20 rounded-full bg-white p-1 text-black flex items-center justify-center active:scale-95 transition-transform disabled:opacity-40 disabled:active:scale-100"
               >
                 <div className="w-full h-full rounded-full border-4 border-black/10 flex items-center justify-center">
                   <div className="w-16 h-16 rounded-full bg-white border-2 border-primary/20" />

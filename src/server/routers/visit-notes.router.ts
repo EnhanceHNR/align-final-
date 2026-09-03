@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, createModuleProcedure } from "../trpc";
 
+const moduleProcedure = createModuleProcedure("patients");
 export const visitNotesRouter = createTRPCRouter({
 
-    create: protectedProcedure
+    create: moduleProcedure
         .input(
             z.object({
                 patientId: z.string().cuid(),
@@ -25,7 +26,7 @@ export const visitNotesRouter = createTRPCRouter({
             return { id: docRef.id, ...data };
         }),
 
-    getByPatientId: protectedProcedure
+    getByPatientId: moduleProcedure
         .input(
             z.object({
                 patientId: z.string().cuid(),
@@ -40,7 +41,7 @@ export const visitNotesRouter = createTRPCRouter({
             return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         }),
 
-    delete: protectedProcedure
+    delete: moduleProcedure
         .input(
             z.object({
                 id: z.string().cuid(),

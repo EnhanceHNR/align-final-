@@ -1,10 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { adminDb } from "~/lib/firebaseAdmin";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, router, createModuleProcedure } from "../trpc";
 
+const moduleProcedure = createModuleProcedure("lab");
 export const labSubmissionRouter = router({
-  list: protectedProcedure
+  list: moduleProcedure
     .input(
       z.object({
         type: z.enum(["send", "receive"]).optional(),
@@ -42,7 +43,7 @@ export const labSubmissionRouter = router({
       }));
     }),
 
-  getById: protectedProcedure
+  getById: moduleProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const doc = await adminDb.collection("labSubmissions").doc(input.id).get();
@@ -75,7 +76,7 @@ export const labSubmissionRouter = router({
       return { id: doc.id, ...data, lab, patient };
     }),
 
-  create: protectedProcedure
+  create: moduleProcedure
     .input(
       z.object({
         type: z.string(),
@@ -130,7 +131,7 @@ export const labSubmissionRouter = router({
       return { success: true, submission: { ...submission, lab, patient } };
     }),
 
-  update: protectedProcedure
+  update: moduleProcedure
     .input(
       z.object({
         id: z.string(),
@@ -155,7 +156,7 @@ export const labSubmissionRouter = router({
       return { success: true };
     }),
 
-  delete: protectedProcedure
+  delete: moduleProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const docRef = adminDb.collection("labSubmissions").doc(input.id);

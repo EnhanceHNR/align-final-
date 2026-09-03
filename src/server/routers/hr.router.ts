@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, createModuleProcedure } from "../trpc";
+
+const moduleProcedure = createModuleProcedure("attendance");
 import { TRPCError } from "@trpc/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 
@@ -42,14 +44,14 @@ const fetchWithProfiles = async (collectionName: string, organizationId: string,
 
 export const hrRouter = createTRPCRouter({
   // Leaves
-  getLeaves: protectedProcedure
+  getLeaves: moduleProcedure
     .input(z.object({ employeeProfileId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const records = await fetchWithProfiles("leaveRequests", ctx.user.organizationId, input.employeeProfileId);
       return records.sort((a: any, b: any) => new Date(b.dateOfApplying || 0).getTime() - new Date(a.dateOfApplying || 0).getTime());
     }),
     
-  applyLeave: protectedProcedure
+  applyLeave: moduleProcedure
     .input(z.object({
       employeeProfileId: z.string(),
       type: z.string(),
@@ -69,7 +71,7 @@ export const hrRouter = createTRPCRouter({
       return { id: ref.id, ...input };
     }),
 
-  updateLeaveStatus: protectedProcedure
+  updateLeaveStatus: moduleProcedure
     .input(z.object({
       id: z.string(),
       status: z.enum(["Approved", "Rejected", "Pending"]),
@@ -95,7 +97,7 @@ export const hrRouter = createTRPCRouter({
     }),
 
   // Payroll
-  getPayrolls: protectedProcedure
+  getPayrolls: moduleProcedure
     .input(z.object({ employeeProfileId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const records = await fetchWithProfiles("payrollRecords", ctx.user.organizationId, input.employeeProfileId);
@@ -103,14 +105,14 @@ export const hrRouter = createTRPCRouter({
     }),
 
   // Resignations
-  getResignations: protectedProcedure
+  getResignations: moduleProcedure
     .input(z.object({ employeeProfileId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const records = await fetchWithProfiles("resignationRequests", ctx.user.organizationId, input.employeeProfileId);
       return records.sort((a: any, b: any) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
     }),
     
-  submitResignation: protectedProcedure
+  submitResignation: moduleProcedure
     .input(z.object({
       employeeProfileId: z.string(),
       reason: z.string(),
@@ -127,7 +129,7 @@ export const hrRouter = createTRPCRouter({
     }),
 
   // Documents
-  getDocuments: protectedProcedure
+  getDocuments: moduleProcedure
     .input(z.object({ employeeProfileId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const records = await fetchWithProfiles("employeeDocuments", ctx.user.organizationId, input.employeeProfileId);
@@ -135,7 +137,7 @@ export const hrRouter = createTRPCRouter({
     }),
 
   // Holidays
-  getHolidays: protectedProcedure
+  getHolidays: moduleProcedure
     .query(async ({ ctx }) => {
       const snap = await adminDb.collection("holidays").where("organizationId", "==", ctx.user.organizationId).get();
       const records = snap.docs.map(doc => ({ id: doc.id, ...serializeTimestamps(doc.data()) }));
@@ -143,7 +145,7 @@ export const hrRouter = createTRPCRouter({
     }),
     
   // Approvals (Late/Early)
-  getPendingRequests: protectedProcedure
+  getPendingRequests: moduleProcedure
     .query(async ({ ctx }) => {
       const [lateSnap, earlySnap, leaveSnap] = await Promise.all([
           adminDb.collection("lateRequests").where("status", "==", "Pending").where("organizationId", "==", ctx.user.organizationId).get(),

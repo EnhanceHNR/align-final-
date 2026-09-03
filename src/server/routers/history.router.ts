@@ -1,8 +1,10 @@
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, createModuleProcedure } from "../trpc";
+
+const moduleProcedure = createModuleProcedure("patients");
 import { adminDb } from "@/lib/firebaseAdmin";
 
 export const historyRouter = router({
-    getGlobalHistory: protectedProcedure.query(async ({ ctx }) => {
+    getGlobalHistory: moduleProcedure.query(async ({ ctx }) => {
         const organizationId = ctx.user.organizationId;
         
         const appointmentsSnapshot = await adminDb.collection("appointments")

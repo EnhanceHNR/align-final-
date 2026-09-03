@@ -21,6 +21,16 @@ export async function uploadFile(file: File, path: string): Promise<string> {
   });
   console.log('File saved successfully.');
 
+  // The download URL below is a plain public-media URL (no signed token). It
+  // only resolves if the object itself is publicly readable, which matters
+  // for the /shared/[id] page: external viewers hit it with no Firebase Auth
+  // session at all.
+  try {
+    await fileRef.makePublic();
+  } catch (err) {
+    console.error('Failed to make uploaded file public:', err);
+  }
+
   // Make the file publicly accessible or get a signed URL
   // Since the app seems to expect a direct URL, we can use a signed URL or public URL
   // For Firebase storage buckets, the public URL pattern is:

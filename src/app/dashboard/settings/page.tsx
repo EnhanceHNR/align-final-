@@ -1,12 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { api } from "~/trpc/react";
-import { Plus, Link as LinkIcon, Unlink, Building2, Clock, Lock, CreditCard, Laptop } from "lucide-react";
+import { Plus, Link as LinkIcon, Unlink, Building2, Clock, Lock, CreditCard, Laptop, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { TeamAccessTab } from "@/components/settings/team-access-tab";
 
 export default function SettingsPage() {
     const { toast } = useToast();
+    const { data: session } = useSession();
+    const role = (session?.user as any)?.role;
+    const canManageTeam = role === "MASTER" || role === "ADMIN";
     const [activeTab, setActiveTab] = useState("profile");
 
     
@@ -117,6 +122,11 @@ export default function SettingsPage() {
                     <button onClick={() => setActiveTab('plan')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${activeTab === 'plan' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
                         <CreditCard className="w-5 h-5" /> Billing & Plan
                     </button>
+                    {canManageTeam && (
+                        <button onClick={() => setActiveTab('team')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${activeTab === 'team' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+                            <Users className="w-5 h-5" /> Team & Access
+                        </button>
+                    )}
                 </nav>
             </div>
 
@@ -325,6 +335,8 @@ export default function SettingsPage() {
                         )}
                     </div>
                 )}
+
+                {activeTab === 'team' && canManageTeam && <TeamAccessTab />}
             </div>
         </div>
     );

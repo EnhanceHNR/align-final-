@@ -28,7 +28,8 @@ import {
     Pencil,
     Link as LinkIcon,
     Archive,
-    Share2
+    Share2,
+    Plus
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -65,6 +66,7 @@ export function RecordsClientPage({ submissions, labs = [], initialOpenId }: { s
     const [editingSubmissionId, setEditingSubmissionId] = useState<string | null>(null);
     const [editData, setEditData] = useState<Partial<Submission>>({});
     const [editNewPhotos, setEditNewPhotos] = useState<File[]>([]);
+    const [editNewPhotoPreviews, setEditNewPhotoPreviews] = useState<string[]>([]);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [isUpdatingRemarks, setIsUpdatingRemarks] = useState(false);
@@ -179,10 +181,35 @@ export function RecordsClientPage({ submissions, labs = [], initialOpenId }: { s
             photoUrls: typeof sub.photoUrls === "string" ? JSON.parse(sub.photoUrls) : sub.photoUrls || []
         });
         setEditNewPhotos([]);
+        setEditNewPhotoPreviews([]);
     };
 
     const handleSaveEdit = () => {
         setIsCameraOpen(true);
+    };
+
+    // Existing gallery photo the editor chose to remove -- just drops it
+    // from the list that gets saved, nothing is deleted from storage.
+    const removeExistingEditPhoto = (index: number) => {
+        setEditData((prev: any) => ({
+            ...prev,
+            photoUrls: (prev.photoUrls || []).filter((_: string, i: number) => i !== index)
+        }));
+    };
+
+    const handleAddEditPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            const fileArray = Array.from(files);
+            setEditNewPhotos(prev => [...prev, ...fileArray]);
+            setEditNewPhotoPreviews(prev => [...prev, ...fileArray.map(f => URL.createObjectURL(f))]);
+        }
+        if (e.target) e.target.value = '';
+    };
+
+    const removeNewEditPhoto = (index: number) => {
+        setEditNewPhotos(prev => prev.filter((_, i) => i !== index));
+        setEditNewPhotoPreviews(prev => prev.filter((_, i) => i !== index));
     };
 
     const performSaveEdit = async (selfieFile: File) => {
@@ -783,25 +810,64 @@ export function RecordsClientPage({ submissions, labs = [], initialOpenId }: { s
                                                                                 <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
                                                                                     <Package className="w-4 h-4" /> Case Gallery
                                                                                 </h3>
-                                                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                                                                    {(typeof trailItem.photoUrls === "string" ? JSON.parse(trailItem.photoUrls) : trailItem.photoUrls || []).map((url: string, i: number) => (
-                                                                                        <div key={i} className={`relative rounded-2xl overflow-hidden group/img shadow-lg border border-border/10 bg-black/5 ${isVideoUrl(url) ? 'col-span-2 md:col-span-3 aspect-video' : 'aspect-square'}`}>
-                                                                                            {isVideoUrl(url) ? (
-                                                                                                <video src={url} className="absolute inset-0 w-full h-full object-contain bg-black/90 rounded-2xl" controls playsInline />
-                                                                                            ) : (
-                                                                                                <>
-                                                                                                    <img src={url} alt={`Gallery ${i}`} className="absolute inset-0 w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-700" />
-                                                                                                    <a href={url} target="_blank" rel="noreferrer" className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity backdrop-blur-[2px]">
-                                                                                                        <ExternalLink className="w-6 h-6 text-white" />
-                                                                                                    </a>
-                                                                                                </>
-                                                                                            )}
-                                                                                        </div>
-                                                                                    ))}
-                                                                                    {(!(typeof trailItem.photoUrls === "string" ? JSON.parse(trailItem.photoUrls) : trailItem.photoUrls || [])?.length) && (
-                                                                                        <div className="col-span-2 text-xs text-muted-foreground italic py-4">No images uploaded</div>
-                                                                                    )}
-                                                                                </div>
+                                                                                {editingSubmissionId === trailItem.id ? (
+                                                                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                                                        {(editData.photoUrls || []).map((url: string, i: number) => (
+                                                                                            <div key={`existing-${i}`} className={`relative rounded-2xl overflow-hidden group/img shadow-lg border border-border/10 bg-black/5 ${isVideoUrl(url) ? 'col-span-2 md:col-span-3 aspect-video' : 'aspect-square'}`}>
+                                                                                                {isVideoUrl(url) ? (
+                                                                                                    <video src={url} className="absolute inset-0 w-full h-full object-contain bg-black/90 rounded-2xl" controls playsInline />
+                                                                                                ) : (
+                                                                                                    <img src={url} alt={`Gallery ${i}`} className="absolute inset-0 w-full h-full object-cover" />
+                                                                                                )}
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onClick={() => removeExistingEditPhoto(i)}
+                                                                                                    className="absolute top-2 right-2 bg-black/60 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors"
+                                                                                                >
+                                                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                        {editNewPhotoPreviews.map((url, i) => (
+                                                                                            <div key={`new-${i}`} className="relative rounded-2xl overflow-hidden group/img shadow-lg border border-primary/30 bg-black/5 aspect-square">
+                                                                                                <img src={url} alt={`New ${i}`} className="absolute inset-0 w-full h-full object-cover" />
+                                                                                                <span className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">New</span>
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onClick={() => removeNewEditPhoto(i)}
+                                                                                                    className="absolute top-2 right-2 bg-black/60 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors"
+                                                                                                >
+                                                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                        <label className="relative aspect-square rounded-2xl border-2 border-dashed border-border/40 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary cursor-pointer transition-colors">
+                                                                                            <Plus className="w-6 h-6" />
+                                                                                            <span className="text-[10px] font-bold uppercase">Add Photo</span>
+                                                                                            <input type="file" accept="image/*" multiple className="hidden" onChange={handleAddEditPhotos} />
+                                                                                        </label>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                                                        {(typeof trailItem.photoUrls === "string" ? JSON.parse(trailItem.photoUrls) : trailItem.photoUrls || []).map((url: string, i: number) => (
+                                                                                            <div key={i} className={`relative rounded-2xl overflow-hidden group/img shadow-lg border border-border/10 bg-black/5 ${isVideoUrl(url) ? 'col-span-2 md:col-span-3 aspect-video' : 'aspect-square'}`}>
+                                                                                                {isVideoUrl(url) ? (
+                                                                                                    <video src={url} className="absolute inset-0 w-full h-full object-contain bg-black/90 rounded-2xl" controls playsInline />
+                                                                                                ) : (
+                                                                                                    <>
+                                                                                                        <img src={url} alt={`Gallery ${i}`} className="absolute inset-0 w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-700" />
+                                                                                                        <a href={url} target="_blank" rel="noreferrer" className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity backdrop-blur-[2px]">
+                                                                                                            <ExternalLink className="w-6 h-6 text-white" />
+                                                                                                        </a>
+                                                                                                    </>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        ))}
+                                                                                        {(!(typeof trailItem.photoUrls === "string" ? JSON.parse(trailItem.photoUrls) : trailItem.photoUrls || [])?.length) && (
+                                                                                            <div className="col-span-2 text-xs text-muted-foreground italic py-4">No images uploaded</div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
 
                                                                             {/* Delivery Photo */}

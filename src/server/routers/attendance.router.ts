@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, createModuleProcedure } from "../trpc";
+
+const moduleProcedure = createModuleProcedure("attendance");
 import { adminDb } from "@/lib/firebaseAdmin";
 import { format } from "date-fns";
 import { calculateAttendanceStatus } from "@/lib/attendance-utils";
@@ -172,7 +174,7 @@ function dayBounds(date: Date) {
 }
 
 export const attendanceRouter = createTRPCRouter({
-  getToday: protectedProcedure
+  getToday: moduleProcedure
     .input(z.object({ employeeProfileId: z.string() }))
     .query(async ({ ctx, input }) => {
       const { start, end } = dayBounds(new Date());
@@ -217,7 +219,7 @@ export const attendanceRouter = createTRPCRouter({
   // as an array of {clockIn, clockOut, duration}, so the ported reference
   // components (AttendanceTracker / EmployeeAttendanceCalendar) can consume
   // it without modification.
-  getAllForOrg: protectedProcedure
+  getAllForOrg: moduleProcedure
     .query(async ({ ctx }) => {
       const snap = await adminDb
         .collection('attendances')
@@ -246,7 +248,7 @@ export const attendanceRouter = createTRPCRouter({
       return records;
     }),
 
-  clockIn: protectedProcedure
+  clockIn: moduleProcedure
     .input(
       z.object({
         employeeProfileId: z.string(),
@@ -302,7 +304,7 @@ export const attendanceRouter = createTRPCRouter({
   // employee instead of requiring a raw session id — used by the ported
   // ClockInOutDialog, which (like the reference app) only ever tracks
   // isClockedIn/employeeId, never a Firestore doc id.
-  clockOutForToday: protectedProcedure
+  clockOutForToday: moduleProcedure
     .input(
       z.object({
         employeeProfileId: z.string(),
@@ -340,7 +342,7 @@ export const attendanceRouter = createTRPCRouter({
       return { id: openSession.id, ...openSession.data, clockOutTime: now, duration };
     }),
 
-  clockOut: protectedProcedure
+  clockOut: moduleProcedure
     .input(
       z.object({
         sessionId: z.string(),
@@ -383,7 +385,7 @@ export const attendanceRouter = createTRPCRouter({
   // Admin-facing manual entry: mirrors the reference app's handleManualEntry.
   // Used both for the plain "Manual Entry" dialog and for marking a day
   // Absent / Paid Leave / Unpaid Leave.
-  manualEntry: protectedProcedure
+  manualEntry: moduleProcedure
     .input(z.object({
       employeeProfileId: z.string(),
       type: z.enum(['clock-in', 'clock-out', 'absent', 'paid-leave', 'unpaid-leave']),
@@ -507,7 +509,7 @@ export const attendanceRouter = createTRPCRouter({
   // Adds a brand-new session (a full punch-in/out pair, or a single side)
   // to an existing attendance record. Backs EmployeeAttendanceCalendar's
   // "Add Session" flow.
-  addSession: protectedProcedure
+  addSession: moduleProcedure
     .input(z.object({
       attendanceId: z.string(),
       punchInTime: z.string(),
@@ -565,7 +567,7 @@ export const attendanceRouter = createTRPCRouter({
 
   // Edits an existing session's punch-in/out times (by ordinal index, same
   // ordering as getAllForOrg returns), used by EditAttendanceDialog.
-  updateSession: protectedProcedure
+  updateSession: moduleProcedure
     .input(z.object({
       attendanceId: z.string(),
       sessionIndex: z.number(),
@@ -623,7 +625,7 @@ export const attendanceRouter = createTRPCRouter({
 
   // Deletes a session (by ordinal index). If it was the last remaining
   // session for the day, the day falls back to Absent.
-  deleteSession: protectedProcedure
+  deleteSession: moduleProcedure
     .input(z.object({
       attendanceId: z.string(),
       sessionIndex: z.number(),
@@ -651,7 +653,7 @@ export const attendanceRouter = createTRPCRouter({
     }),
 
   // Employee self-service request for a punch they forgot to make.
-  addMissedPunchRequest: protectedProcedure
+  addMissedPunchRequest: moduleProcedure
     .input(z.object({
       date: z.string(),
       punchType: z.enum(['In', 'Out', 'Both']),
@@ -683,7 +685,7 @@ export const attendanceRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  upsertAttendance: protectedProcedure
+  upsertAttendance: moduleProcedure
     .input(z.object({
       employeeProfileId: z.string(),
       date: z.string(), // ISO date string

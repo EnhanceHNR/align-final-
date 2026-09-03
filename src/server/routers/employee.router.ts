@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+import type { ModuleKey } from "../trpc";
+import { MODULE_KEYS } from "../trpc";
 import { adminDb } from "@/lib/firebaseAdmin";
 
 export const employeeRouter = createTRPCRouter({
@@ -180,6 +182,7 @@ export const employeeRouter = createTRPCRouter({
       email: z.string().email(),
       password: z.string().min(6),
       role: z.enum(["STAFF", "ADMIN", "MASTER"]),
+      allowedModules: z.array(z.string()).optional(),
       department: z.string().optional(),
       baseSalary: z.number().optional(),
       mobileNumber: z.string().optional(),
@@ -189,6 +192,24 @@ export const employeeRouter = createTRPCRouter({
     }))
     .mutation(async ({ ctx, input }) => {
       try {
+      // Only an org's MASTER (or the platform Owner) may create another
+      // MASTER or ADMIN account. An ADMIN may only create STAFF accounts,
+      // and only grant modules they themselves have been granted -- they
+      // can never hand out access wider than their own.
+      const actorIsOrgOwner = ctx.user.role === "MASTER" || ctx.user.isSuperAdmin;
+      if (!actorIsOrgOwner && ctx.user.role !== "ADMIN") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You cannot create staff accounts" });
+      }
+      if (!actorIsOrgOwner && input.role !== "STAFF") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only a Super Admin can create Admin accounts" });
+      }
+      let allowedModules = (input.allowedModules || []).filter((m): m is ModuleKey =>
+        (MODULE_KEYS as readonly string[]).includes(m)
+      );
+      if (!actorIsOrgOwner) {
+        const actorModules: string[] = (ctx.user as any).allowedModules || [];
+        allowedModules = allowedModules.filter((m) => actorModules.includes(m));
+      }
       // 1. Check if email exists
       const existingUserSnap = await adminDb
         .collection('users')
@@ -214,6 +235,7 @@ export const employeeRouter = createTRPCRouter({
         organizationId: orgId,
         isActive: true,
         emailVerified: true,
+        allowedModules: input.role === "MASTER" ? [] : allowedModules,
       });
 
       // 5. Create EmployeeProfile
@@ -271,10 +293,79 @@ export const employeeRouter = createTRPCRouter({
         id: u.id,
         email: u.email,
         role: u.role,
-        employeeProfile: profileSnap.empty ? null : { id: profileSnap.docs[0].id }
+        isActive: u.isActive !== false,
+        allowedModules: u.allowedModules || [],
+        employeeProfile: profileSnap.empty ? null : { id: profileSnap.docs[0].id, name: (profileSnap.docs[0].data() as any)?.name }
       };
     }));
   }),
+
+  // Change an existing team member's role/module grants. Same subset rule as
+  // createStaffUser: an ADMIN can only grant modules they themselves have.
+  updateStaffAccess: protectedProcedure
+    .input(z.object({
+      userId: z.string(),
+      role: z.enum(["STAFF", "ADMIN"]),
+      allowedModules: z.array(z.string()),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const actorIsOrgOwner = ctx.user.role === "MASTER" || ctx.user.isSuperAdmin;
+      if (!actorIsOrgOwner && ctx.user.role !== "ADMIN") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You cannot manage team access" });
+      }
+      if (!actorIsOrgOwner && input.role !== "STAFF") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only a Super Admin can grant Admin rights" });
+      }
+
+      const targetSnap = await adminDb.collection('users').doc(input.userId).get();
+      if (!targetSnap.exists || targetSnap.data()?.organizationId !== ctx.user.organizationId) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      if (targetSnap.data()?.role === "MASTER") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "The Super Admin account can't be modified here" });
+      }
+
+      let allowedModules = input.allowedModules.filter((m): m is ModuleKey =>
+        (MODULE_KEYS as readonly string[]).includes(m)
+      );
+      if (!actorIsOrgOwner) {
+        const actorModules: string[] = (ctx.user as any).allowedModules || [];
+        allowedModules = allowedModules.filter((m) => actorModules.includes(m));
+      }
+
+      await adminDb.collection('users').doc(input.userId).update({
+        role: input.role,
+        allowedModules,
+      });
+      return { success: true };
+    }),
+
+  // Deactivate / reactivate a team member. This never deletes the user
+  // document or their employeeProfile/attendance/payroll history -- it only
+  // flips `isActive`, which is exactly what every existing query already
+  // filters on, and what createTRPCContext checks to block their login.
+  setStaffActive: protectedProcedure
+    .input(z.object({ userId: z.string(), isActive: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const actorIsOrgOwner = ctx.user.role === "MASTER" || ctx.user.isSuperAdmin;
+      if (!actorIsOrgOwner && ctx.user.role !== "ADMIN") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You cannot manage team access" });
+      }
+      if (input.userId === ctx.user.id) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "You can't deactivate your own account" });
+      }
+
+      const targetSnap = await adminDb.collection('users').doc(input.userId).get();
+      if (!targetSnap.exists || targetSnap.data()?.organizationId !== ctx.user.organizationId) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      if (targetSnap.data()?.role === "MASTER") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "The Super Admin account can't be deactivated" });
+      }
+
+      await adminDb.collection('users').doc(input.userId).update({ isActive: input.isActive });
+      return { success: true };
+    }),
 
   upsertProfile: protectedProcedure
     .input(

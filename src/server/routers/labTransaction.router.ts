@@ -1,10 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { adminDb } from "~/lib/firebaseAdmin";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, router, createModuleProcedure } from "../trpc";
 
+const moduleProcedure = createModuleProcedure("lab");
 export const labTransactionRouter = router({
-  list: protectedProcedure
+  list: moduleProcedure
     .input(z.object({ labId: z.string().optional() }).optional())
     .query(async ({ ctx, input }) => {
       let query = adminDb.collection("labTransactions")
@@ -30,7 +31,7 @@ export const labTransactionRouter = router({
       }));
     }),
 
-  create: protectedProcedure
+  create: moduleProcedure
     .input(
       z.object({
         labId: z.string(),
@@ -63,7 +64,7 @@ export const labTransactionRouter = router({
       return { success: true, transaction: { ...transaction, lab } };
     }),
 
-  delete: protectedProcedure
+  delete: moduleProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const docRef = adminDb.collection("labTransactions").doc(input.id);

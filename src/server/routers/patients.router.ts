@@ -1,6 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { masterOnlyProcedure, protectedProcedure, router } from "../trpc";
+import { masterOnlyProcedure, protectedProcedure, router, createModuleProcedure } from "../trpc";
+
+const moduleProcedure = createModuleProcedure("patients");
 import { adminDb } from "@/lib/firebaseAdmin";
 
 function parseDateOfBirth(dob: string): Date {
@@ -55,7 +57,7 @@ const listPatientsInput = z.object({
 
 export const patientsRouter = router({
 
-    create: protectedProcedure
+    create: moduleProcedure
         .input(createPatientInput)
         .mutation(async ({ input, ctx }) => {
             const {
@@ -110,7 +112,7 @@ export const patientsRouter = router({
             return { success: true as const, patient: { id: newPatientRef.id, ...patientData, dateOfBirth: parsedDob, anamnesis: anamnesisData } };
         }),
 
-    getById: protectedProcedure
+    getById: moduleProcedure
         .input(z.object({ id: z.string().cuid() }))
         .query(async ({ input, ctx }) => {
             const patientDoc = await adminDb.collection("patients").doc(input.id).get();
@@ -158,7 +160,7 @@ export const patientsRouter = router({
             };
         }),
 
-    list: protectedProcedure
+    list: moduleProcedure
         .input(listPatientsInput)
         .query(async ({ input, ctx }) => {
             const { search, page, perPage, sortBy, sortDir } = input;
@@ -238,7 +240,7 @@ export const patientsRouter = router({
             };
         }),
 
-    update: protectedProcedure
+    update: moduleProcedure
         .input(updatePatientInput)
         .mutation(async ({ input, ctx }) => {
             const {
@@ -329,7 +331,7 @@ export const patientsRouter = router({
             return { success: true as const };
         }),
 
-    getNextPatientId: protectedProcedure
+    getNextPatientId: moduleProcedure
         .input(z.object({ prefix: z.string() }))
         .query(async ({ input, ctx }) => {
             const { prefix } = input;
