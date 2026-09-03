@@ -68,20 +68,11 @@ export default async function SharedLabOrderPage({ params, searchParams }: { par
                         </div>
                     )}
 
-                    {/* Sender/receiver identity photos and the case photo gallery are
-                        only included on an internal share -- an external link (sent
-                        to the lab partner, a patient, etc.) never carries staff or
-                        patient photos, per how this link was shared. */}
-                    {!isExternal && verificationPhotoUrl && (
-                        <div className="space-y-3 pt-6 border-t border-gray-100">
-                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{verificationPhotoLabel}</h3>
-                            <div className="relative aspect-[4/3] max-w-sm rounded-lg overflow-hidden border border-gray-200">
-                                <img src={verificationPhotoUrl} alt={verificationPhotoLabel} className="w-full h-full object-cover" />
-                            </div>
-                        </div>
-                    )}
-
-                    {!isExternal && photoUrls.length > 0 && (
+                    {/* The case/product photo gallery is shown on both internal and
+                        external shares. Sender/receiver identity photos (selfies) are
+                        internal-only -- an external link (sent to the lab partner, a
+                        patient, etc.) never carries staff or patient identity photos. */}
+                    {photoUrls.length > 0 && (
                         <div className="space-y-3 pt-6 border-t border-gray-100">
                             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Case Gallery</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -90,6 +81,15 @@ export default async function SharedLabOrderPage({ params, searchParams }: { par
                                         <img src={url} alt={`Case photo ${idx + 1}`} className="object-cover w-full h-full" />
                                     </a>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {!isExternal && verificationPhotoUrl && (
+                        <div className="space-y-3 pt-6 border-t border-gray-100">
+                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{verificationPhotoLabel}</h3>
+                            <div className="relative aspect-[4/3] max-w-sm rounded-lg overflow-hidden border border-gray-200">
+                                <img src={verificationPhotoUrl} alt={verificationPhotoLabel} className="w-full h-full object-cover" />
                             </div>
                         </div>
                     )}
