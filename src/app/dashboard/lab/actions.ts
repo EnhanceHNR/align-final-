@@ -47,6 +47,25 @@ async function getActionOrgId() {
     }
 }
 
+// Server-side mirror of the isAdmin gate used by LabManager/TemplateManager
+// on the client: MASTER, the platform Owner, or an ADMIN granted the "lab"
+// module. The UI already hides these controls from everyone else, but a
+// direct call to the server action must not rely on that alone.
+async function isActionUserLabAdmin(): Promise<boolean> {
+    try {
+        const session = await getServerSession(authOptions);
+        const user = session?.user as any;
+        if (!user) return false;
+        return (
+            user.role === "MASTER" ||
+            !!user.isSuperAdmin ||
+            (user.role === "ADMIN" && Array.isArray(user.allowedModules) && user.allowedModules.includes("lab"))
+        );
+    } catch {
+        return false;
+    }
+}
+
 async function getActionUserId() {
     try {
         const session = await getServerSession(authOptions);
@@ -430,6 +449,9 @@ export async function updateSubmissionRemarksAction(id: string, newRemarks: stri
 
 export async function deleteSubmissionAction(id: string) {
     try {
+        if (!(await isActionUserLabAdmin())) {
+            throw new Error("Only Admins can delete records.");
+        }
         const orgId = await getActionOrgId();
         const docRef = adminDb.collection('labSubmissions').doc(id);
         const doc = await docRef.get();
@@ -536,19 +558,43 @@ export async function updatePaymentStatusAction(formData: FormData) {
     }
 }
 
-export async function updateEntityAction(collectionName: string, oldName: string, newName: string, additionalData?: any) {
+// Every caller (LabManager, TemplateManager) passes the entity's Firestore
+// document id as the second argument on update/delete, not its display
+// name -- despite the parameter historically being called "oldName" here.
+// The old implementations looked records up by a `name` field match, which
+// meant editing or deleting an existing lab partner (or any template, which
+// wasn't even handled below) silently failed every time with "not found".
+// Both now resolve by document id directly, which is what's actually
+// available and unique.
+const ENTITY_COLLECTIONS: Record<string, string> = {
+    labs: 'labs',
+    templates: 'instructionTemplates',
+};
+
+export async function updateEntityAction(collectionName: string, id: string, newName: string, additionalData?: any) {
     try {
-        if (collectionName === 'labs') {
+        const targetCollection = ENTITY_COLLECTIONS[collectionName];
+        if (targetCollection) {
+            if (!(await isActionUserLabAdmin())) {
+                throw new Error("Only Admins can edit records.");
+            }
             const orgId = await getActionOrgId();
-            const snapshot = await adminDb.collection('labs').where('name', '==', oldName).where('organizationId', '==', orgId).limit(1).get();
-            if (!snapshot.empty) {
-                await snapshot.docs[0].ref.update({
+            const docRef = adminDb.collection(targetCollection).doc(id);
+            const docSnap = await docRef.get();
+            if (!docSnap.exists || docSnap.data()?.organizationId !== orgId) {
+                throw new Error(collectionName === 'templates' ? "Template not found" : "Lab not found");
+            }
+            if (collectionName === 'labs') {
+                await docRef.update({
                     name: newName,
                     phone: additionalData?.phone || null,
-                    services: additionalData?.services || null
+                    services: additionalData?.services || null,
                 });
-            } else {
-                throw new Error("Lab not found");
+            } else if (collectionName === 'templates') {
+                await docRef.update({
+                    name: newName,
+                    text: additionalData?.text || "",
+                });
             }
         }
         return { success: true };
@@ -559,15 +605,28 @@ export async function updateEntityAction(collectionName: string, oldName: string
 
 export async function addEntityAction(collectionName: string, name: string, additionalData?: any) {
     try {
-        if (collectionName === 'labs') {
+        const targetCollection = ENTITY_COLLECTIONS[collectionName];
+        if (targetCollection) {
+            if (!(await isActionUserLabAdmin())) {
+                throw new Error("Only Admins can create records.");
+            }
             const orgId = await getActionOrgId();
-            await adminDb.collection('labs').add({
-                name,
-                organizationId: orgId,
-                phone: additionalData?.phone || null,
-                services: additionalData?.services || null,
-                createdAt: new Date()
-            });
+            if (collectionName === 'labs') {
+                await adminDb.collection(targetCollection).add({
+                    name,
+                    organizationId: orgId,
+                    phone: additionalData?.phone || null,
+                    services: additionalData?.services || null,
+                    createdAt: new Date()
+                });
+            } else if (collectionName === 'templates') {
+                await adminDb.collection(targetCollection).add({
+                    name,
+                    text: additionalData?.text || "",
+                    organizationId: orgId,
+                    createdAt: new Date()
+                });
+            }
         }
         return { success: true };
     } catch (e: any) {
@@ -575,16 +634,20 @@ export async function addEntityAction(collectionName: string, name: string, addi
     }
 }
 
-export async function deleteEntityAction(collectionName: string, name: string) {
+export async function deleteEntityAction(collectionName: string, id: string) {
     try {
-        if (collectionName === 'labs') {
-            const orgId = await getActionOrgId();
-            const snapshot = await adminDb.collection('labs').where('name', '==', name).where('organizationId', '==', orgId).limit(1).get();
-            if (!snapshot.empty) {
-                await snapshot.docs[0].ref.delete();
-            } else {
-                throw new Error("Lab not found");
+        const targetCollection = ENTITY_COLLECTIONS[collectionName];
+        if (targetCollection) {
+            if (!(await isActionUserLabAdmin())) {
+                throw new Error("Only Admins can delete records.");
             }
+            const orgId = await getActionOrgId();
+            const docRef = adminDb.collection(targetCollection).doc(id);
+            const docSnap = await docRef.get();
+            if (!docSnap.exists || docSnap.data()?.organizationId !== orgId) {
+                throw new Error(collectionName === 'templates' ? "Template not found" : "Lab not found");
+            }
+            await docRef.delete();
         }
         return { success: true };
     } catch (e: any) {

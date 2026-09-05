@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { createTRPCRouter, protectedProcedure, createModuleProcedure } from "../trpc";
+import { TRPCError } from "@trpc/server";
 
 const moduleProcedure = createModuleProcedure("patients");
 export const visitNotesRouter = createTRPCRouter({
@@ -48,7 +49,12 @@ export const visitNotesRouter = createTRPCRouter({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            await adminDb.collection("visitNotes").doc(input.id).delete();
+            const docRef = adminDb.collection("visitNotes").doc(input.id);
+            const docSnap = await docRef.get();
+            if (!docSnap.exists || docSnap.data()?.organizationId !== ctx.user.organizationId) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Visit note not found." });
+            }
+            await docRef.delete();
             return { success: true };
         }),
 

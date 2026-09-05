@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 import puppeteer from "puppeteer";
 import fs from "fs";
 import path from "path";
@@ -15,6 +17,16 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        // This route serves patient-identifying data (name, phone) as a raw
+        // file download with no other access control, so it must check the
+        // caller's session itself -- unlike tRPC procedures, plain API
+        // routes get no automatic auth/module check.
+        const session = await getServerSession(authOptions);
+        const sessionUser = session?.user as any;
+        if (!sessionUser) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const { id } = await params;
 
         const doc = await adminDb.collection("invoices").doc(id).get();
@@ -27,6 +39,10 @@ export async function GET(
 
         const invoice = { id: doc.id, ...doc.data() } as any;
 
+        if (!sessionUser.isSuperAdmin && invoice.organizationId !== sessionUser.organizationId) {
+            return NextResponse.json({ error: "Not found" }, { status: 404 });
+        }
+
         // Fetch patient
         const patientDoc = await adminDb.collection("patients").doc(invoice.patientId).get();
         const patient = patientDoc.exists ? patientDoc.data() : { fullName: "Unknown" };
@@ -35,6 +51,18 @@ export async function GET(
         // Fetch items
         const itemsSnap = await adminDb.collection("invoiceItems").where("invoiceId", "==", id).get();
         invoice.items = itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        // Fetch the invoicing organization's own details -- this template
+        // used to hardcode one sample clinic's name/address/doctor for
+        // every organization's invoices, which is a real problem on a
+        // multi-tenant app.
+        const orgDoc = invoice.organizationId
+            ? await adminDb.collection("organizations").doc(invoice.organizationId).get()
+            : null;
+        const org: any = orgDoc?.exists ? orgDoc.data() : null;
+        const clinicName = org?.name || "Your Clinic";
+        const clinicAddress = org?.address || "";
+        const clinicPhone = org?.phone || "";
 
         const date = invoice.createdAt ? new Date(invoice.createdAt.toDate ? invoice.createdAt.toDate() : invoice.createdAt).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB");
         const logo = getLogoBase64();
@@ -185,10 +213,9 @@ td {
   <div class="brand">
     <img class="logo" src="${logo}" />
     <div>
-      <div class="title">Align.io</div>
-      <div class="muted">Private dental clinic</div>
-      <div class="muted">Dr. Erdin Tatarević</div>
-      <div class="muted">Višnjik 34 B, Sarajevo</div>
+      <div class="title">${clinicName}</div>
+      ${clinicAddress ? `<div class="muted">${clinicAddress}</div>` : ""}
+      ${clinicPhone ? `<div class="muted">${clinicPhone}</div>` : ""}
     </div>
   </div>
 
@@ -248,14 +275,13 @@ td {
 <div class="footer">
   <div>
     Thank you for your trust!<br/>
-    Sarajevo, ${date}
+    ${date}
   </div>
 
   <div class="signature">
     Signature and stamp
     <div class="line"></div>
-    <div><b>Dr. Erdin Tatarević</b></div>
-    <div>Dentist</div>
+    <div><b>${clinicName}</b></div>
   </div>
 </div>
 

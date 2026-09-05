@@ -31,7 +31,7 @@ const fetchWithProfiles = async (collectionName: string, organizationId: string,
         await Promise.all(profileIds.map(async (id) => {
             const pDoc = await adminDb.collection("employeeProfiles").doc(id as string).get();
             if (pDoc.exists) {
-                (profiles as any)[id as string] = { id: pDoc.id, ...serializeTimestamps(pDocdata()) };
+                (profiles as any)[id as string] = { id: pDoc.id, ...serializeTimestamps(pDoc.data()) };
             }
         }));
     }

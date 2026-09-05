@@ -1,16 +1,16 @@
 import { z } from "zod";
-import { router, publicProcedure } from "../trpc";
+import { router, protectedProcedure } from "../trpc";
 import { adminDb } from "@/lib/firebaseAdmin";
 
 export const chairRouter = router({
-  list: publicProcedure.query(async ({ ctx }) => {
+  list: protectedProcedure.query(async ({ ctx }) => {
     const snapshot = await adminDb.collection('chairs')
       .where("organizationId", "==", ctx.user.organizationId)
       .orderBy("createdAt", "asc")
       .get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }),
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({ name: z.string().min(1), color: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
       const ref = await adminDb.collection('chairs').add({
@@ -22,7 +22,7 @@ export const chairRouter = router({
       const doc = await ref.get();
       return { id: doc.id, ...doc.data() };
     }),
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const docRef = adminDb.collection('chairs').doc(input.id);
@@ -32,7 +32,7 @@ export const chairRouter = router({
       }
       return { success: true };
     }),
-  updateGoogleCalendar: publicProcedure
+  updateGoogleCalendar: protectedProcedure
     .input(z.object({
         id: z.string(),
         googleCalendarId: z.string().nullable(),

@@ -14,7 +14,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 
 export function TemplateManager() {
   const { data: session } = useSession();
-  const isAdmin = true; // TODO: properly check session role
+  // Same admin gate as LabManager: MASTER, the platform Owner, or an ADMIN
+  // who's been granted the "lab" module. Everyone else gets read-only view.
+  const isAdmin =
+    session?.user?.role === "MASTER" ||
+    (session?.user as any)?.isSuperAdmin ||
+    (session?.user?.role === "ADMIN" && ((session?.user as any)?.allowedModules || []).includes("lab"));
   const { toast } = useToast();
   
   const [templates, setTemplates] = useState<any[]>([]);

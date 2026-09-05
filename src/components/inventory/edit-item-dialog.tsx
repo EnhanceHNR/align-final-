@@ -48,13 +48,12 @@ export function EditItemDialog({ item, onSave, onOpenChange }: EditItemDialogPro
     const [minQuantity, setMinQuantity] = useState(item.minQuantity);
     const [unit, setUnit] = useState(item.quantityUnit || "pcs");
     const [unitValue, setUnitValue] = useState(item.quantityValue || 1);
-    const [dealer, setDealer] = useState(item.dealer || '');
+    const [dealerId, setDealerId] = useState(item.dealerId || item.dealer?.id || '');
     const [stock, setStock] = useState<any[]>([...(item.stockEntries || [])]);
     const [keywords, setKeywords] = useState(item.keywords || "");
     const [isSaving, setIsSaving] = useState(false);
 
-    // TODO: Change to api.dealer.getAll.useQuery() once dealerRouter is created
-    const { data: dealers } = { data: [] as any[] };
+    const { data: dealers } = api.inventory.getDealers.useQuery();
 
     const handleAddBatch = () => {
         setStock([...stock, { quantity: 0, expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() }]);
@@ -84,10 +83,11 @@ export function EditItemDialog({ item, onSave, onOpenChange }: EditItemDialogPro
                 category,
                 costPerUnit,
                 minQuantity,
-                quantity: { value: unitValue, unit },
+                quantityValue: unitValue,
+                quantityUnit: unit,
                 stockEntries: stock,
                 keywords,
-                dealer,
+                dealerId,
                 itemCount: totalCount,
                 status: totalCount === 0 ? 'Out of Stock' : (totalCount <= minQuantity ? 'Low Stock' : 'In Stock')
             };
@@ -174,13 +174,13 @@ export function EditItemDialog({ item, onSave, onOpenChange }: EditItemDialogPro
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="edit-dealer">Dealer</Label>
-                            <Select onValueChange={setDealer} value={dealer}>
+                            <Select onValueChange={setDealerId} value={dealerId}>
                                 <SelectTrigger id="edit-dealer">
                                     <SelectValue placeholder="Select dealer" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {dealers?.map(d => (
-                                        <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>

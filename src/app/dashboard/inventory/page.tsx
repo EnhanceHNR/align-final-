@@ -66,21 +66,38 @@ export default function InventoryPage() {
         return inventoryItems;
     }, [inventoryItems, alertFilter]);
 
-    // TODO: Implement mutations for delete/update/adjust in the tRPC router and use them here
+    const deleteItemMutation = api.inventory.delete.useMutation();
+    const bulkDeleteMutation = api.inventory.bulkDelete.useMutation();
+    const updateItemMutation = api.inventory.update.useMutation();
+    const adjustStockMutation = api.inventory.adjustStock.useMutation();
+
     const handleDeleteItem = async () => {
         if (!itemToDelete) return;
-        // implement trpc delete
-        toast({ title: "Item Deleted (UI Mock)", description: "Backend integration pending." });
-        setItemToDelete(null);
+        try {
+            await deleteItemMutation.mutateAsync({ id: itemToDelete });
+            toast({ title: "Item deleted" });
+            refetch();
+        } catch (error: any) {
+            toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+        } finally {
+            setItemToDelete(null);
+        }
     };
 
     const handleBulkDeleteItems = async () => {
         if (!itemsToBulkDelete) return;
-        toast({ title: "Items Deleted (UI Mock)", description: "Backend integration pending." });
-        setItemsToBulkDelete(null);
-        if (clearSelectionFn) {
-            clearSelectionFn();
-            setClearSelectionFn(null);
+        try {
+            await bulkDeleteMutation.mutateAsync({ ids: itemsToBulkDelete });
+            toast({ title: `${itemsToBulkDelete.length} item(s) deleted` });
+            refetch();
+        } catch (error: any) {
+            toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+        } finally {
+            setItemsToBulkDelete(null);
+            if (clearSelectionFn) {
+                clearSelectionFn();
+                setClearSelectionFn(null);
+            }
         }
     };
 
@@ -89,8 +106,29 @@ export default function InventoryPage() {
     };
 
     const handleEditItem = async (updatedItem: any) => {
-        toast({ title: "Item Updated (UI Mock)", description: "Backend integration pending." });
-        setItemToEdit(null);
+        try {
+            await updateItemMutation.mutateAsync({
+                id: updatedItem.id,
+                name: updatedItem.name,
+                description: updatedItem.description,
+                company: updatedItem.company,
+                brandName: updatedItem.brandName,
+                quantityValue: updatedItem.quantityValue,
+                quantityUnit: updatedItem.quantityUnit,
+                dealerId: updatedItem.dealerId || null,
+                costPerUnit: updatedItem.costPerUnit,
+                minQuantity: updatedItem.minQuantity,
+                category: updatedItem.category,
+                keywords: updatedItem.keywords,
+                stockEntries: updatedItem.stockEntries,
+            });
+            toast({ title: "Item updated" });
+            refetch();
+        } catch (error: any) {
+            toast({ title: "Update failed", description: error.message, variant: "destructive" });
+        } finally {
+            setItemToEdit(null);
+        }
     };
 
     const handleAdjustStock = async (
@@ -100,8 +138,21 @@ export default function InventoryPage() {
         expiryDate?: Date,
         batchToUpdateExpiry?: string
     ) => {
-        toast({ title: "Stock Adjusted (UI Mock)", description: "Backend integration pending." });
-        setItemToAdjust(null);
+        try {
+            await adjustStockMutation.mutateAsync({
+                id: item.id,
+                type: adjustmentType,
+                quantity,
+                expiryDate: expiryDate?.toISOString(),
+                batchExpiryDate: batchToUpdateExpiry,
+            });
+            toast({ title: adjustmentType === "add" ? "Stock added" : "Stock usage recorded" });
+            refetch();
+        } catch (error: any) {
+            toast({ title: "Adjustment failed", description: error.message, variant: "destructive" });
+        } finally {
+            setItemToAdjust(null);
+        }
     };
 
     const inventoryColumns = useMemo(

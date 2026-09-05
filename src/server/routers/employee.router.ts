@@ -192,6 +192,7 @@ export const employeeRouter = createTRPCRouter({
     }))
     .mutation(async ({ ctx, input }) => {
       try {
+      const email = input.email.toLowerCase().trim();
       // Only an org's MASTER (or the platform Owner) may create another
       // MASTER or ADMIN account. An ADMIN may only create STAFF accounts,
       // and only grant modules they themselves have been granted -- they
@@ -213,7 +214,7 @@ export const employeeRouter = createTRPCRouter({
       // 1. Check if email exists
       const existingUserSnap = await adminDb
         .collection('users')
-        .where('email', '==', input.email)
+        .where('email', '==', email)
         .limit(1)
         .get();
         
@@ -229,7 +230,7 @@ export const employeeRouter = createTRPCRouter({
       // 4. Create User
       const newUserRef = adminDb.collection('users').doc();
       await newUserRef.set({
-        email: input.email,
+        email,
         passwordHash,
         role: input.role,
         organizationId: orgId,
@@ -388,6 +389,22 @@ export const employeeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      // This can rewrite salary, leave balances, and shifts for ANY
+      // employee -- it must be restricted to the same Master/Owner/Admin
+      // tier as the rest of team management, and the target user must
+      // belong to the caller's own organization (otherwise a guessed
+      // userId from another org could have its profile silently
+      // reassigned into this one).
+      const actorIsOrgOwner = ctx.user.role === "MASTER" || ctx.user.isSuperAdmin;
+      const actorModules: string[] = (ctx.user as any).allowedModules || [];
+      if (!actorIsOrgOwner && !(ctx.user.role === "ADMIN" && actorModules.includes("attendance"))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You cannot manage employee profiles" });
+      }
+      const targetUserSnap = await adminDb.collection('users').doc(input.userId).get();
+      if (!targetUserSnap.exists || targetUserSnap.data()?.organizationId !== ctx.user.organizationId) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
       const profileSnap = await adminDb
         .collection('employeeProfiles')
         .where('userId', '==', input.userId)

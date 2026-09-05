@@ -388,4 +388,174 @@ export const inventoryRouter = router({
       await docRef.set(item);
       return { id: docRef.id, ...item };
     }),
+
+  // Recomputes total stock + status from a batch list -- shared by update
+  // (full batch replacement from the Edit dialog) and adjustStock (one
+  // batch at a time) so the two paths can never disagree on the totals.
+  update: moduleProcedure
+    .input(z.object({
+      id: z.string(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      company: z.string().optional(),
+      brandName: z.string().optional(),
+      quantityValue: z.number().optional(),
+      quantityUnit: z.string().optional(),
+      dealerId: z.string().nullable().optional(),
+      costPerUnit: z.number().optional(),
+      minQuantity: z.number().optional(),
+      category: z.string().optional(),
+      keywords: z.string().optional(),
+      stockEntries: z.array(z.object({
+        quantity: z.number(),
+        expiryDate: z.string(),
+      })).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { id, stockEntries, ...fields } = input;
+      const docRef = adminDb.collection('inventoryItems').doc(id);
+      const docSnap = await docRef.get();
+      if (!docSnap.exists || docSnap.data()?.organizationId !== ctx.user.organizationId) {
+        throw new Error("Item not found");
+      }
+
+      const updateData: Record<string, any> = { ...fields };
+
+      if (stockEntries) {
+        // Full replace: this dialog edits the whole batch list at once
+        // (add/remove/change quantity or expiry), so the simplest correct
+        // sync is to drop the old batch docs and recreate them from what
+        // was submitted, rather than trying to diff them.
+        const existingSnap = await adminDb.collection('stockEntries')
+          .where('inventoryItemId', '==', id)
+          .where('organizationId', '==', ctx.user.organizationId)
+          .get();
+        const batch = adminDb.batch();
+        existingSnap.docs.forEach(d => batch.delete(d.ref));
+        stockEntries.forEach(entry => {
+          const ref = adminDb.collection('stockEntries').doc();
+          batch.set(ref, {
+            inventoryItemId: id,
+            organizationId: ctx.user.organizationId,
+            quantity: entry.quantity,
+            expiryDate: entry.expiryDate,
+            createdAt: new Date(),
+          });
+        });
+        await batch.commit();
+
+        const totalCount = stockEntries.reduce((sum, e) => sum + (e.quantity || 0), 0);
+        const minQuantity = fields.minQuantity ?? docSnap.data()?.minQuantity ?? 0;
+        updateData.itemCount = totalCount;
+        updateData.status = totalCount === 0 ? "Out of Stock" : (totalCount <= minQuantity ? "Low Stock" : "In Stock");
+      }
+
+      await docRef.update(updateData);
+      const updated = await docRef.get();
+      return { id: updated.id, ...updated.data() };
+    }),
+
+  delete: moduleProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const docRef = adminDb.collection('inventoryItems').doc(input.id);
+      const docSnap = await docRef.get();
+      if (!docSnap.exists || docSnap.data()?.organizationId !== ctx.user.organizationId) {
+        throw new Error("Item not found");
+      }
+      const stockSnap = await adminDb.collection('stockEntries')
+        .where('inventoryItemId', '==', input.id)
+        .where('organizationId', '==', ctx.user.organizationId)
+        .get();
+      const batch = adminDb.batch();
+      stockSnap.docs.forEach(d => batch.delete(d.ref));
+      batch.delete(docRef);
+      await batch.commit();
+      return { success: true };
+    }),
+
+  bulkDelete: moduleProcedure
+    .input(z.object({ ids: z.array(z.string()) }))
+    .mutation(async ({ ctx, input }) => {
+      const batch = adminDb.batch();
+      for (const id of input.ids) {
+        const docRef = adminDb.collection('inventoryItems').doc(id);
+        const docSnap = await docRef.get();
+        if (!docSnap.exists || docSnap.data()?.organizationId !== ctx.user.organizationId) {
+          continue; // skip items that don't belong to this org rather than aborting the whole batch
+        }
+        const stockSnap = await adminDb.collection('stockEntries')
+          .where('inventoryItemId', '==', id)
+          .where('organizationId', '==', ctx.user.organizationId)
+          .get();
+        stockSnap.docs.forEach(d => batch.delete(d.ref));
+        batch.delete(docRef);
+      }
+      await batch.commit();
+      return { success: true };
+    }),
+
+  adjustStock: moduleProcedure
+    .input(z.object({
+      id: z.string(),
+      type: z.enum(["add", "use"]),
+      quantity: z.number().positive(),
+      expiryDate: z.string().optional(), // for "add": expiry of the new batch
+      batchExpiryDate: z.string().optional(), // for "use": which existing batch to draw down
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const docRef = adminDb.collection('inventoryItems').doc(input.id);
+      const docSnap = await docRef.get();
+      if (!docSnap.exists || docSnap.data()?.organizationId !== ctx.user.organizationId) {
+        throw new Error("Item not found");
+      }
+      const item = docSnap.data()!;
+      const currentCount = item.itemCount || 0;
+      const minQuantity = item.minQuantity || 0;
+
+      if (input.type === "add") {
+        await adminDb.collection('stockEntries').add({
+          inventoryItemId: input.id,
+          organizationId: ctx.user.organizationId,
+          quantity: input.quantity,
+          expiryDate: input.expiryDate || new Date().toISOString(),
+          createdAt: new Date(),
+        });
+        const newCount = currentCount + input.quantity;
+        await docRef.update({
+          itemCount: newCount,
+          status: newCount === 0 ? "Out of Stock" : (newCount <= minQuantity ? "Low Stock" : "In Stock"),
+        });
+      } else {
+        if (!input.batchExpiryDate) {
+          throw new Error("Select a batch to use stock from");
+        }
+        const batchSnap = await adminDb.collection('stockEntries')
+          .where('inventoryItemId', '==', input.id)
+          .where('organizationId', '==', ctx.user.organizationId)
+          .where('expiryDate', '==', input.batchExpiryDate)
+          .limit(1)
+          .get();
+        if (batchSnap.empty) {
+          throw new Error("Selected batch was not found -- it may have already been used up");
+        }
+        const batchDoc = batchSnap.docs[0];
+        const batchQty = (batchDoc.data() as any).quantity || 0;
+        if (input.quantity > batchQty) {
+          throw new Error(`Only ${batchQty} left in that batch`);
+        }
+        if (input.quantity === batchQty) {
+          await batchDoc.ref.delete();
+        } else {
+          await batchDoc.ref.update({ quantity: batchQty - input.quantity });
+        }
+        const newCount = Math.max(0, currentCount - input.quantity);
+        await docRef.update({
+          itemCount: newCount,
+          status: newCount === 0 ? "Out of Stock" : (newCount <= minQuantity ? "Low Stock" : "In Stock"),
+        });
+      }
+      const updated = await docRef.get();
+      return { id: updated.id, ...updated.data() };
+    }),
 });

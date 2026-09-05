@@ -25,7 +25,11 @@ export const proceduresRouter = router({
     delete: protectedProcedure
         .input(z.object({ id: z.string() }))
         .mutation(async ({ ctx, input }) => {
-            await adminDb.collection("procedures").doc(input.id).delete();
+            const docRef = adminDb.collection("procedures").doc(input.id);
+            const docSnap = await docRef.get();
+            if (docSnap.exists && docSnap.data()?.organizationId === ctx.user.organizationId) {
+                await docRef.delete();
+            }
             return { success: true };
         }),
 });

@@ -5,7 +5,8 @@ import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
-    const { clinicName, email, password } = await req.json();
+    const { clinicName, email: rawEmail, password } = await req.json();
+    const email = typeof rawEmail === "string" ? rawEmail.toLowerCase().trim() : rawEmail;
 
     if (!clinicName || !email || !password) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });

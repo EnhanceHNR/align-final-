@@ -62,7 +62,7 @@ export function AdjustStockDialog({ item, onConfirm, onOpenChange }: AdjustStock
     return false;
   }
   
-  const sortedStock = item.stock?.sort((a,b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+  const sortedStock = [...(item.stockEntries || [])].sort((a: any, b: any) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -108,7 +108,7 @@ export function AdjustStockDialog({ item, onConfirm, onOpenChange }: AdjustStock
                                 type="number"
                                 value={quantity}
                                 onChange={(e) => setQuantity(e.target.value === '' ? '' : Number(e.target.value))}
-                                placeholder={`Max: ${item.stock.find(s => s.expiryDate === useBatchExpiry)?.quantity}`}
+                                placeholder={`Max: ${item.stockEntries?.find((s: any) => s.expiryDate === useBatchExpiry)?.quantity}`}
                             />
                         </div>
                     )}

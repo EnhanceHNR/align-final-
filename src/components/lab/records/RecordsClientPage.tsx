@@ -51,7 +51,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 export function RecordsClientPage({ submissions, labs = [], initialOpenId }: { submissions: Submission[], labs?: Lab[], initialOpenId?: string }) {
     const { toast } = useToast();
     const { data: session } = useSession();
-    const isAdmin = true; // MOCK for now
+    // Same admin gate used across the lab module (LabManager/TemplateManager):
+    // MASTER, the platform Owner, or an ADMIN granted the "lab" module.
+    // Plain STAFF get read-only access -- no delete, no editing remarks.
+    const isAdmin =
+        session?.user?.role === "MASTER" ||
+        (session?.user as any)?.isSuperAdmin ||
+        (session?.user?.role === "ADMIN" && ((session?.user as any)?.allowedModules || []).includes("lab"));
     const isRoleLoading = false;
     const [openDialogId, setOpenDialogId] = useState<string | null>(null);
     const [shareDialog, setShareDialog] = useState<{sub: Submission, type: 'internal' | 'external'} | null>(null);
