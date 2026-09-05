@@ -575,7 +575,11 @@ export async function updateEntityAction(collectionName: string, id: string, new
     try {
         const targetCollection = ENTITY_COLLECTIONS[collectionName];
         if (targetCollection) {
-            if (!(await isActionUserLabAdmin())) {
+            // Templates are admin-only end to end (TemplateManager hides every
+            // control from non-admins). Labs/partners have always let any
+            // staff member add or edit -- only deletion is admin-only there --
+            // so this must not block the labs case the way delete does.
+            if (collectionName === 'templates' && !(await isActionUserLabAdmin())) {
                 throw new Error("Only Admins can edit records.");
             }
             const orgId = await getActionOrgId();
@@ -607,7 +611,10 @@ export async function addEntityAction(collectionName: string, name: string, addi
     try {
         const targetCollection = ENTITY_COLLECTIONS[collectionName];
         if (targetCollection) {
-            if (!(await isActionUserLabAdmin())) {
+            // Same distinction as updateEntityAction above: templates are
+            // admin-only, labs/partners are open to any staff member for
+            // add/edit (only delete is admin-restricted there).
+            if (collectionName === 'templates' && !(await isActionUserLabAdmin())) {
                 throw new Error("Only Admins can create records.");
             }
             const orgId = await getActionOrgId();
